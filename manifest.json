@@ -1,0 +1,18 @@
+{
+  "id": "/index.html?app=studio",
+  "name": "Pilates D'Luxe Studio",
+  "short_name": "Pilates D'Luxe",
+  "description": "Studio Admin App for Pilates D'Luxe",
+  "start_url": "/index.html?app=studio",
+  "scope": "/index.html",
+  "display": "standalone",
+  "background_color": "#0d0c0a",
+  "theme_color": "#0d0c0a",
+  "orientation": "portrait",
+  "icons": [
+    {"src": "icon192.png","sizes": "192x192","type": "image/png","purpose": "any"},
+    {"src": "icon192.png","sizes": "192x192","type": "image/png","purpose": "maskable"},
+    {"src": "icon512.png","sizes": "512x512","type": "image/png","purpose": "any"},
+    {"src": "icon512.png","sizes": "512x512","type": "image/png","purpose": "maskable"}
+  ]
+}
