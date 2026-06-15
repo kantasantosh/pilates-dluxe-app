@@ -1,5 +1,5 @@
-const CACHE='pilates-v23';
-const ASSETS=['./index.html', './icon192.png', './icon512.png', './manifest.json'];
+const CACHE='pilates-v5';
+const ASSETS=['./', './index.html', './booking.html', './icon-192.png', './icon-512.png', './manifest.json'];
 self.addEventListener('install', e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
   self.skipWaiting();
