@@ -103,7 +103,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 <div class="header">
   <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
     <svg viewBox="0 0 100 100" width="30" height="30" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg>
-    <div class="logo">Pilates D'Luxe<small>Book a Class · <span onclick="bkCheckUpdate()" style="cursor:pointer;text-decoration:underline;">v12</span></small></div>
+    <div class="logo">Pilates D'Luxe<small>Book a Class · <span onclick="bkCheckUpdate()" style="cursor:pointer;text-decoration:underline;">v13</span></small></div>
   </div>
 </div>
 
@@ -139,6 +139,25 @@ if(!document.getElementById('pdl-pop-style')){
   const st=document.createElement('style');st.id='pdl-pop-style';
   st.textContent='@keyframes pdlpop{from{transform:scale(0.92);opacity:0;}to{transform:scale(1);opacity:1;}}';
   document.head.appendChild(st);
+}
+function pdlConfirm(msg,yesLabel,noLabel,icon){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
+    ov.innerHTML=`<div style="background:var(--surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;max-width:340px;width:100%;padding:24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:pdlpop 0.2s ease;">
+      <div style="font-size:38px;margin-bottom:10px;">${icon||'⚠️'}</div>
+      <div style="font-size:14px;color:var(--text,#fff);line-height:1.6;margin-bottom:18px;">${msg}</div>
+      <div style="display:flex;gap:10px;">
+        <button id="pdl-no" style="flex:1;background:none;border:1px solid var(--border2,#555);color:var(--text2,#bbb);border-radius:24px;padding:11px 0;font-family:'Jost',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">${noLabel||'No'}</button>
+        <button id="pdl-yes" style="flex:1;background:#c0392b;color:#fff;border:none;border-radius:24px;padding:11px 0;font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">${yesLabel||'Yes'}</button>
+      </div>
+    </div>`;
+    document.body.appendChild(ov);
+    const done=v=>{ov.remove();resolve(v);};
+    ov.querySelector('#pdl-yes').onclick=()=>done(true);
+    ov.querySelector('#pdl-no').onclick=()=>done(false);
+    ov.onclick=e=>{if(e.target===ov)done(false);};
+  });
 }
 const COL='pilates';
 
@@ -278,7 +297,10 @@ function renderSlotBtn(slot){
     return `<div class="slot-btn" style="border:2px solid var(--gold,#c9a84c);background:rgba(201,168,76,0.12);cursor:default;">
       <div class="slot-time">${slot.replace(' AM','').replace(' PM','')}<span style="font-size:10px;color:var(--text3);margin-left:3px;">${slot.includes('AM')?'AM':'PM'}</span></div>
       <div class="slot-avail"><span style="color:var(--gold,#c9a84c);font-weight:700;font-size:11px;">✓ YOUR BOOKING</span></div>
-      <button onclick="event.stopPropagation();reschedulePrompt('${slot}')" style="margin-top:4px;background:none;border:1px solid var(--gold,#c9a84c);border-radius:12px;padding:2px 8px;font-size:10px;color:var(--gold,#c9a84c);cursor:pointer;">Reschedule</button>
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:4px;">
+        <button onclick="event.stopPropagation();reschedulePrompt('${slot}')" style="background:none;border:1px solid var(--gold,#c9a84c);border-radius:12px;padding:2px 8px;font-size:10px;color:var(--gold,#c9a84c);cursor:pointer;">Reschedule</button>
+        <button onclick="event.stopPropagation();cancelPrompt('${slot}')" style="background:none;border:1px solid #c0392b;border-radius:12px;padding:2px 8px;font-size:10px;color:#e57373;cursor:pointer;">Cancel</button>
+      </div>
     </div>`;
   }
   return `<div class="slot-btn${full?' full':sel?' selected':''}" onclick="${full?'':'selectSlot(\''+slot+'\')'}">
@@ -303,6 +325,47 @@ function reschedulePrompt(fromSlot){
 function _slotStartHour(slot){
   const m=slot.match(/(\d+)/);let h=m?parseInt(m[1]):8;
   if(slot.includes('PM')&&h!==12)h+=12;if(slot.includes('AM')&&h===12)h=0;return h;
+}
+/* ===== Member self-cancel (2h cutoff, returns the session) ===== */
+function cancelPrompt(fromSlot){
+  const slotHour=_slotStartHour(fromSlot);
+  const classTime=new Date(_selDate+'T00:00:00');classTime.setHours(slotHour,0,0,0);
+  if((classTime-new Date())<2*3600*1000){
+    pdlAlert('Cancellation is allowed only up to 2 hours before the class. Please contact the studio for last-minute changes.','⏰');
+    return;
+  }
+  pdlConfirm('Cancel your '+fromSlot+' booking on '+formatDate(_selDate)+'? Your session will be returned and the slot freed for others.','Cancel Booking','Keep it').then(ok=>{
+    if(ok)doCancel({date:_selDate,slot:fromSlot});
+  });
+}
+async function doCancel(target){
+  const okPin=await requireBookingPin();
+  if(!okPin)return;
+  try{
+    const bSnap=await db.collection(COL).doc('pp_bookings').get();
+    const bk=bSnap.exists?JSON.parse(bSnap.data().value):{};
+    if(!(bk[target.date]&&bk[target.date][target.slot])){pdlAlert('That booking was already changed. Please refresh.','ℹ️');return;}
+    const arr=bk[target.date][target.slot];
+    const i=arr.findIndex(b=>b.cid===_memberId&&!b.attended);
+    if(i<0){pdlAlert('That booking was already changed or already attended. Please refresh.','ℹ️');return;}
+    arr.splice(i,1);
+    await db.collection(COL).doc('pp_bookings').set({value:JSON.stringify(bk),updated:Date.now()});
+    _bookings=bk;
+    /* return the session to the member (unless unlimited) */
+    const mSnap=await db.collection(COL).doc('pp_memberships').get();
+    const mems=mSnap.exists?JSON.parse(mSnap.data().value):{};
+    if(mems[_memberId]&&mems[_memberId].plan!=='unlimited'){
+      const tot=mems[_memberId].sessionsTotal||0;
+      mems[_memberId].sessionsLeft=Math.min((mems[_memberId].sessionsLeft||0)+1,tot||999);
+    }
+    /* persist a freshly-set PIN if this was the member's first action */
+    if(_pendingPinHash&&mems[_memberId]){mems[_memberId].bookPin=_pendingPinHash;_pendingPinHash=null;}
+    await db.collection(COL).doc('pp_memberships').set({value:JSON.stringify(mems),updated:Date.now()});
+    _mems=mems;
+    pdlAlert('✓ Your '+target.slot+' booking on '+formatDate(target.date)+' is cancelled. The session has been returned to your account.','✅').then(()=>{
+      _selSlot='';refreshGreeting();renderStep1();
+    });
+  }catch(e){pdlAlert('Cancellation failed. Please try again.','⚠️');}
 }
 function switchAccount(){
   _reschedFrom=null;
@@ -690,7 +753,7 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('booking-sw.js').catch(()=>{}));
 }
 function bkCheckUpdate(){
-  pdlAlert('You are on <b>v12</b>. Tap OK to force-load the latest version.','🔄').then(()=>{
+  pdlAlert('You are on <b>v13</b>. Tap OK to force-load the latest version.','🔄').then(()=>{
     Promise.resolve()
       .then(()=>('serviceWorker' in navigator)?navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))):null)
       .then(()=>('caches' in window)?caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))):null)

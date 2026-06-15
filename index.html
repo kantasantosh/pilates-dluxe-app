@@ -50,6 +50,8 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .logo-sub{font-size:10px;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;margin-top:-1px;font-family:'Jost',sans-serif;font-weight:300;}
 .topbar-date{font-size:11px;color:var(--text2);text-align:right;}
 .tb-mini{background:none;border:1px solid var(--border2);border-radius:14px;padding:2px 10px;font-size:10px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
+.np-area::placeholder{color:var(--text3);opacity:0.35;}
+.np-area::-webkit-input-placeholder{color:var(--text3);opacity:0.35;}
 .topbar-date strong{display:block;color:var(--gold);font-size:12px;}
 
 /* BOTTOM NAV */
@@ -345,7 +347,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v24</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v25</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:center;">
@@ -385,6 +387,11 @@ window.addEventListener('load',()=>{
     <button class="ftab" onclick="setClientFilter('expired',this)">Expired</button>
     <button class="ftab" onclick="setClientFilter('due',this)">Due</button>
     <button class="ftab" onclick="setClientFilter('inactive',this)">⏸ Inactive</button>
+  </div>
+  <div style="margin-bottom:14px;">
+    <select id="client-planfilter" onchange="renderClients()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
+      <option value="">📋 All plans</option>
+    </select>
   </div>
   <div id="client-list"></div>
 </div>
@@ -754,7 +761,7 @@ window.addEventListener('load',()=>{
     <button class="mc2" onclick="closeNotepad()">✕</button>
     <h2 style="color:var(--gold);">📝 Notepad</h2>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Jot down doubts, ideas, or feature requests here. Saved automatically and synced across your devices.</p>
-    <textarea id="np-text" placeholder="Type your notes here…
+    <textarea id="np-text" class="np-area" placeholder="Type your notes here…
 • Doubt about…
 • New feature idea…
 • Remember to…" style="width:100%;min-height:300px;flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:14px;color:var(--text);font-size:14px;font-family:'Jost',sans-serif;line-height:1.6;resize:vertical;" oninput="npAutoSave()"></textarea>
@@ -1281,18 +1288,18 @@ function goExpiring(){
     renderClients();
   },180);
 }
-function renderClients(){
+/* Shared filter — used by BOTH renderClients() and printMembers() so print
+   always matches what's on screen (status filter + plan filter + search). */
+function _getFilteredClients(){
   const clients=ld('pp_clients',[]);
   const mems=ld('pp_memberships',{});
-  const payments=ld('pp_payments',[]);
-  const q=(document.getElementById('client-search')||{}).value||'';
-  let filtered=clients.filter(c=>{
-    const name=(c.fname+' '+c.lname).toLowerCase();
+  const q=((document.getElementById('client-search')||{}).value||'').toLowerCase();
+  const planF=(document.getElementById('client-planfilter')||{}).value||'';
+  return clients.filter(c=>{
+    const name=(c.fname+' '+(c.lname||'')).toLowerCase();
     const phone=(c.phone||'').toLowerCase();
-    if(q&&!name.includes(q.toLowerCase())&&!phone.includes(q))return false;
-    // Inactive filter — show only archived
+    if(q&&!name.includes(q)&&!phone.includes(q))return false;
     if(_clientFilter2==='inactive')return !!c.archived;
-    // All other filters — hide archived
     if(c.archived)return false;
     const st=getMembershipStatus(mems[c.id]);
     if(_clientFilter2==='trial'&&!c.isTrial)return false;
@@ -1304,8 +1311,23 @@ function renderClients(){
       const totalCharged=Object.values(mems).filter(m=>m.cid===c.id).reduce((s,m)=>s+Math.max(0,(m.fee||0)-(m.disc||0)),0);
       if(totalCharged<=totalPaid)return false;
     }
+    if(planF){const m=mems[c.id];if(!m||m.plan!==planF)return false;}
     return true;
   });
+}
+function renderClients(){
+  const clients=ld('pp_clients',[]);
+  const mems=ld('pp_memberships',{});
+  const payments=ld('pp_payments',[]);
+  // populate plan dropdown (preserve selection)
+  const pf=document.getElementById('client-planfilter');
+  if(pf){
+    const cur=pf.value;
+    const plans=getPlans();
+    pf.innerHTML='<option value="">📋 All plans</option>'+plans.map(p=>`<option value="${_esc(p.id)}">${_esc(p.name)}</option>`).join('');
+    pf.value=cur;
+  }
+  let filtered=_getFilteredClients();
   if(!filtered.length){
     document.getElementById('client-list').innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--text2);">No clients found</div>`;
     return;
@@ -2526,7 +2548,7 @@ const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function renderCredits(){
   document.getElementById('credits-content').innerHTML=`
     <div style="text-align:center;padding:30px 20px 20px;">
-      <div style="width:80px;height:80px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-family:'Playfair Display',serif;font-size:36px;color:var(--gold);font-style:italic;">P</div>
+      <div style="width:80px;height:80px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><svg viewBox="0 0 100 100" width="52" height="52" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
       <div style="font-family:'Playfair Display',serif;font-size:28px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
       <div style="font-size:13px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;margin-top:4px;font-weight:300;">Studio Admin</div>
       <div style="font-size:12px;color:var(--text3);margin-top:8px;">Version 1.0 • 2026</div>
@@ -2545,6 +2567,11 @@ function renderCredits(){
         <button onclick="exportPPData()" style="background:linear-gradient(135deg,var(--teal),#4a7a72);color:white;border:none;border-radius:var(--rsm);padding:12px;font-size:13px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;">⬇️ Export</button>
         <label style="background:linear-gradient(135deg,var(--purple),#6a5a7f);color:white;border-radius:var(--rsm);padding:12px;font-size:13px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;text-align:center;display:block;">⬆️ Import<input type="file" accept=".json" onchange="importPPData(this)" style="display:none;"/></label>
       </div>
+    </div>
+    <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">🔒 Fingerprint Unlock</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6;">Enable fingerprint / face unlock on <b>this device</b> for faster sign-in. Your PIN always keeps working as backup. (Per-device; does not sync.)</div>
+      <div id="bio-about-area"></div>
     </div>
     <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
       <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">💬 Feedback & Support</div>
@@ -2575,6 +2602,26 @@ function renderCredits(){
       <div style="font-size:13px;color:var(--text3);margin-top:6px;text-align:center;">Use to clear test data. Irreversible.</div>
     </div>
   `;
+  renderBioAbout();
+}
+function renderBioAbout(){
+  const area=document.getElementById('bio-about-area');
+  if(!area)return;
+  if(typeof _bioSupported!=='function'||!_bioSupported()){
+    area.innerHTML='<div style="font-size:12px;color:var(--text3);">This device or browser does not support fingerprint unlock.</div>';
+    return;
+  }
+  if(!PPS||!PPS.id){
+    area.innerHTML='<div style="font-size:12px;color:var(--text3);">Sign in to manage fingerprint.</div>';
+    return;
+  }
+  const has=bioHasFor(PPS.id);
+  if(has){
+    area.innerHTML='<div style="font-size:13px;color:var(--green,#4ade80);margin-bottom:10px;">✓ Fingerprint is enabled for <b>'+_esc(PPS.name)+'</b> on this device.</div>'+
+      '<button class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);" onclick="bioRemove(PPS.id);renderBioAbout();">Remove fingerprint from this device</button>';
+  }else{
+    area.innerHTML='<button class="sb2" onclick="bioEnroll(PPS.id).then(ok=>{if(ok)renderBioAbout();})">🔒 Enable fingerprint for '+_esc(PPS.name)+'</button>';
+  }
 }
 
 function exportPPData(){
@@ -3766,6 +3813,7 @@ if('serviceWorker' in navigator){
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
       <div class="lg-err" id="lg-err"></div>
       <button class="lg-btn" onclick="doLogin()">Unlock</button>
+      <button class="lg-btn" id="lg-bio-btn" style="display:none;background:none;border:1.5px solid var(--gold);color:var(--gold);margin-top:10px;" onclick="bioLogin(_lgSelUser)">🔒 Unlock with Fingerprint</button>
     </div>
     <div id="lg-setup-area" style="display:none;text-align:left;">
       <div style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center;">First-time setup — create the <b style="color:var(--gold)">Admin</b> account</div>
@@ -3822,6 +3870,65 @@ if('serviceWorker' in navigator){
 <script>
 /* ================= AUTH CORE ================= */
 let PPS=null; /* current logged-in user session */
+// ===== FINGERPRINT / BIOMETRIC UNLOCK (WebAuthn) — optional, device-specific =====
+// Credentials live ONLY on this device (cannot sync). PIN is always the fallback.
+function _bioStore(){try{return JSON.parse(localStorage.getItem('pp_bio'))||{};}catch(e){return{};}}
+function _bioSave(o){localStorage.setItem('pp_bio',JSON.stringify(o));}
+function _bioSupported(){return !!(window.PublicKeyCredential&&navigator.credentials&&navigator.credentials.create);}
+function _b64ToBuf(b64){const bin=atob(b64.replace(/-/g,'+').replace(/_/g,'/'));const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a.buffer;}
+function _bufToB64(buf){const a=new Uint8Array(buf);let s='';for(let i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+
+async function bioEnroll(userId){
+  if(!_bioSupported()){toast('This device/browser does not support fingerprint');return false;}
+  const u=ppUsers().find(x=>x.id===userId);if(!u){toast('User not found');return false;}
+  try{
+    const challenge=new Uint8Array(32);crypto.getRandomValues(challenge);
+    const idBytes=new TextEncoder().encode(userId);
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge,
+      rp:{name:"Pilates D'Luxe"},
+      user:{id:idBytes,name:u.uid||u.name,displayName:u.name},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},
+      timeout:60000,
+      attestation:'none'
+    }});
+    if(!cred){toast('Fingerprint setup cancelled');return false;}
+    const store=_bioStore();store[userId]=_bufToB64(cred.rawId);_bioSave(store);
+    if(typeof AUD==='function')AUD('🔑 Fingerprint enabled on this device','User: '+u.name);
+    toast('✓ Fingerprint enabled on this device');
+    return true;
+  }catch(e){toast('Fingerprint setup failed or cancelled');return false;}
+}
+
+async function bioLogin(userId){
+  if(!_bioSupported()){toast('Fingerprint not supported here');return;}
+  const store=_bioStore();const credId=store[userId];
+  const u=ppUsers().find(x=>x.id===userId&&x.active!==false);
+  if(!credId||!u){toast('No fingerprint set for this user on this device');return;}
+  try{
+    const challenge=new Uint8Array(32);crypto.getRandomValues(challenge);
+    const assertion=await navigator.credentials.get({publicKey:{
+      challenge,
+      allowCredentials:[{type:'public-key',id:_b64ToBuf(credId)}],
+      userVerification:'required',
+      timeout:60000
+    }});
+    if(assertion){
+      localStorage.removeItem('pp_lock');
+      localStorage.setItem('pp_session',JSON.stringify({uid:u.id,ts:Date.now()}));
+      PPS=u;if(typeof AUD==='function')AUD('🔓 Logged in (fingerprint)','');
+      setTimeout(()=>location.reload(),300);
+    }
+  }catch(e){
+    const err=document.getElementById('lg-err');
+    if(err)err.textContent='Fingerprint not recognised — use your PIN';
+    else toast('Fingerprint failed — use your PIN');
+  }
+}
+function bioHasFor(userId){return !!_bioStore()[userId];}
+function bioRemove(userId){const s=_bioStore();delete s[userId];_bioSave(s);toast('Fingerprint removed from this device');}
+
 let _lgSelUser=null;
 
 async function ppHash(uid,pin){
@@ -3910,6 +4017,9 @@ function renderLoginUsers(){
       <div class="av" style="background:${colorFor(u.name||'U')};">${initials(u.name||'U')}</div>
       ${u.name}${u.role==='admin'?' 👑':u.role==='trainer'?' 🏋️':''}
     </div>`).join('');
+  // show fingerprint button only if this user enrolled on THIS device
+  const bb=document.getElementById('lg-bio-btn');
+  if(bb)bb.style.display=(typeof bioHasFor==='function'&&bioHasFor(_lgSelUser))?'block':'none';
 }
 function _lock(){try{return JSON.parse(localStorage.getItem('pp_lock'))||{n:0,until:0};}catch(e){return{n:0,until:0};}}
 async function doLogin(){
@@ -4376,7 +4486,6 @@ function deleteUser(){
           <button class="sb2" onclick="openStatement()" style="margin-bottom:8px;">📑 Account Statement (passbook)</button>
           <button class="sb2" onclick="openStudioEdit()" style="margin-bottom:8px;">🏛 Studio Details (receipt header)</button>
           <button class="sb2" onclick="openAnnounce()" style="margin-bottom:8px;">📢 Booking Page Announcement</button>
-          <button class="sb2" onclick="switchStudioAccount()" style="margin-bottom:8px;">↪ Sign out of studio cloud account (switch device/login)</button>
           <button class="sb2" onclick="openUsersModal()" style="margin-bottom:8px;">👥 Users &amp; Access</button>
           <button class="sb2" onclick="openCompRule()" style="background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);margin-bottom:8px;">🎁 Referral Reward Rule</button>
           <button class="sb2" onclick="openAuditModal()" style="background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>
@@ -4853,10 +4962,11 @@ function ppPrint(title,bodyHtml){
 }
 function _esc(s){return (s||'').toString().replace(/</g,'&lt;');}
 
-/* ---- Member list ---- */
+/* ---- Member list (respects active status + plan filter + search) ---- */
 function printMembers(){
-  const clients=ld('pp_clients',[]).filter(c=>!c.archived).sort((a,b)=>(a.memNo||'').localeCompare(b.memNo||''));
   const mems=ld('pp_memberships',{});
+  const clients=_getFilteredClients().sort((a,b)=>(a.memNo||'').localeCompare(b.memNo||''));
+  if(!clients.length){toast('No clients in this filter');return;}
   const rows=clients.map(c=>{
     const m=mems[c.id];
     const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:'—';
@@ -4867,7 +4977,12 @@ function printMembers(){
       <td>${m&&m.plan!=='unlimited'?(m.sessionsLeft||0)+'/'+(m.sessionsTotal||0):'—'}</td>
       <td>${due>0?'₹'+due.toLocaleString('en-IN'):'—'}</td><td>${st==='none'?'No Plan':st.charAt(0).toUpperCase()+st.slice(1)}</td></tr>`;
   }).join('');
-  ppPrint('Member List ('+clients.length+' active members)',
+  // build a readable title describing the filter
+  const fLabel={all:'All',active:'Active',trial:'Trial',expiring:'Expiring',expired:'Expired',due:'Payment Due',inactive:'Inactive'}[_clientFilter2]||'All';
+  const pf=(document.getElementById('client-planfilter')||{}).value||'';
+  const planName=pf?((getPlans().find(p=>p.id===pf)||{}).name||pf):'';
+  let title='Member List — '+fLabel+(planName?' · '+planName+' plan':'')+' ('+clients.length+')';
+  ppPrint(title,
     `<table><tr><th>Mem No</th><th>Name</th><th>Phone</th><th>Email</th><th>Plan</th><th>Joined</th><th>Starts</th><th>Expires</th><th>Sessions</th><th>Due</th><th>Status</th></tr>${rows}</table>`);
 }
 
@@ -5341,7 +5456,7 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v24.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v25.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
     let updateWaiting=false;
@@ -5359,13 +5474,13 @@ function checkForUpdate(){
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v24</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running <b>v25</b> — the latest version. 🎉<br><br>No update needed.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v24</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running <b>v25</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
@@ -5867,7 +5982,13 @@ function openScanner(){
     try{_scanner=new Html5Qrcode('qr-reader');}catch(e){
       document.getElementById('scanner-status').innerHTML='<span style="color:var(--red);">Could not start scanner: '+(e.message||e)+'</span>';return;
     }
-    const cfg={fps:10,qrbox:{width:240,height:240},aspectRatio:1.0};
+    const cfg={
+      fps:25,                                   /* check more frames per second */
+      qrbox:{width:260,height:260},
+      aspectRatio:1.0,
+      disableFlip:true,                         /* our QR is never mirrored — skip flip decode */
+      experimentalFeatures:{useBarCodeDetectorIfSupported:true}  /* use NATIVE scanner where available (much faster, near-GPay) */
+    };
     _scanner.start({facingMode:'environment'},cfg,onScanSuccess,onScanFail)
       .then(()=>{document.getElementById('scanner-status').innerHTML='📷 Camera on — point at the member\'s QR code';})
       .catch(()=>{
@@ -5881,7 +6002,7 @@ function openScanner(){
           }
         }).catch(()=>{document.getElementById('scanner-status').innerHTML='<span style="color:var(--red);">Camera permission needed. Allow it and reopen, or use manual check-in.</span>';});
       });
-  },250);
+  },120);
 }
 function onScanFail(){/* per-frame decode misses are normal; ignore quietly */}
 function closeScanner(){

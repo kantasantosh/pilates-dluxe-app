@@ -1,4 +1,4 @@
-const CACHE='booking-v12';
+const CACHE='booking-v13';
 self.addEventListener('install',e=>{self.skipWaiting();});
 self.addEventListener('activate',e=>{
   e.waitUntil(
