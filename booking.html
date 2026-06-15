@@ -103,7 +103,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 <div class="header">
   <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
     <svg viewBox="0 0 100 100" width="30" height="30" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg>
-    <div class="logo">Pilates D'Luxe<small>Book a Class · <span onclick="bkCheckUpdate()" style="cursor:pointer;text-decoration:underline;">v13</span></small></div>
+    <div class="logo">Pilates D'Luxe<small>Book a Class · <span onclick="bkCheckUpdate()" style="cursor:pointer;text-decoration:underline;">v14</span></small></div>
   </div>
 </div>
 
@@ -519,6 +519,12 @@ function verifyAndConfirm(){
   if(mem.endDate&&mem.endDate<td()){showMemberError('Your membership expired on '+formatDate(mem.endDate)+'. Please contact the studio to renew.');return;}
   if(mem.endDate&&_selDate>mem.endDate){showMemberError('Your membership is valid till '+formatDate(mem.endDate)+'. The selected date is beyond your plan validity.');return;}
   if(mem.startDate&&_selDate<mem.startDate){showMemberError('Your plan starts on '+formatDate(mem.startDate)+'. You can book classes from that date onward.');return;}
+  /* GUARD 1: cannot book a slot whose date+time is already in the past */
+  if(_isSlotPast(_selDate,_selSlot)){showMemberError('That time has already passed. Please pick an upcoming slot.');return;}
+  /* GUARD 2: only one class per day — block if member already has a booking that day */
+  const dayBks=_bookings[_selDate]||{};
+  const alreadyToday=Object.values(dayBks).some(arr=>(arr||[]).some(b=>b.cid===client.id));
+  if(alreadyToday){showMemberError('You already have a class booked on '+formatDate(_selDate)+'. Only one class per day is allowed. Tap "Back to slots" to pick another day.');return;}
   if(client.isTrial){
     const alreadyBooked=Object.entries(_bookings).some(([d,slots])=>Object.values(slots).some(arr=>arr.some(b=>b.cid===client.id)));
     if(alreadyBooked){showMemberError('Trial class already used. Please enrol for membership.');return;}
@@ -526,6 +532,14 @@ function verifyAndConfirm(){
   const slotBks=(_bookings[_selDate]&&_bookings[_selDate][_selSlot])||[];
   if(slotBks.some(b=>b.cid===client.id)){showMemberError('You are already booked for this slot! Tap "Back to slots" and choose another.');return;}
   goStep3();
+}
+/* true if the given date+slot start time is in the past (with a small grace) */
+function _isSlotPast(date,slot){
+  try{
+    const h=_slotStartHour(slot);
+    const dt=new Date(date+'T00:00:00');dt.setHours(h,0,0,0);
+    return (dt.getTime()) < (Date.now() - 0); /* slot start already passed */
+  }catch(e){return false;}
 }
 /* builds _memberGreeting from the CURRENT in-memory _mems (so it stays
    accurate after each booking in the same session) */
@@ -664,6 +678,12 @@ async function _doConfirmBooking(){
     if(freshBk[_selDate][_selSlot].some(b=>b.cid===_memberId)){
       pdlAlert('You are already booked for this slot!');return;
     }
+    /* safety-net guards (in case state changed): past slot + one-per-day */
+    if(_isSlotPast(_selDate,_selSlot)){pdlAlert('That time has already passed. Please pick an upcoming slot.');_selSlot='';renderStep1();return;}
+    const _dayB=freshBk[_selDate]||{};
+    if(Object.values(_dayB).some(arr=>(arr||[]).some(b=>b.cid===_memberId))){
+      pdlAlert('You already have a class booked that day. Only one class per day is allowed.');_selSlot='';renderStep1();return;
+    }
     // Add booking
     freshBk[_selDate][_selSlot].push({cid:_memberId,notes:'Online booking',attended:false,bookedAt:new Date().toISOString()});
     // Deduct session — re-verify plan limits with fresh data (B2 enforcement)
@@ -753,7 +773,7 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('booking-sw.js').catch(()=>{}));
 }
 function bkCheckUpdate(){
-  pdlAlert('You are on <b>v13</b>. Tap OK to force-load the latest version.','🔄').then(()=>{
+  pdlAlert('You are on <b>v14</b>. Tap OK to force-load the latest version.','🔄').then(()=>{
     Promise.resolve()
       .then(()=>('serviceWorker' in navigator)?navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))):null)
       .then(()=>('caches' in window)?caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))):null)
