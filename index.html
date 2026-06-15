@@ -364,7 +364,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v26</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v27</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:center;">
@@ -5473,7 +5473,7 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v26.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v27.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
     let updateWaiting=false;
@@ -5491,13 +5491,13 @@ function checkForUpdate(){
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v26</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running <b>v27</b> — the latest version. 🎉<br><br>No update needed.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v26</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running <b>v27</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
@@ -5923,13 +5923,14 @@ function clearAnnounce(){
     <button class="mc2" onclick="closeScanner()">✕</button>
     <h2>📷 Check-in Scanner</h2>
     <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Point the camera at a member's QR code to mark them present for today.</div>
+    <div id="scan-result-banner" style="display:none;text-align:center;font-weight:700;font-size:18px;padding:16px;border-radius:12px;margin-bottom:12px;"></div>
     <div id="scanner-view" style="width:100%;border-radius:12px;overflow:hidden;background:#000;min-height:240px;"></div>
     <div id="scanner-status" style="text-align:center;font-size:14px;margin:12px 0;min-height:22px;"></div>
     <div id="scanner-recent" style="font-size:12px;color:var(--text2);"></div>
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
       <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Camera not reading? Type the member number and tap Check-in:</div>
       <div style="display:flex;gap:8px;">
-        <input id="manual-code" class="fi" placeholder="e.g. PDL001" style="flex:1;" onkeydown="if(event.key==='Enter')manualCheckin()"/>
+        <input id="manual-code" class="fi" placeholder="Tap here to type member no." readonly onfocus="this.removeAttribute('readonly')" onblur="this.setAttribute('readonly','readonly')" style="flex:1;" onkeydown="if(event.key==='Enter')manualCheckin()"/>
         <button class="btn btn-gold btn-sm" onclick="manualCheckin()">Check-in</button>
       </div>
     </div>
@@ -5984,9 +5985,40 @@ function printQRCard(){
 
 /* ===== CHECK-IN SCANNER (Phase 2) ===== */
 let _scanner=null,_scanBusy=false,_scanRecent=[];
+let _scanLastCid='',_scanLastTime=0,_scanAudioCtx=null;
+/* short beep using Web Audio — success=high double, reject=low single */
+function scanBeep(kind){
+  try{
+    _scanAudioCtx=_scanAudioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const ctx=_scanAudioCtx;
+    const play=(freq,start,dur)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine';o.frequency.value=freq;
+      o.connect(g);g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.001,ctx.currentTime+start);
+      g.gain.exponentialRampToValueAtTime(0.4,ctx.currentTime+start+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
+      o.start(ctx.currentTime+start);o.stop(ctx.currentTime+start+dur);
+    };
+    if(kind==='ok'){play(880,0,0.09);play(1320,0.10,0.12);}      /* pleasant rising double-beep */
+    else if(kind==='dup'){play(660,0,0.15);}                     /* single mid beep — already done */
+    else{play(300,0,0.25);}                                      /* low buzz — rejected */
+  }catch(e){}
+  /* haptic buzz on phones that support it */
+  try{if(navigator.vibrate)navigator.vibrate(kind==='ok'?60:[40,40,40]);}catch(e){}
+}
+function showScanBanner(msg,color,bg){
+  const b=document.getElementById('scan-result-banner');
+  if(!b)return;
+  b.style.display='block';
+  b.style.color=color;
+  b.style.background=bg;
+  b.innerHTML=msg;
+}
 function openScanner(){
   if(typeof ppIsTrainer==='function'&&ppIsTrainer()){toast('🔒 Staff/Admin only');return;}
-  _scanRecent=[];
+  _scanRecent=[];_scanLastCid='';_scanLastTime=0;
+  const _b=document.getElementById('scan-result-banner');if(_b)_b.style.display='none';
   document.getElementById('scanner-status').innerHTML='Starting camera…';
   document.getElementById('scanner-recent').innerHTML='';
   document.getElementById('scanner-view').innerHTML='<div id="qr-reader" style="width:100%;"></div>';
@@ -6047,10 +6079,30 @@ function onScanSuccess(decoded){
   const clients=ld('pp_clients',[]);
   let c=clients.find(x=>x.id===cid);
   if(!c)c=clients.find(x=>(x.memNo||'').toLowerCase()===cid.toLowerCase());
-  if(!c){document.getElementById('scanner-status').innerHTML='<span style="color:var(--amber);">❓ Scanned, but member not recognised. (Code: '+(cid.slice(0,20))+')</span>';return;}
+  if(!c){
+    document.getElementById('scanner-status').innerHTML='';
+    showScanBanner('❓ Not recognised','#fff','#b8860b');
+    scanBeep('reject');
+    _scanBusy=true;setTimeout(()=>{_scanBusy=false;},2000);
+    return;
+  }
+  /* COOLDOWN: ignore the SAME member re-scanned within 4 seconds
+     (stops the held-up QR from registering again and again) */
+  const now=Date.now();
+  if(c.id===_scanLastCid && (now-_scanLastTime)<4000){
+    return; /* silently ignore the repeat — already handled a moment ago */
+  }
+  _scanLastCid=c.id;_scanLastTime=now;
+  /* lock for 2.5s so one scan = one registration */
   _scanBusy=true;
-  setTimeout(()=>{_scanBusy=false;},1800);
+  setTimeout(()=>{_scanBusy=false;},2500);
   markPresentByScan(c);
+}
+function _slotHour24(slot){
+  const m=(slot||'').match(/(\d+)/);let h=m?parseInt(m[1]):8;
+  if(/PM/i.test(slot)&&h!==12)h+=12;
+  if(/AM/i.test(slot)&&h===12)h=0;
+  return h;
 }
 function markPresentByScan(c){
   const today=td();
@@ -6069,7 +6121,9 @@ function markPresentByScan(c){
 
   /* RULE: no booking today -> reject (do NOT auto-mark a random slot) */
   if(slotsBooked.length===0){
-    status.innerHTML='<span style="color:var(--red);font-size:15px;font-weight:700;">⛔ '+c.fname+' has NO booking today</span><br><span style="font-size:12px;color:var(--text2);">Attendance not marked. Book a slot first, or use the schedule to add one.</span>';
+    status.innerHTML='';
+    showScanBanner('⛔ '+c.fname+' — NO booking today<br><span style="font-size:12px;font-weight:400;">Attendance not marked</span>','#fff','#a50e0e');
+    scanBeep('reject');
     _addScanRecent(c,'no booking — rejected');
     return;
   }
@@ -6078,17 +6132,30 @@ function markPresentByScan(c){
   const pending=slotsBooked.filter(x=>!x.bk.attended);
   if(pending.length===0){
     const where=slotsBooked.map(x=>x.slot).join(', ');
-    status.innerHTML='<span style="color:var(--amber);font-size:15px;font-weight:700;">✓ '+c.fname+' already marked present</span><br><span style="font-size:12px;color:var(--text2);">('+where+')</span>';
+    status.innerHTML='';
+    showScanBanner('✓ '+c.fname+' — already present<br><span style="font-size:12px;font-weight:400;">('+where+')</span>','#1a1a2e','#e8c468');
+    scanBeep('dup');
     _addScanRecent(c,'already present');
     return;
   }
 
-  /* mark present on the member's EARLIEST pending booked slot */
-  const target=pending[0];
+  /* Choose the slot to mark: prefer the one CLOSEST to the current time
+     (a member checking in is arriving for the class happening now / soonest),
+     instead of blindly the earliest. Avoids marking a long-past 9 AM slot at 9 PM. */
+  const nowH=new Date().getHours()+new Date().getMinutes()/60;
+  let target=pending[0];
+  let best=1e9;
+  pending.forEach(x=>{
+    const sh=_slotHour24(x.slot);
+    const diff=Math.abs(sh-nowH);
+    if(diff<best){best=diff;target=x;}
+  });
   target.bk.attended=true;
   sv('pp_bookings',bookings);
   if(typeof AUD==='function')AUD('📷 Checked in (QR)',nm+' • '+target.slot);
-  status.innerHTML='<span style="color:var(--green);font-size:16px;font-weight:700;">✓ '+c.fname+' marked present!</span><br><span style="font-size:12px;color:var(--text2);">'+target.slot+(pending.length>1?' (more bookings pending today)':'')+'</span>';
+  status.innerHTML='';
+  showScanBanner('✅ '+c.fname+' — PRESENT<br><span style="font-size:13px;font-weight:400;">'+target.slot+(pending.length>1?' · more pending today':'')+'</span>','#fff','#137333');
+  scanBeep('ok');
   _addScanRecent(c,'present ✓ '+target.slot);
   if(typeof renderSchedule==='function'&&_activeTab==='schedule')renderSchedule();
 }
