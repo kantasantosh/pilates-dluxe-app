@@ -6,8 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#1a1a2e"/>
 <title>Pilates D'Luxe Studio</title>
-<link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d0c0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -49,6 +49,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .logo-text{font-family:'Playfair Display',serif;font-size:18px;color:var(--text);letter-spacing:1px;font-weight:400;font-style:italic;}
 .logo-sub{font-size:10px;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;margin-top:-1px;font-family:'Jost',sans-serif;font-weight:300;}
 .topbar-date{font-size:11px;color:var(--text2);text-align:right;}
+.tb-mini{background:none;border:1px solid var(--border2);border-radius:14px;padding:2px 10px;font-size:10px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
 .topbar-date strong{display:block;color:var(--gold);font-size:12px;}
 
 /* BOTTOM NAV */
@@ -135,6 +136,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .fg{margin-bottom:14px;}
 .fl{display:block;font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;font-weight:600;}
 .fi{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 14px;color:var(--text);font-family:'Jost',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.fi::placeholder{color:var(--text3);opacity:0.55;font-weight:400;}
 .fi:focus{border-color:var(--gold);}
 .fi option{background:var(--surface2);}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -218,12 +220,17 @@ input[type="date"],input[type="date"].fi{color-scheme:dark;}
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 // ===== FIREBASE SYNC =====
 const _fbConfig={apiKey:"AIzaSyDq5AjTUCxZ85CBffYFh_MmKhibN7Pjnl8",authDomain:"ss-indent-pro-3b7ea.firebaseapp.com",projectId:"ss-indent-pro-3b7ea",storageBucket:"ss-indent-pro-3b7ea.firebasestorage.app",messagingSenderId:"221934576188",appId:"1:221934576188:web:9c6ae243ea05b701bc5939"};
 if(!firebase.apps.length)firebase.initializeApp(_fbConfig);
+/* keep the studio cloud sign-in across app restarts (esp. installed PWA) */
+try{firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);}catch(e){}
 const _pdb=firebase.firestore();
-const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule'];
+const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad'];
 function _pSyncable(k){return _pSYNC.includes(k)||/^pp_(satt|sadv)_/.test(k);}
 let _pSync=false,_pLast={};
 
@@ -240,23 +247,94 @@ async function _pInit(){
     _pSync=true;el.textContent='✓ Synced';el.style.color='#2ecc71';
     setTimeout(()=>el.remove(),2000);
     if(typeof init==='function')init();
-  }catch(e){el.textContent='⚠ Offline';el.style.color='#f39c12';setTimeout(()=>el.remove(),3000);if(typeof init==='function')init();}
+  }catch(e){
+    /* Read failed — most often this is NOT a network problem but a cloud
+       sign-in problem (Firestore rules reject an unauthenticated read).
+       Tell the user honestly and offer the cloud sign-in. */
+    const offline=(navigator.onLine===false);
+    el.textContent=offline?'⚠ No internet':'⚠ Not signed in to cloud';
+    el.style.color='#f39c12';
+    setTimeout(()=>el.remove(),3500);
+    if(!offline && typeof firebase!=='undefined'){
+      try{
+        const signedIn=firebase.auth().currentUser;
+        if(!signedIn && typeof _showCloudGate==='function'){_showCloudGate();return;}
+      }catch(_e){}
+    }
+    if(typeof init==='function')init();
+  }
   _pdb.collection('pilates').onSnapshot(qs=>{
+    let changed=false;
     qs.docChanges().forEach(ch=>{
       const k=ch.doc.id;if(k.indexOf('pp_')!==0)return;
       const dd=ch.doc.data();if(!dd||dd.value===undefined)return;
       const ts=dd.updated||0;
-      if(!_pLast[k]||ts>_pLast[k]+1000){localStorage.setItem(k,dd.value);
-        if(typeof renderDash==='function'&&window._activeTab==='dashboard')renderDash();
-        else if(typeof renderClients==='function'&&window._activeTab==='clients')renderClients();
-        else if(typeof renderSchedule==='function'&&window._activeTab==='schedule')renderSchedule();
-        else if(typeof renderStaff==='function'&&window._activeTab==='staff')renderStaff();
-        else if(typeof renderBillsTasks==='function'&&window._activeTab==='bills')renderBillsTasks();
-      }
+      if(!_pLast[k]||ts>_pLast[k]+1000){localStorage.setItem(k,dd.value);_pLast[k]=ts;changed=true;}
     });
+    if(changed)_pRerenderActive();
   });
 }
-window.addEventListener('load',()=>_pInit());
+function _pRerenderActive(){
+  try{
+    const t=window._activeTab;
+    if(typeof renderDash==='function'&&t==='dashboard')renderDash();
+    else if(typeof renderClients==='function'&&t==='clients')renderClients();
+    else if(typeof renderSchedule==='function'&&t==='schedule')renderSchedule();
+    else if(typeof renderStaff==='function'&&t==='staff')renderStaff();
+    else if(typeof renderBillsTasks==='function'&&t==='bills')renderBillsTasks();
+    else if(typeof renderCash==='function'&&t==='cash')renderCash();
+    /* dashboard counts are cheap — keep them fresh regardless of active tab */
+    if(typeof renderDash==='function'&&t!=='dashboard')try{renderDash();}catch(e){}
+  }catch(e){}
+}
+/* manual pull — force a fresh fetch from the cloud */
+async function pdlSyncNow(){
+  toast('🔄 Syncing…');
+  try{
+    const snap=await _pdb.collection('pilates').get();
+    snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){localStorage.setItem(d.id,dd.value);_pLast[d.id]=dd.updated||Date.now();}});
+    _pRerenderActive();
+    toast('✓ Synced with cloud');
+  }catch(e){toast('⚠ Sync failed — check internet');}
+}
+/* auto-pull whenever the app comes back to the foreground (covers mobile waking) */
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&_pSync&&navigator.onLine!==false){try{pdlSyncNow();}catch(e){}}
+});
+window.addEventListener('load',()=>{
+  /* Offline-first: if there's no network, don't block on cloud auth —
+     start immediately with locally stored data. */
+  if(navigator.onLine===false){
+    if(!window._pStarted){window._pStarted=true;_pInit();}
+    return;
+  }
+  /* Safety net: if auth doesn't respond within 8s (flaky network),
+     decide based on whether we're actually signed in. */
+  const _fallback=setTimeout(()=>{
+    if(window._pStarted)return;
+    let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(e){}
+    if(signedIn){
+      window._pStarted=true;
+      const g=document.getElementById('pp-cloud');if(g)g.style.display='none';
+      _pInit();
+    }else{
+      /* not signed in → show the cloud login gate (don't try a doomed read) */
+      if(typeof _showCloudGate==='function')_showCloudGate();
+    }
+  },8000);
+  try{
+    firebase.auth().onAuthStateChanged(u=>{
+      clearTimeout(_fallback);
+      const g=document.getElementById('pp-cloud');
+      if(u){
+        if(g)g.style.display='none';
+        if(!window._pStarted){window._pStarted=true;_pInit();}
+      }else if(!window._pStarted){
+        if(typeof _showCloudGate==='function')_showCloudGate();
+      }
+    });
+  }catch(e){clearTimeout(_fallback);if(!window._pStarted){window._pStarted=true;_pInit();}}
+});
 </script>
 </head>
 <body>
@@ -264,15 +342,19 @@ window.addEventListener('load',()=>_pInit());
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-logo">
-    <div class="logo-mark">𝑃</div>
+    <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin</div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v24</span></div>
     </div>
   </div>
-  <div class="topbar-date">
+  <div class="topbar-date" style="text-align:center;">
     <strong id="top-date"></strong>
-    <span id="top-day"></span>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
+      <span id="top-day"></span>
+      <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-mini">🔄 Sync</button>
+      <button onclick="openNotepad()" title="Notepad — jot doubts & ideas" class="tb-mini">📝 Notes</button>
+    </div>
   </div>
 </div>
 
@@ -288,7 +370,7 @@ window.addEventListener('load',()=>_pInit());
   <div class="sh"><div class="st">Clients<small>Member Directory</small></div>
     <div style="display:flex;gap:6px;align-items:center;">
       <button onclick="openTrialReg()" style="background:rgba(155,89,182,0.2);border:1px solid rgba(155,89,182,0.4);color:#9b59b6;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;">🎯 Trial</button>
-      <button onclick="shareClientList()" class="btn btn-outline btn-sm">📤</button>
+      <button id="btn-manage-plans" onclick="openManagePlans()" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;">⚙️ Plans</button>
     </div>
   </div>
   <div class="search-box">
@@ -296,8 +378,9 @@ window.addEventListener('load',()=>_pInit());
     <input id="client-search" placeholder="Search by name or phone..." oninput="renderClients()"/>
   </div>
   <div class="ftabs">
-    <button class="ftab active" onclick="setClientFilter('all',this)">All Active</button>
+    <button class="ftab active" onclick="setClientFilter('all',this)">All</button>
     <button class="ftab" onclick="setClientFilter('active',this)">Active</button>
+    <button class="ftab" onclick="setClientFilter('trial',this)">🎯 Trial</button>
     <button class="ftab" onclick="setClientFilter('expiring',this)">Expiring</button>
     <button class="ftab" onclick="setClientFilter('expired',this)">Expired</button>
     <button class="ftab" onclick="setClientFilter('due',this)">Due</button>
@@ -311,7 +394,7 @@ window.addEventListener('load',()=>_pInit());
   <div class="sh">
     <div class="st">Schedule<small id="sched-label"></small></div>
     <div style="display:flex;gap:8px;align-items:center;">
-      <button onclick="shareSchedule()" class="btn btn-outline btn-sm">📤</button>
+      <button class="btn btn-gold btn-sm" onclick="openScanner()" title="Scan member QR to mark present">📷 Check-in</button>
       <input type="date" id="sched-date-pick" class="fi" style="width:auto;padding:7px 10px;font-size:12px;" onchange="pickSchedDate(this.value)"/>
     </div>
   </div>
@@ -336,13 +419,14 @@ window.addEventListener('load',()=>_pInit());
   <div class="sh">
     <div class="st">Staff<small>Team & Attendance</small></div>
     <div style="display:flex;gap:8px;">
-      <button onclick="shareStaffSummary()" class="btn btn-outline btn-sm">📤</button>
+      <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance">🖨</button>
       <button class="btn btn-gold btn-sm" onclick="openAddStaff()">+ Add</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;">
     <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664;</button>
-    <div id="staff-ml" style="font-size:14px;font-weight:700;color:var(--gold);"></div>
+    <div id="staff-ml" style="font-size:14px;font-weight:700;color:var(--gold);flex:1;text-align:center;"></div>
+    <input type="month" id="staff-month-pick" class="fi" style="width:auto;padding:7px 10px;font-size:12px;" onchange="pickStaffMonth(this.value)"/>
     <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">&#9654;</button>
   </div>
   <div id="staff-list"></div>
@@ -366,9 +450,9 @@ window.addEventListener('load',()=>_pInit());
 <div class="tab" id="tab-cash">
   <div class="sh">
     <div class="st">Cash Book<small>Credits & Debits</small></div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="shareCashReport()" class="btn btn-outline btn-sm">📤 Share</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-gold btn-sm" onclick="openCashEntry()">+ New Entry</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);" onclick="openDaybook()">📒 Daybook</button>
     </div>
   </div>
   <div id="cash-summary"></div>
@@ -376,6 +460,12 @@ window.addEventListener('load',()=>_pInit());
     <button class="ftab active" onclick="setCashFilter('all',this)">All</button>
     <button class="ftab" onclick="setCashFilter('in',this)">💚 Credits</button>
     <button class="ftab" onclick="setCashFilter('out',this)">🔴 Debits</button>
+    <button class="ftab" onclick="setCashFilter('contra',this)">🔁 Contra</button>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+    <select id="cash-catfilter" onchange="renderCash()" style="flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
+      <option value="">All categories</option>
+    </select>
   </div>
   <div id="cash-list"></div>
 </div>
@@ -575,10 +665,12 @@ window.addEventListener('load',()=>_pInit());
     <div class="fg"><label class="fl">Description</label><input class="fi" id="ce-desc" placeholder="Membership fee, rent, salary..."/></div>
     <!-- Credit: client dropdown -->
     <div id="ce-client-row" class="fg"><label class="fl">Client (Credits only)</label>
-      <select class="fi" id="ce-cid"><option value="">— Not client related —</option></select>
+      <select class="fi" id="ce-cid" onchange="_updateModeBalance()"><option value="">— Not client related —</option></select>
+      <div id="ce-client-due" style="font-size:12px;margin-top:6px;text-align:center;"></div>
     </div>
+    <div id="ce-mode-bal" style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
     <div class="fr">
-      <div class="fg"><label class="fl">Amount (₹)</label><input class="fi" id="ce-amt" type="number" placeholder="0"/></div>
+      <div class="fg"><label class="fl">Amount (₹)</label><input class="fi" id="ce-amt" type="number" placeholder="0" oninput="_updateModeBalance()"/></div>
       <div class="fg"><label class="fl">Date</label><input class="fi" id="ce-date" type="date"/></div>
     </div>
     <div class="fg">
@@ -586,21 +678,24 @@ window.addEventListener('load',()=>_pInit());
         <label class="fl" style="margin-bottom:0;">Mode</label>
         <button onclick="openManagePayList('modes')" style="background:none;border:none;color:var(--gold);font-size:13px;font-family:'Jost',sans-serif;font-weight:700;cursor:pointer;">✏️ Edit</button>
       </div>
-      <select class="fi" id="ce-mode"></select>
+      <select class="fi" id="ce-mode" onchange="_updateModeBalance()"></select>
     </div>
     <div class="fg" id="ce-mode2-row" style="display:none;">
       <label class="fl">To Mode (Contra transfer)</label>
       <select class="fi" id="ce-mode2"></select>
+      <div id="ce-mode2-bal" style="font-size:12px;color:var(--text2);margin-top:6px;padding:5px 9px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
     </div>
     <div class="fg" id="ce-cat-row">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
         <label class="fl" style="margin-bottom:0;">Category</label>
         <button onclick="openManageCashCats()" style="background:none;border:none;color:var(--gold);font-size:13px;font-family:'Jost',sans-serif;font-weight:700;cursor:pointer;">✏️ Edit</button>
       </div>
-      <select class="fi" id="ce-cat"></select>
+      <select class="fi" id="ce-cat" onchange="_updateModeBalance()"></select>
+      <div id="ce-cat-bal" style="font-size:12px;color:var(--text2);margin-top:6px;padding:5px 9px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="ce-notes" placeholder="Reference, UPI ID..."/></div>
     <button class="sb2" onclick="saveCashEntry()">Save Entry</button>
+    <button id="ce-del-btn" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteCashEntry()">🗑 Delete Entry</button>
   </div>
 </div>
 
@@ -615,6 +710,61 @@ window.addEventListener('load',()=>_pInit());
       <button onclick="addCashCat()" style="background:var(--gold);color:#1a1a2e;border:none;border-radius:var(--rsm);padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;flex-shrink:0;">+</button>
     </div>
     <button class="sb2" onclick="closeM('m-cashcats')" style="margin-top:10px;">✓ Done</button>
+  </div>
+</div>
+
+<!-- DAYBOOK Modal -->
+<div class="mo" id="m-daybook" style="z-index:300;">
+  <div class="md" style="max-height:88vh;overflow-y:auto;">
+    <button class="mc2" onclick="closeM('m-daybook')">✕</button>
+    <h2 style="color:var(--gold);">📒 Cash Daybook</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.5;">Pick a period and filters, then preview, print, or export to Excel for your accountant.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg"><label class="fl">From</label><input class="fi" id="db-from" type="date"/></div>
+      <div class="fg"><label class="fl">To</label><input class="fi" id="db-to" type="date"/></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('today')">Today</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('month')">This Month</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('lastmonth')">Last Month</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('fy')">This FY</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('all')">All</button>
+    </div>
+    <div class="fg"><label class="fl">Voucher Type</label>
+      <select class="fi" id="db-type">
+        <option value="all">All (Credit + Debit + Contra)</option>
+        <option value="in">💚 Credits only</option>
+        <option value="out">🔴 Debits only</option>
+        <option value="contra">🔁 Contra only</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Category</label>
+      <select class="fi" id="db-cat"><option value="">All categories</option></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+      <button class="btn btn-gold" onclick="printDaybook()">🖨 Preview / Print</button>
+      <button class="btn" style="background:var(--green,#27ae60);color:#fff;border:none;" onclick="exportDaybookCSV()">📥 Export Excel</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTEPAD Modal -->
+<div class="mo" id="m-notepad" style="z-index:350;">
+  <div class="md" style="max-height:88vh;display:flex;flex-direction:column;">
+    <button class="mc2" onclick="closeNotepad()">✕</button>
+    <h2 style="color:var(--gold);">📝 Notepad</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Jot down doubts, ideas, or feature requests here. Saved automatically and synced across your devices.</p>
+    <textarea id="np-text" placeholder="Type your notes here…
+• Doubt about…
+• New feature idea…
+• Remember to…" style="width:100%;min-height:300px;flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:14px;color:var(--text);font-size:14px;font-family:'Jost',sans-serif;line-height:1.6;resize:vertical;" oninput="npAutoSave()"></textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:10px;">
+      <span id="np-status" style="font-size:11px;color:var(--text3);">Saved</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="npCopy()">📋 Copy</button>
+        <button class="btn btn-sm btn-gold" onclick="closeNotepad()">✓ Done</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -663,8 +813,8 @@ window.addEventListener('load',()=>_pInit());
       <div class="fg"><label class="fl">Last Name</label><input class="fi" id="c-lname" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="Sharma"/></div>
     </div>
     <div class="fr">
-      <div class="fg"><label class="fl">Phone</label><input class="fi" id="c-phone" type="tel" placeholder="98xxxxxxxx"/></div>
-      <div class="fg"><label class="fl">Email</label><input class="fi" id="c-email" type="email" placeholder="email@..."/></div>
+      <div class="fg"><label class="fl">Phone (WhatsApp)</label><div style="display:flex;align-items:center;gap:6px;"><span style="background:var(--surface3);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 10px;font-size:14px;color:var(--text2);font-family:'Jost',sans-serif;">+91</span><input class="fi" id="c-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="98XXX XXXXX" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,10)"/></div></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="c-email" type="email" placeholder="email@..." autocomplete="off" autocapitalize="none" data-1p-ignore data-lpignore="true"/></div>
     </div>
     <div class="fg"><label class="fl">Address</label><input class="fi" id="c-addr" placeholder="Sector 15, Noida"/></div>
     <div class="fr">
@@ -693,7 +843,6 @@ window.addEventListener('load',()=>_pInit());
     <div class="fg">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
         <label class="fl" style="margin-bottom:0;">Plan</label>
-        <button onclick="openManagePlans()" style="background:none;border:none;color:var(--gold);font-size:13px;font-family:'Jost',sans-serif;font-weight:700;cursor:pointer;">✏️ Edit Plans</button>
       </div>
       <div class="plan-chips" id="plan-chips"></div>
       <input type="hidden" id="m-plan"/>
@@ -707,7 +856,19 @@ window.addEventListener('load',()=>_pInit());
       <div class="fg"><label class="fl">Complimentary Cash (₹ off)</label><input class="fi" id="m-disc" type="number" placeholder="0" value="0"/></div>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="m-notes" placeholder="Any notes for this membership..."/></div>
-    <button class="sb2" onclick="saveMembership()">Assign Membership</button>
+
+    <!-- Collect Payment (integrated) -->
+    <div style="border-top:1px dashed var(--border2);margin:6px 0 12px;padding-top:12px;">
+      <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:10px;">💳 Collect Payment</div>
+      <div id="m-payable" style="font-size:13px;color:var(--text2);background:var(--surface2);border-radius:8px;padding:8px 11px;margin-bottom:10px;text-align:center;"></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Amount Received (₹)</label><input class="fi" id="m-paid" type="number" placeholder="0" oninput="updateMemPayable()"/></div>
+        <div class="fg"><label class="fl">Mode</label><select class="fi" id="m-mode" onchange="updateMemPayable()"></select></div>
+      </div>
+      <div id="m-modebal" style="font-size:12px;color:var(--text2);margin:-2px 0 8px;padding:5px 9px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
+      <div id="m-balnote" style="font-size:12px;margin-bottom:6px;text-align:center;"></div>
+    </div>
+    <button class="sb2" onclick="saveMembership()">Save & Issue Receipt</button>
   </div>
 </div>
 
@@ -787,8 +948,21 @@ window.addEventListener('load',()=>_pInit());
     <button class="mc2" onclick="closeM('m-whatsapp')">✕</button>
     <h2>WhatsApp Reminder</h2>
     <input type="hidden" id="wa-phone"/>
+    <input type="hidden" id="wa-cid"/>
+    <div class="fg"><label class="fl">Quick Template</label>
+      <select class="fi" id="wa-template" onchange="applyWATemplate()">
+        <option value="">— Choose a message —</option>
+        <option value="payment">💳 Payment Reminder (dues)</option>
+        <option value="expiring">⏳ Membership Expiring</option>
+        <option value="welcome">🙏 Welcome Message</option>
+        <option value="cancelled">⚠️ Class Cancelled</option>
+        <option value="festival">🎉 Festival Greeting</option>
+        <option value="birthday">🎂 Birthday / Anniversary</option>
+        <option value="completion">🏆 All Sessions Completed</option>
+      </select>
+    </div>
     <div class="fg"><label class="fl">Message</label>
-      <textarea class="fi" id="wa-msg" rows="5" style="resize:none;line-height:1.6;"></textarea>
+      <textarea class="fi" id="wa-msg" rows="6" style="resize:none;line-height:1.6;"></textarea>
     </div>
     <button class="sb2" onclick="sendWA()">📤 Open WhatsApp</button>
   </div>
@@ -859,6 +1033,23 @@ function init(){
   const dp=document.getElementById('sched-date-pick');
   if(dp)dp.value=td();
   renderDash();
+  startDashClock();
+}
+let _dashClockTimer=null;
+function startDashClock(){
+  if(_dashClockTimer)clearInterval(_dashClockTimer);
+  const tick=()=>{
+    const t=document.getElementById('dc-time');
+    if(!t||_activeTab!=='dashboard')return; /* only when dashboard visible */
+    const n=new Date();
+    t.textContent=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+    const dEl=document.getElementById('dc-date');
+    if(dEl)dEl.textContent=n.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const g=document.getElementById('dc-greet');
+    if(g){const h=n.getHours();g.textContent=h<12?'Good Morning ☀️':h<17?'Good Afternoon 🌤️':h<21?'Good Evening 🌆':'Good Night 🌙';}
+  };
+  tick();
+  _dashClockTimer=setInterval(tick,1000);
 }
 
 // ===== MODALS =====
@@ -884,6 +1075,11 @@ function renderDash(){
     const totalCharged=Object.values(mems).filter(m=>m.cid===c.id).reduce((s,m)=>s+Math.max(0,(m.fee||0)-(m.disc||0)),0);
     if(totalCharged>totalPaid)due++;
   });
+
+  // Trial conversion (all-time): trials taken vs converted to paid
+  const trialsAll=clients.filter(c=>c.trialDate||c.isTrial||c.convertedFrom==='trial').length;
+  const convAll=clients.filter(c=>c.convertedFrom==='trial').length;
+  const convPct=trialsAll?Math.round(convAll/trialsAll*100):0;
 
   // Today's bookings - always use today, not _schedDate
   const todayKey=td();
@@ -928,20 +1124,25 @@ function renderDash(){
   });
 
   document.getElementById('dash-content').innerHTML=`
+    <div id="dash-clock" style="background:linear-gradient(135deg,rgba(201,168,76,0.14),rgba(201,168,76,0.04));border:1px solid rgba(201,168,76,0.35);border-radius:var(--radius);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <div id="dc-time" style="font-family:'Playfair Display',serif;font-size:30px;color:var(--gold);line-height:1;">--:--</div>
+        <div id="dc-date" style="font-size:13px;color:var(--text2);margin-top:4px;">—</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Pilates D'Luxe</div>
+        <div style="font-size:11px;color:var(--text3);" id="dc-greet">—</div>
+      </div>
+    </div>
     <div class="dash-grid">
       <div class="dash-card gold" style="cursor:pointer;" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('active',document.querySelector('#tab-clients .ftab:nth-child(2)'))">
         <div class="dash-num">${active}</div>
         <div class="dash-label">Active Members</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
       </div>
-      <div class="dash-card rose" style="cursor:pointer;" onclick="showTab('schedule',document.querySelector('.nb:nth-child(3)'))">
-        <div class="dash-num">${todayCount}</div>
-        <div class="dash-label">Today's Bookings</div>
-        <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
-      </div>
-      <div class="dash-card teal" style="cursor:pointer;" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('expiring',document.querySelector('#tab-clients .ftab:nth-child(3)'))">
+      <div class="dash-card rose" style="cursor:pointer;" onclick="goExpiring()">
         <div class="dash-num">${expiring}</div>
-        <div class="dash-label">Expiring This Week</div>
+        <div class="dash-label">Expiring Soon</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
       </div>
       <div class="dash-card purple" style="cursor:pointer;" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('due',document.querySelector('#tab-clients .ftab:nth-child(5)'))">
@@ -949,28 +1150,17 @@ function renderDash(){
         <div class="dash-label">Payment Due</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
       </div>
+      <div class="dash-card teal" style="cursor:pointer;" onclick="openReports&&ppIsAdmin&&ppIsAdmin()?openReports():showTab('clients',document.querySelector('.nb:nth-child(2)'))">
+        <div class="dash-num">${convPct}%</div>
+        <div class="dash-label">Trial Conversion</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:4px;">${convAll}/${trialsAll} →</div>
+      </div>
       <div class="dash-card gold dash-wide" style="padding:16px;cursor:pointer;" onclick="showTab('cash',document.querySelector('.nb:nth-child(4)'))">
         <div class="dash-label" style="margin-bottom:4px;">Membership Revenue</div>
         <div class="dash-num" style="font-size:28px;">₹${monthRevenue.toLocaleString('en-IN')}</div>
         <div style="font-size:12px;color:var(--text3);margin-top:4px;">Total Credits: ₹${totalCredits.toLocaleString('en-IN')}</div>
       </div>
     </div>
-
-
-
-    ${expiring>0?`
-    <div class="div-section">Expiring Soon</div>
-    ${clients.filter(c=>!c.archived&&getMembershipStatus(mems[c.id])==='expiring').map(c=>`
-      <div class="client-card" onclick="openDetail('${c.id}')">
-        <div class="client-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
-        <div class="client-info">
-          <div class="client-name">${c.fname} ${c.lname}</div>
-          <div class="client-sub">${mems[c.id]?getPlans().find(p=>p.id===mems[c.id].plan)?.label||'':''}</div>
-          ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);">🎯 TRIAL</span>':''}
-          <span class="badge badge-expiring">Expires in ${getDaysLeft(mems[c.id])} days</span>
-        </div>
-        <button onclick="event.stopPropagation();openWA('${c.id}')" style="background:none;border:none;font-size:22px;cursor:pointer;">💬</button>
-      </div>`).join('')}`:''}
 
     ${bdayClients.length>0?`
     <div class="div-section">🎂 Birthdays This Week</div>
@@ -1079,8 +1269,17 @@ let _clientFilter2='all';
 function setClientFilter(f,btn){
   _clientFilter2=f;
   document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn)btn.classList.add('active');
   renderClients();
+}
+function goExpiring(){
+  showTab('clients');
+  setTimeout(()=>{
+    _clientFilter2='expiring';
+    const tabs=document.querySelectorAll('#tab-clients .ftab');
+    tabs.forEach(t=>{t.classList.remove('active');if(/expiring/i.test(t.textContent))t.classList.add('active');});
+    renderClients();
+  },180);
 }
 function renderClients(){
   const clients=ld('pp_clients',[]);
@@ -1096,6 +1295,7 @@ function renderClients(){
     // All other filters — hide archived
     if(c.archived)return false;
     const st=getMembershipStatus(mems[c.id]);
+    if(_clientFilter2==='trial'&&!c.isTrial)return false;
     if(_clientFilter2==='active'&&st!=='active')return false;
     if(_clientFilter2==='expiring'&&st!=='expiring')return false;
     if(_clientFilter2==='expired'&&st!=='expired'&&st!=='none')return false;
@@ -1120,8 +1320,8 @@ function renderClients(){
       <div class="client-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
       <div class="client-info">
         <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}</div>
-        <div class="client-sub">${c.phone||''}${plan?' • '+plan.name:''}</div>
-        <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">📅 Joined ${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem?' &nbsp;•&nbsp; Expires '+fmt(mem.endDate):''}</div>
+        <div class="client-sub">${c.phone||''}${plan?' • <b style="color:var(--gold);">'+plan.name+'</b>'+(plan.sessions&&plan.sessions!==999?' ('+plan.sessions+' sess)':''):''}</div>
+        <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'} • 📅 Joined ${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem?' • Starts '+fmt(mem.startDate)+' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
             `<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
@@ -1187,7 +1387,7 @@ function openDetail(cid){
     <div class="card card-gold" style="margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div style="font-size:13px;font-weight:700;color:var(--gold)">${plan?.name||'Unknown Plan'}</div>
-        <button class="btn btn-outline btn-sm" onclick="closeM('m-detail');setTimeout(()=>openAssignMembership('${cid}'),100);">✏️ Renew / Edit</button>
+
       </div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">${fmt(mem.startDate)} → ${fmt(mem.endDate)}</div>
       ${plan?.id!=='unlimited'?`
@@ -1221,11 +1421,14 @@ function openDetail(cid){
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-      <button class="btn btn-gold" onclick="closeM('m-detail');openCashEntry()" style="font-size:12px;">🧾 New Receipt</button>
+      <button class="btn btn-gold" onclick="closeM('m-detail');openCashEntry(null,'${cid}')" style="font-size:12px;">🧾 New Receipt</button>
       <button class="btn btn-outline" onclick="closeM('m-detail');openEditClient('${cid}')" style="font-size:12px;">✏️ Edit Profile</button>
       <button class="btn btn-outline" onclick="openWA('${cid}');closeM('m-detail')" style="font-size:12px;">💬 WhatsApp</button>
       <button class="btn btn-outline" onclick="closeM('m-detail');openAssignMembership('${cid}')" style="font-size:12px;">🎯 Manage Plan</button>
     </div>
+    <button onclick="printLatestReceipt('${cid}')" style="width:100%;padding:11px;border-radius:30px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">🖨 Print / Save Receipt (latest payment)</button>
+    <button onclick="showMemberQR('${cid}')" style="width:100%;padding:11px;border-radius:30px;border:1.5px solid var(--gold);background:none;color:var(--gold);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">🪪 Show / Print QR ID Card</button>
+    <button onclick="resetBookingPin('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--border2);background:none;color:var(--text2);font-family:'Jost',sans-serif;font-weight:700;font-size:12px;cursor:pointer;margin-bottom:14px;">🔓 Reset member's Booking PIN</button>
     <button onclick="archiveClient('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--border2);background:none;color:var(--text2);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">${(ld('pp_clients',[]).find(c=>c.id===cid)||{}).archived?'✅ Reactivate Client':'⏸ Deactivate Client'}</button>
 
     ${c.bday?`<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">🎂 Birthday: ${fmt(c.bday)}</div>`:''}
@@ -1317,7 +1520,7 @@ function openEditClient(cid){
   document.getElementById('c-memno-display').textContent=c.memNo||'';
   document.getElementById('c-fname').value=c.fname||'';
   document.getElementById('c-lname').value=c.lname||'';
-  document.getElementById('c-phone').value=c.phone||'';
+  document.getElementById('c-phone').value=(c.phone||'').replace(/^\+91/,'').replace(/\D/g,'');
   document.getElementById('c-photo').value=c.photo||'';
   if(c.photo){
     setPhotoPreview('c-photo-preview',c.photo,'','');
@@ -1338,6 +1541,10 @@ function openEditClient(cid){
 function saveClient(){
   const fname=document.getElementById('c-fname').value.trim();
   if(!fname){alert('Enter first name');return;}
+  const _ph=document.getElementById('c-phone').value.replace(/\D/g,'');
+  if(_ph&&_ph.length!==10){alert('Mobile number must be exactly 10 digits (entered after +91).');return;}
+  const _em=document.getElementById('c-email').value.trim();
+  if(_em&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_em)){alert('Please enter a valid email address (e.g. name@gmail.com). Email is used for the member\'s online booking login.');return;}
   const clients=ld('pp_clients',[]);
   const existing=document.getElementById('c-id').value;
   const refId=document.getElementById('c-ref').value;
@@ -1346,7 +1553,7 @@ function saveClient(){
     id:existing||Date.now().toString(),
     memNo:existing?oldData.memNo:generateMemNo(),
     fname,lname:document.getElementById('c-lname').value.trim(),
-    phone:document.getElementById('c-phone').value.trim(),
+    phone:(function(){const p=document.getElementById('c-phone').value.replace(/\D/g,'');return p?'+91'+p:'';})(),
     email:document.getElementById('c-email').value.trim(),
     addr:document.getElementById('c-addr').value.trim(),
     bday:document.getElementById('c-bday').value,
@@ -1399,7 +1606,35 @@ function openAssignMembership(cid){
   document.getElementById('m-notes').value='';
   document.getElementById('m-plan').value=existing?existing.plan:'';
   renderPlanChips(existing?existing.plan:'');
+  // populate payment section
+  const modes=getPayModes();
+  document.getElementById('m-mode').innerHTML=modes.map(m=>`<option>${m}</option>`).join('');
+  document.getElementById('m-paid').value='';
+  updateMemPayable();
   openM('m-membership');
+}
+function updateMemPayable(){
+  const fee=parseFloat(document.getElementById('m-fee').value)||0;
+  const disc=parseFloat(document.getElementById('m-disc').value)||0;
+  const net=Math.max(0,fee-disc);
+  const paid=parseFloat(document.getElementById('m-paid').value)||0;
+  const bal=net-paid;
+  const pe=document.getElementById('m-payable');
+  if(pe)pe.innerHTML=`Net payable: <b style="color:var(--gold);">₹${net.toLocaleString('en-IN')}</b>${disc>0?` <span style="color:var(--text3);">(₹${fee.toLocaleString('en-IN')} − ₹${disc.toLocaleString('en-IN')} complimentary)</span>`:''}`;
+  const bn=document.getElementById('m-balnote');
+  if(bn){
+    if(paid<=0)bn.innerHTML='';
+    else if(bal>0)bn.innerHTML=`<span style="color:var(--amber);">Balance payable by your first session: ₹${bal.toLocaleString('en-IN')}</span>`;
+    else if(bal===0)bn.innerHTML=`<span style="color:var(--green);">✓ Fully paid</span>`;
+    else bn.innerHTML=`<span style="color:var(--amber);">Advance / overpayment: ₹${Math.abs(bal).toLocaleString('en-IN')}</span>`;
+  }
+  // mode balance
+  const mb=document.getElementById('m-modebal');
+  if(mb&&typeof _modeBalance==='function'){
+    const mode=document.getElementById('m-mode').value;
+    const b=_modeBalance(mode);
+    mb.innerHTML=`${mode} balance: <b style="color:${b>=0?'var(--green)':'var(--red)'};">₹${b.toLocaleString('en-IN')}</b>`;
+  }
 }
 function openRenewMembership(cid){openAssignMembership(cid);}
 function renderPlanChips(selected){
@@ -1416,6 +1651,11 @@ function selectPlan(pid){
   // B1 fix: always reset fee to the selected plan's price (including 0 for Trial/Drop-in)
   // so stale amounts from the previous plan never carry over.
   document.getElementById('m-fee').value=plan?(plan.price||0):'';
+  // prefill amount received with full net payable (user can reduce for part-payment)
+  const fee=plan?(plan.price||0):0;
+  const disc=parseFloat(document.getElementById('m-disc').value)||0;
+  document.getElementById('m-paid').value=Math.max(0,fee-disc);
+  updateMemPayable();
 }
 function saveMembership(){
   const cid=document.getElementById('m-cid').value;
@@ -1423,6 +1663,10 @@ function saveMembership(){
   if(!pid){alert('Please select a plan');return;}
   const plan=getPlans().find(p=>p.id===pid);
   const startDate=document.getElementById('m-start').value||td();
+  // #6: start date cannot precede the member's joining date
+  const _cli=ld('pp_clients',[]).find(x=>x.id===cid);
+  const _join=_cli?(_cli.join||_cli.joinDate):'';
+  if(_join&&startDate<_join){alert('Start Date cannot be before the joining date ('+fmt(_join)+').');return;}
   // Timezone-safe date calculation
   const sp=startDate.split('-');
   const startDt=new Date(parseInt(sp[0]),parseInt(sp[1])-1,parseInt(sp[2]));
@@ -1465,9 +1709,22 @@ function saveMembership(){
   }
   closeM('m-membership');
   renderDash();renderClients();
+  // post collected payment to cashbook (client-linked credit) + offer receipt
+  const paid=parseFloat(document.getElementById('m-paid').value)||0;
+  if(paid>0){
+    const mode=document.getElementById('m-mode').value;
+    /* detect payment type: New / Renewal / Plan Change */
+    let payType='New Membership';
+    if(history&&history.length>0){
+      const prev=history[history.length-1];
+      payType=(prev&&prev.plan===pid)?'Renewal':'Plan Change';
+    }
+    const ce={id:Date.now().toString()+'_m',type:'in',desc:payType+' — '+(plan?plan.name:''),cid,amt:paid,date:td(),mode,mode2:'',cat:payType==='Renewal'?'Renewal':'Membership Fee',payType,date2:'',notes:''};
+    const cash=ld('pp_cash',[]);cash.push(ce);sv('pp_cash',cash);
+    renderDash();renderClients();
+    if(typeof offerReceiptCash==='function')setTimeout(()=>offerReceiptCash(ce.id),300);
+  }
 }
-
-// ===== PAY LISTS (modes & for) =====
 const DEF_PAY_MODES=['💵 Cash','📱 UPI/GPay','📱 PhonePe','🏦 Bank Transfer','💳 Card'];
 const DEF_PAY_FOR=['Membership Fee','Renewal','Drop-in Session','Complimentary / Referral','Other'];
 function getPayModes(){return ld('pp_pay_modes',DEF_PAY_MODES);}
@@ -1479,6 +1736,11 @@ function refreshPaySelects(curMode,curFor){
   const fSel=document.getElementById('p-for');
   if(mSel)mSel.innerHTML=modes.map(m=>`<option${curMode===m?' selected':''}>${m}</option>`).join('');
   if(fSel)fSel.innerHTML=fors.map(f=>`<option${curFor===f?' selected':''}>${f}</option>`).join('');
+  /* also refresh cashbook entry dropdowns if present (fixes new mode not appearing) */
+  ['ce-mode','ce-mode2'].forEach(idStr=>{
+    const el=document.getElementById(idStr);
+    if(el){const cur=el.value;el.innerHTML=modes.map(m=>`<option${cur===m?' selected':''}>${m}</option>`).join('');}
+  });
 }
 let _payListType='';
 function openManagePayList(type){
@@ -1522,7 +1784,12 @@ function openPaymentModal(cid){
   document.getElementById('p-id').value='';
   // Populate client dropdown
   const cSel=document.getElementById('p-cid');
-  cSel.innerHTML=clients.filter(c=>!c.archived).map(c=>`<option value="${c.id}"${c.id===cid?' selected':''}>${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname}${c.isTrial?' 🎯':''}</option>`).join('');
+  cSel.innerHTML=clients.filter(c=>{
+    if(c.archived)return false;
+    const m=ld('pp_memberships',{})[c.id];
+    const st=getMembershipStatus(m);
+    return st!=='expired'&&st!=='none';
+  }).map(c=>`<option value="${c.id}"${c.id===cid?' selected':''}>${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname}${c.isTrial?' 🎯':''}</option>`).join('');
   document.getElementById('p-amt').value='';
   document.getElementById('p-date').value=td();
   document.getElementById('p-notes').value='';
@@ -1567,6 +1834,8 @@ function savePayment(){
   closeM('m-payment');
   toast('₹'+amt.toLocaleString('en-IN')+' receipt saved!');
   renderPayments();renderDash();
+  /* offer printable receipt */
+  if(!existingId&&typeof offerReceipt==='function')offerReceipt(entry.id);
 }
 function setPayFilter(f,btn){
   _payFilter=f;
@@ -1617,6 +1886,7 @@ function renderPayments(){
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--green);">₹${p.amt.toLocaleString('en-IN')}</div>
           <button onclick="openEditPayment('${p.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 8px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
+          <button onclick="event.stopPropagation();showReceipt('${p.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 8px;color:var(--gold);cursor:pointer;font-size:12px;" title="Receipt">🧾</button>
         </div>
       </div>
     </div>`;}).join('');
@@ -1642,6 +1912,44 @@ function chDay(d){
   if(picker)picker.value=_schedDate;
   renderSchedule();
 }
+function toggleClosedDay(){
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const closed=ld('pp_closed_days',{});
+  if(closed[_schedDate]){
+    delete closed[_schedDate];
+    sv('pp_closed_days',closed);
+    if(typeof AUD==='function')AUD('📅 Day re-opened',fmt(_schedDate));
+    toast('Day re-opened');
+    renderSchedule();
+  }else{
+    themedPrompt('🚫 Mark day closed','Mark '+fmt(_schedDate)+' as CLOSED. Enter a reason (optional, shown to members):','Holiday',function(reason){
+      if(reason===null)return;
+      const cl=ld('pp_closed_days',{});
+      cl[_schedDate]={reason:(reason||'').trim(),at:Date.now()};
+      sv('pp_closed_days',cl);
+      if(typeof AUD==='function')AUD('📅 Day marked closed',fmt(_schedDate)+(reason?' — '+reason:''));
+      toast('🚫 Day marked closed — bookings blocked');
+      renderSchedule();
+    });
+  }
+}
+function themedPrompt(title,msg,defVal,cb){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;';
+  ov.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;max-width:340px;width:100%;padding:22px;">'
+    +'<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;">'+title+'</div>'
+    +'<div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.5;">'+msg+'</div>'
+    +'<input id="tp-in" class="fi" value="'+(defVal||'').replace(/"/g,'&quot;')+'" style="margin-bottom:14px;"/>'
+    +'<button id="tp-ok" class="sb2">Confirm</button>'
+    +'<button id="tp-cancel" class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:8px;">Cancel</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+  const inp=ov.querySelector('#tp-in');setTimeout(function(){inp.focus();inp.select();},100);
+  const done=function(v){ov.remove();cb(v);};
+  ov.querySelector('#tp-ok').onclick=function(){done(inp.value);};
+  ov.querySelector('#tp-cancel').onclick=function(){done(null);};
+  inp.onkeydown=function(e){if(e.key==='Enter')done(inp.value);if(e.key==='Escape')done(null);};
+}
 function renderSchedule(){
   const dt=new Date(_schedDate+'T00:00:00');
   const isToday=_schedDate===td();
@@ -1653,6 +1961,9 @@ function renderSchedule(){
 
   const bookings=ld('pp_bookings',{});
   const daySlots=bookings[_schedDate]||{};
+  const _dayClosedInfo=(ld('pp_closed_days',{}))[_schedDate];
+  const dayClosed=!!_dayClosedInfo;
+  const _dayClosedReason=_dayClosedInfo&&_dayClosedInfo.reason?_dayClosedInfo.reason:'';
   const clients=ld('pp_clients',[]);
 
   const morning=SLOTS.slice(0,5);
@@ -1667,7 +1978,16 @@ function renderSchedule(){
         <div style="font-size:13px;color:var(--text2);">${dt.toLocaleDateString('en-IN',{weekday:'long'})}</div>
       </div>
       <button class="btn btn-outline btn-sm" onclick="chDay(1)">Next &#9654;</button>
-    </div>`;
+    </div>
+    ${(function(){
+      const closed=ld('pp_closed_days',{});
+      const isClosed=!!closed[_schedDate];
+      if(ppIsTrainer&&ppIsTrainer())return isClosed?`<div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.4);border-radius:10px;padding:10px;margin-bottom:12px;text-align:center;font-size:13px;color:var(--red);">🚫 Studio closed on this day${closed[_schedDate].reason?' — '+closed[_schedDate].reason:''}</div>`:'';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:${isClosed?'rgba(248,113,113,0.12)':'var(--surface2)'};border:1px solid ${isClosed?'rgba(248,113,113,0.4)':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:13px;color:${isClosed?'var(--red)':'var(--text2)'};">${isClosed?'🚫 Studio CLOSED this day'+(closed[_schedDate].reason?' — '+closed[_schedDate].reason:''):'Studio open on this day'}</div>
+        <button onclick="toggleClosedDay()" style="background:${isClosed?'var(--green)':'var(--surface3)'};border:1px solid ${isClosed?'var(--green)':'var(--border2)'};border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;color:${isClosed?'#1a1a2e':'var(--text2)'};font-family:'Jost',sans-serif;white-space:nowrap;">${isClosed?'Re-open day':'🚫 Mark closed'}</button>
+      </div>`;
+    })()}`;
 
   // Occupancy bar
   let totalBooked=0;
@@ -1704,8 +2024,8 @@ function renderSchedule(){
             <div style="font-size:8px;color:var(--text3);">${bk.attended?'tap=remove':'tap=present'}</div>
           </div>`;
         } else {
-          html+=`<div style="flex:1;min-width:80px;background:var(--surface2);border:1px dashed var(--border);border-radius:${RSEM};padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="openBookingModal(${slotIdx})">
-            <span style="font-size:18px;color:var(--border2);">+</span>
+          html+=`<div title="${dayClosed?'🚫 Studio closed'+(_dayClosedReason?' — '+_dayClosedReason.replace(/"/g,'')+'. Tap for options.':'. Tap for options.'):'Tap to book this slot'}" style="flex:1;min-width:80px;background:${dayClosed?'rgba(248,113,113,0.10)':'var(--surface2)'};border:1px dashed ${dayClosed?'rgba(248,113,113,0.45)':'var(--border)'};border-radius:${RSEM};padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="openBookingModal(${slotIdx})">
+            <span style="font-size:18px;color:${dayClosed?'rgba(248,113,113,0.7)':'var(--border2)'};">${dayClosed?'🚫':'+'}</span>
           </div>`;
         }
       }
@@ -1717,6 +2037,23 @@ function renderSchedule(){
 }
 function openBookingModal(slotIdx){
   if(_schedDate<td()&&!ppIsAdmin()){toast('Past slots cannot be booked');return;}
+  /* closed-day check UPFRONT — non-admin blocked, admin gets themed override */
+  const _closed=ld('pp_closed_days',{});
+  if(_closed[_schedDate]){
+    const _rsn=_closed[_schedDate].reason?' ('+_closed[_schedDate].reason+')':'';
+    if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){
+      showConfirm('🚫','Studio Closed','The studio is closed on '+fmt(_schedDate)+_rsn+'. Booking is not allowed.',[{label:'OK',color:'var(--gold)',action:null}]);
+      return;
+    }
+    showConfirm('🚫','Day Marked Closed',fmt(_schedDate)+' is marked CLOSED'+_rsn+'.<br><br>Do you still want to book on this closed day?',[
+      {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+      {label:'Book anyway',color:'var(--gold)',action:()=>_openBookingForm(slotIdx)}
+    ]);
+    return;
+  }
+  _openBookingForm(slotIdx);
+}
+function _openBookingForm(slotIdx){
   const slot=SLOTS[slotIdx];
   const clients=ld('pp_clients',[]);
   if(!clients.length){toast('No clients added yet!');return;}
@@ -1742,6 +2079,17 @@ function saveBooking(){
   if(date<td()&&!ppIsAdmin()){toast('❌ Cannot book past slots');closeM('m-booking');return;}
   const cid=document.getElementById('bk-client').value;
   if(!cid){alert('No active clients available');return;}
+  /* closed-day already handled upfront at slot-tap (openBookingModal) */
+  // cannot book a session before the member's joining date
+  const _bc=ld('pp_clients',[]).find(x=>x.id===cid);
+  const _bjoin=_bc?(_bc.join||_bc.joinDate):'';
+  if(_bjoin&&date<_bjoin){alert('Cannot book before the member\'s joining date ('+fmt(_bjoin)+').');return;}
+  // cannot book outside the active plan's validity window (start -> end)
+  const _bmem=ld('pp_memberships',{})[cid];
+  if(_bmem){
+    if(_bmem.startDate&&date<_bmem.startDate){alert('This member\'s plan starts on '+fmt(_bmem.startDate)+'. Bookings before the plan start date are not allowed.');return;}
+    if(_bmem.endDate&&date>_bmem.endDate){alert('This member\'s plan is valid only till '+fmt(_bmem.endDate)+'. Please renew to book beyond that date.');return;}
+  }
   const bookings=ld('pp_bookings',{});
   if(!bookings[date])bookings[date]={};
   if(!bookings[date][slot])bookings[date][slot]=[];
@@ -1813,13 +2161,52 @@ function openWA(cid){
   }
   msg+=`Thank you! 🙏`;
   document.getElementById('wa-phone').value=c.phone||'';
+  document.getElementById('wa-cid').value=cid;
+  document.getElementById('wa-template').value='';
   document.getElementById('wa-msg').value=msg;
   openM('m-whatsapp');
+}
+function applyWATemplate(){
+  const t=document.getElementById('wa-template').value;
+  if(!t)return;
+  const cid=document.getElementById('wa-cid').value;
+  const c=ld('pp_clients',[]).find(x=>x.id===cid)||{};
+  const mems=ld('pp_memberships',{});const m=mems[cid];
+  const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||'':'';
+  const s=getStudio();
+  const nm=c.fname||'there';
+  const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-getClientTotalPaid(cid):0;
+  const daysLeft=m?getDaysLeft(m):0;
+  let msg='';
+  switch(t){
+    case 'payment':
+      msg=`Hi ${nm}! 👋\n\nThis is a gentle reminder regarding your pending payment of *₹${due.toLocaleString('en-IN')}* for your ${plan} membership at ${s.name}.\n\nKindly clear it at your convenience. Thank you! 🙏`;
+      break;
+    case 'expiring':
+      msg=`Hi ${nm}! 👋\n\nYour *${plan}* membership at ${s.name} ${daysLeft>0?'expires in *'+daysLeft+' day'+(daysLeft!==1?'s':'')+'*':'has expired'} (on ${m?fmt(m.endDate):''}).\n\nWould you like to renew and continue your fitness journey? 💪\n\nSee you at the studio!`;
+      break;
+    case 'welcome':
+      msg=`Hi ${nm}! 🌸\n\nWelcome to *${s.name}* — ${s.tagline}! We're delighted to have you with us.\n\nYour ${plan} membership is now active. We look forward to seeing you in class! 💪\n\n📍 ${s.addr}`;
+      break;
+    case 'cancelled':
+      msg=`Hi ${nm},\n\nWe regret to inform you that today's class at ${s.name} has been *cancelled* due to unforeseen reasons. We apologise for the inconvenience.\n\nYour session will be adjusted. Thank you for understanding! 🙏`;
+      break;
+    case 'festival':
+      msg=`Dear ${nm}, 🪔✨\n\nWarm festive greetings from all of us at *${s.name}*! May this special occasion bring you health, happiness and prosperity.\n\nWith love,\nTeam ${s.name} 🌸`;
+      break;
+    case 'birthday':
+      msg=`Dear ${nm}, 🎂🎉\n\nWishing you a very Happy Birthday from all of us at *${s.name}*! May the year ahead be filled with health, strength and joy.\n\nCelebrate well! 💐`;
+      break;
+    case 'completion':
+      msg=`Hi ${nm}! 🏆\n\nCongratulations on completing all your sessions in the *${plan}* plan at ${s.name} — and with wonderful consistency! 👏\n\nYour dedication is truly inspiring. Ready to continue the journey? Let's renew and keep going! 💪`;
+      break;
+  }
+  document.getElementById('wa-msg').value=msg;
 }
 function sendWA(){
   const phone=(document.getElementById('wa-phone').value||'').replace(/\D/g,'');
   const msg=encodeURIComponent(document.getElementById('wa-msg').value);
-  const url=phone?`https://wa.me/91${phone}?text=${msg}`:`https://wa.me/?text=${msg}`;
+  const url=phone?`https://wa.me/91${phone.replace(/^91/,'').slice(-10)}?text=${msg}`:`https://wa.me/?text=${msg}`;
   window.open(url,'_blank');
   closeM('m-whatsapp');
 }
@@ -1829,7 +2216,11 @@ function showTab(n,btn){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   if(n==='todo')n='bills';
   document.getElementById('tab-'+n).classList.add('active');
-  btn.classList.add('active');
+  if(!btn){
+    /* fallback: highlight the nav button whose onclick targets this tab */
+    btn=Array.from(document.querySelectorAll('.nb')).find(b=>((b.getAttribute('onclick')||'').indexOf("'"+n+"'")>-1));
+  }
+  if(btn&&btn.classList)btn.classList.add('active');
   _activeTab=n;
   if(n==='dashboard')renderDash();
   if(n==='clients')renderClients();
@@ -1844,7 +2235,7 @@ function renderPlanChips(selected){
   const plans=getPlans();
   document.getElementById('plan-chips').innerHTML=plans.map(p=>`
     <button class="plan-chip${selected===p.id?' active':''}" onclick="selectPlan('${p.id}')">
-      ${p.name}<br><small style="font-weight:400;opacity:0.7;">${p.sessions===999?'Unlimited':p.sessions+' sessions'} • ${!p.days?'':p.days===1?'1 day':p.days===7?'1 week':p.days===30?'1 month':p.days===90?'3 months':p.days===180?'6 months':p.days+' days'}</small>
+      ${p.name}<br><small style="font-weight:400;opacity:0.7;">${p.sessions===999?'Unlimited':p.sessions+' sessions'} • ${!p.days?'':p.days===1?'1 day':p.days===7?'1 week':p.days===30?'1 month':p.days===90?'3 months':p.days===180?'6 months':p.days+' days'} • ₹${(p.price||0).toLocaleString('en-IN')}</small>
     </button>`).join('');
 }
 function fabAction(){
@@ -2373,7 +2764,18 @@ function chStaffM(d){
   _staffM.m+=d;
   if(_staffM.m>11){_staffM.m=0;_staffM.y++;}
   if(_staffM.m<0){_staffM.m=11;_staffM.y--;}
+  _syncStaffMonthPicker();
   renderStaff();
+}
+function pickStaffMonth(val){
+  if(!val)return;
+  const [y,m]=val.split('-').map(Number);
+  _staffM={y,m:m-1};
+  renderStaff();
+}
+function _syncStaffMonthPicker(){
+  const p=document.getElementById('staff-month-pick');
+  if(p&&_staffM)p.value=_staffM.y+'-'+String(_staffM.m+1).padStart(2,'0');
 }
 
 function cycStaffAtt(sid,key,day,isOff){
@@ -2393,6 +2795,9 @@ function renderStaff(){
   const now=new Date();
   if(!_staffM)_staffM={y:now.getFullYear(),m:now.getMonth()};
   const {y,m}=_staffM;
+  if(typeof _syncStaffMonthPicker==='function')_syncStaffMonthPicker();
+  const _spb=document.getElementById('staff-print-btn');
+  if(_spb)_spb.style.display=(typeof ppIsAdmin==='function'&&!ppIsAdmin())?'none':'';
   const mlabel=document.getElementById('staff-ml');
   if(mlabel)mlabel.textContent=MN_S[m]+' '+y;
 
@@ -2498,6 +2903,7 @@ function renderStaff(){
         </div>
         <div style="display:flex;gap:6px;">
           <button onclick="openAddStaff('${s.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
+          <button onclick="printStaffAtt('${s.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--gold);cursor:pointer;font-size:12px;" title="Print salary slip">🖨</button>
           <button onclick="delStaff('${s.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;">🗑</button>
         </div>
       </div>
@@ -2836,8 +3242,8 @@ function delPlan(idx){
 }
 
 // ===== CASH CATEGORIES =====
-const DEF_CREDIT_CATS=['Membership Fee','Renewal','Drop-in Session','Complimentary / Referral','Other Income'];
-const DEF_DEBIT_CATS=['Rent','Electricity','Staff Salary','Equipment','Supplies','Maintenance','Marketing','Other Expense'];
+const DEF_CREDIT_CATS=['Membership Fee','Renewal','Drop-in Session','Complimentary / Referral','Deposit Refund / Capital','Other Income'];
+const DEF_DEBIT_CATS=['Rent','Electricity','Staff Salary','Equipment','Supplies','Maintenance','Marketing','Security Deposit (Asset)','Loan Given / Repaid','Other Expense'];
 function getCreditCats(){return ld('pp_credit_cats',DEF_CREDIT_CATS);}
 function getDebitCats(){return ld('pp_debit_cats',DEF_DEBIT_CATS);}
 let _cashCatType='in';
@@ -2913,7 +3319,7 @@ function setCEType(t){
   }
   refreshCECats();
 }
-function openCashEntry(id){
+function openCashEntry(id,prefillCid){
   document.getElementById('cash-modal-title').textContent=id?'Edit Entry':'New Entry';
   document.getElementById('ce-id').value=id||'';
   const clients=ld('pp_clients',[]);
@@ -2934,14 +3340,47 @@ function openCashEntry(id){
     document.getElementById('ce-notes').value=e.notes||'';
     // Set cat after refreshCECats
     setTimeout(()=>{if(document.getElementById('ce-cat'))document.getElementById('ce-cat').value=e.cat||'';},50);
-  } else {
+  } else if(prefillCid){
+    /* opened from a client profile → Credit, pre-fill client + due amount + description */
     setCEType('in');
+    document.getElementById('ce-cid').value=prefillCid;
+    const c=clients.find(x=>x.id===prefillCid)||{};
+    const m=ld('pp_memberships',{})[prefillCid];
+    const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-getClientTotalPaid(prefillCid):0;
+    const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||'':'';
+    document.getElementById('ce-desc').value=(plan?plan+' fee':'Membership fee')+' — '+(c.fname||'');
+    document.getElementById('ce-amt').value=due>0?due:'';
+    document.getElementById('ce-date').value=td();
+    document.getElementById('ce-notes').value='';
+    setTimeout(()=>{if(document.getElementById('ce-cat'))document.getElementById('ce-cat').value='Membership Fee';},50);
+  } else {
+    /* fresh entry → default to DEBIT (most cashbook entries are expenses;
+       membership credits flow through the plan form) */
+    setCEType('out');
     ['ce-desc','ce-notes'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('ce-amt').value='';
     document.getElementById('ce-date').value=td();
     document.getElementById('ce-cid').value='';
   }
   openM('m-cashentry');
+  const delBtn=document.getElementById('ce-del-btn');
+  if(delBtn)delBtn.style.display=(id&&(typeof ppIsAdmin!=='function'||ppIsAdmin()))?'block':'none';
+}
+function deleteCashEntry(){
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const id=document.getElementById('ce-id').value;
+  if(!id)return;
+  if(/^leg_/.test(id)){alert('This is a legacy payment record — edit it from the Payments page.');return;}
+  showConfirm('🗑','Delete this entry?','This permanently removes the cashbook voucher. This cannot be undone.',[
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+    {label:'Delete',color:'var(--rose)',action:()=>{
+      const cash=ld('pp_cash',[]);
+      const e=cash.find(x=>x.id===id);
+      sv('pp_cash',cash.filter(x=>x.id!==id));
+      if(typeof AUD==='function')AUD('🗑 Cashbook entry deleted',(e?((e.type==='in'?'+':e.type==='contra'?'⇄':'-')+'₹'+(e.amt||0)+' '+(e.cat||e.desc||'')):''));
+      closeM('m-cashentry');renderCash();renderDash();toast('Entry deleted');
+    }}
+  ]);
 }
 function saveCashEntry(){
   const amt=parseFloat(document.getElementById('ce-amt').value);
@@ -2950,10 +3389,16 @@ function saveCashEntry(){
   const id=document.getElementById('ce-id').value||Date.now().toString();
   const _t=document.getElementById('ce-type').value;
   if(_t==='contra'&&document.getElementById('ce-mode').value===document.getElementById('ce-mode2').value){alert('Contra needs two different modes (From ≠ To)');return;}
+  const _cat=_t==='contra'?'Contra':document.getElementById('ce-cat').value;
+  const _cidv=_t==='contra'?'':document.getElementById('ce-cid').value;
+  if(_t==='in'&&/membership|renewal|drop-in/i.test(_cat||'')&&!_cidv){alert('Please select the client for this fee — a membership payment must be linked to a member.');return;}
   const data={id,type:_t,desc:document.getElementById('ce-desc').value.trim(),cid:_t==='contra'?'':document.getElementById('ce-cid').value,amt,date:document.getElementById('ce-date').value||td(),mode:document.getElementById('ce-mode').value,mode2:_t==='contra'?document.getElementById('ce-mode2').value:'',cat:_t==='contra'?'Contra':document.getElementById('ce-cat').value,notes:document.getElementById('ce-notes').value.trim()};
   const idx=cash.findIndex(x=>x.id===id);
+  const isNewCE=idx<0;
   if(idx>-1)cash[idx]=data;else cash.push(data);
   sv('pp_cash',cash);closeM('m-cashentry');toast('✓ Entry saved!');renderCash();renderDash();
+  /* offer printable receipt for a new client-linked credit (fee collection) */
+  if(isNewCE&&_t==='in'&&data.cid&&typeof offerReceiptCash==='function')offerReceiptCash(data.id);
 }
 function renderCash(){
   const cashRaw=ld('pp_cash',[]);
@@ -2980,10 +3425,20 @@ function renderCash(){
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px;text-align:center;">
         <div><div style="color:var(--green);font-weight:700;">₹${totalIn.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Credits</div></div>
         <div><div style="color:var(--red);font-weight:700;">₹${totalOut.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Debits</div></div>
-        <div><div style="color:var(--gold);font-weight:700;">₹${(totalIn-totalOut).toLocaleString('en-IN')}</div><div style="color:var(--text2);">Net</div></div>
+        <div><div style="color:var(--gold);font-weight:700;">₹${(totalIn-totalOut).toLocaleString('en-IN')}</div><div style="color:var(--text2);">Net Flow</div></div>
       </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;">Cash movement this month — not profit. See 📊 Business Reports for P&amp;L</div>
     </div>`;
-  let filtered=[...cash].filter(e=>_cashFilter==='all'||e.type===_cashFilter).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  // populate category filter dropdown (once per render, preserving selection)
+  const catSel=document.getElementById('cash-catfilter');
+  if(catSel){
+    const cur=catSel.value;
+    const allCats=Array.from(new Set(cash.map(e=>e.cat).filter(Boolean))).sort();
+    catSel.innerHTML='<option value="">All categories</option>'+allCats.map(c=>`<option value="${_esc(c)}">${_esc(c)}</option>`).join('');
+    catSel.value=cur;
+  }
+  const catFilter=catSel?catSel.value:'';
+  let filtered=[...cash].filter(e=>(_cashFilter==='all'||e.type===_cashFilter)&&(!catFilter||e.cat===catFilter)).sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(!filtered.length){document.getElementById('cash-list').innerHTML=`<div style="text-align:center;padding:40px;color:var(--text2);">No entries yet. Tap + to add.</div>`;return;}
   document.getElementById('cash-list').innerHTML=filtered.map(e=>{
     const c=e.cid?clients.find(cl=>cl.id===e.cid):null;
@@ -3000,9 +3455,145 @@ function renderCash(){
           <div style="font-size:12px;color:${e.type==='in'?'var(--green)':e.type==='contra'?'var(--purple)':'var(--red)'};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">${e.type==='in'?'Credit':e.type==='contra'?'Contra':'Debit'}</div>
           <div style="font-size:18px;font-weight:700;color:${e.type==='in'?'var(--green)':e.type==='contra'?'var(--purple)':'var(--red)'};">${e.type==='in'?'+':e.type==='contra'?'⇄ ':'-'}₹${e.amt.toLocaleString('en-IN')}</div>
           <button onclick="openCashEntry('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 7px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
+          ${(e.type==='in'&&e.cid)?`<button onclick="event.stopPropagation();showReceiptCash('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 7px;color:var(--gold);cursor:pointer;font-size:12px;" title="Receipt">🧾</button>`:''}
         </div>
       </div>
     </div>`;}).join('');
+}
+
+// ===== CASH DAYBOOK (print + Excel export) =====
+function _dbAllEntries(){
+  const cashRaw=ld('pp_cash',[]);
+  const legacyPays=ld('pp_payments',[]).map(p=>({id:'leg_'+p.id,type:'in',desc:p.forWhat||'Payment',cid:p.cid,amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes,_legacy:true}));
+  const ids=new Set(cashRaw.map(e=>e.id));
+  return [...cashRaw,...legacyPays.filter(p=>!ids.has(p.id))];
+}
+function openDaybook(){
+  dbQuick('month');
+  const all=_dbAllEntries();
+  const cats=Array.from(new Set(all.map(e=>e.cat).filter(Boolean))).sort();
+  document.getElementById('db-cat').innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option value="${_esc(c)}">${_esc(c)}</option>`).join('');
+  document.getElementById('db-type').value='all';
+  openM('m-daybook');
+}
+function dbQuick(which){
+  const now=new Date();const y=now.getFullYear(),m=now.getMonth();
+  const iso=d=>d.toISOString().slice(0,10);
+  let from='',to=iso(now);
+  if(which==='today'){from=iso(now);to=iso(now);}
+  else if(which==='month'){from=iso(new Date(y,m,1));to=iso(new Date(y,m+1,0));}
+  else if(which==='lastmonth'){from=iso(new Date(y,m-1,1));to=iso(new Date(y,m,0));}
+  else if(which==='fy'){const fy=(m>=3)?y:y-1;from=fy+'-04-01';to=iso(new Date(fy+1,2,31));}
+  else if(which==='all'){from='2020-01-01';to=iso(now);}
+  document.getElementById('db-from').value=from;
+  document.getElementById('db-to').value=to;
+}
+function _dbFiltered(){
+  const from=document.getElementById('db-from').value;
+  const to=document.getElementById('db-to').value;
+  const type=document.getElementById('db-type').value;
+  const cat=document.getElementById('db-cat').value;
+  return _dbAllEntries().filter(e=>{
+    if(from&&e.date<from)return false;
+    if(to&&e.date>to)return false;
+    if(type!=='all'&&e.type!==type)return false;
+    if(cat&&e.cat!==cat)return false;
+    return true;
+  }).sort((a,b)=>new Date(a.date)-new Date(b.date)); // chronological for daybook
+}
+function printDaybook(){
+  const rows=_dbFiltered();
+  if(!rows.length){toast('No entries in this period');return;}
+  const clients=ld('pp_clients',[]);
+  const from=document.getElementById('db-from').value,to=document.getElementById('db-to').value;
+  let tIn=0,tOut=0,tCon=0;
+  const body=rows.map(e=>{
+    const c=e.cid?clients.find(cl=>cl.id===e.cid):null;
+    const cr=e.type==='in'?e.amt:0, dr=e.type==='out'?e.amt:0;
+    tIn+=cr;tOut+=dr;if(e.type==='contra')tCon+=e.amt;
+    const mode=e.type==='contra'?((e.mode||'')+' → '+(e.mode2||'')):(e.mode||'');
+    return `<tr>
+      <td>${fmt(e.date)}</td>
+      <td>${_esc(e.cat||'—')}</td>
+      <td>${_esc(e.desc||'')}${c?'<br><span style="color:#888;font-size:9px;">'+_esc((c.memNo||'')+' '+c.fname+' '+(c.lname||''))+'</span>':''}</td>
+      <td>${_esc(mode)}</td>
+      <td style="text-align:right;color:#137333;">${cr?'₹'+cr.toLocaleString('en-IN'):''}</td>
+      <td style="text-align:right;color:#a50e0e;">${dr?'₹'+dr.toLocaleString('en-IN'):''}</td>
+    </tr>`;
+  }).join('');
+  const period=(from?fmt(from):'start')+' to '+(to?fmt(to):'today');
+  const html=`<table>
+    <tr><th>Date</th><th>Category</th><th>Particulars</th><th>Mode</th><th style="text-align:right;">Credit (₹)</th><th style="text-align:right;">Debit (₹)</th></tr>
+    ${body}
+    <tr class="pr-tot"><td colspan="4" style="text-align:right;">TOTALS</td><td style="text-align:right;color:#137333;">₹${tIn.toLocaleString('en-IN')}</td><td style="text-align:right;color:#a50e0e;">₹${tOut.toLocaleString('en-IN')}</td></tr>
+    <tr class="pr-net"><td colspan="4" style="text-align:right;">NET (Credit − Debit)</td><td colspan="2" style="text-align:right;">₹${(tIn-tOut).toLocaleString('en-IN')}</td></tr>
+  </table>
+  ${tCon?`<div class="pr-note">Note: ₹${tCon.toLocaleString('en-IN')} in Contra (internal transfer) entries are shown in the list but excluded from Credit/Debit totals as they are not income or expense.</div>`:''}
+  <div class="pr-note">This is a cash movement daybook, not a P&amp;L statement. Hand this to your accountant for ledger posting.</div>`;
+  ppPrint('Cash Daybook · '+period+' · '+rows.length+' entries',html);
+}
+function exportDaybookCSV(){
+  const rows=_dbFiltered();
+  if(!rows.length){toast('No entries in this period');return;}
+  const clients=ld('pp_clients',[]);
+  const esc=s=>{s=(s==null?'':s).toString();return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const head=['Date','Type','Category','Particulars','Member','Mode','Mode2','Credit','Debit','Contra','Notes'];
+  const lines=[head.join(',')];
+  rows.forEach(e=>{
+    const c=e.cid?clients.find(cl=>cl.id===e.cid):null;
+    lines.push([
+      e.date,
+      e.type==='in'?'Credit':e.type==='out'?'Debit':'Contra',
+      e.cat||'',e.desc||'',
+      c?((c.memNo||'')+' '+c.fname+' '+(c.lname||'')).trim():'',
+      e.mode||'',e.mode2||'',
+      e.type==='in'?e.amt:'',
+      e.type==='out'?e.amt:'',
+      e.type==='contra'?e.amt:'',
+      e.notes||''
+    ].map(esc).join(','));
+  });
+  const from=document.getElementById('db-from').value||'start';
+  const to=document.getElementById('db-to').value||'end';
+  const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='PilatesDLuxe_Daybook_'+from+'_to_'+to+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('📥 Daybook exported — check Downloads');
+  if(typeof AUD==='function')AUD('📥 Daybook exported',from+' to '+to+' · '+rows.length+' entries');
+}
+
+// ===== NOTEPAD =====
+let _npTimer=null;
+function openNotepad(){
+  document.getElementById('np-text').value=ld('pp_notepad','');
+  document.getElementById('np-status').textContent='Saved';
+  openM('m-notepad');
+  setTimeout(()=>{try{document.getElementById('np-text').focus();}catch(e){}},150);
+}
+function npAutoSave(){
+  document.getElementById('np-status').textContent='Saving…';
+  if(_npTimer)clearTimeout(_npTimer);
+  _npTimer=setTimeout(()=>{
+    sv('pp_notepad',document.getElementById('np-text').value);
+    document.getElementById('np-status').textContent='✓ Saved & synced';
+  },600);
+}
+function closeNotepad(){
+  sv('pp_notepad',document.getElementById('np-text').value);
+  closeM('m-notepad');
+}
+function npCopy(){
+  const t=document.getElementById('np-text').value;
+  if(!t){toast('Notepad is empty');return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>toast('📋 Copied to clipboard')).catch(()=>toast('Could not copy'));
+  }else{
+    const ta=document.getElementById('np-text');ta.select();
+    try{document.execCommand('copy');toast('📋 Copied');}catch(e){toast('Could not copy');}
+  }
 }
 
 // ===== TRIAL REGISTRATION =====
@@ -3041,6 +3632,44 @@ function saveTrialReg(){
   toast('✓ Trial registered — '+fname+' ('+memNo+')');
   renderClients();renderDash();
 }
+
+// ===== KEYBOARD SHORTCUTS / HOTKEYS =====
+(function(){
+  const tabByCode={'Digit1':'dashboard','Digit2':'clients','Digit3':'schedule','Digit4':'cash','Digit5':'bills','Digit6':'staff','Digit7':'credits',
+                   'Numpad1':'dashboard','Numpad2':'clients','Numpad3':'schedule','Numpad4':'cash','Numpad5':'bills','Numpad6':'staff','Numpad7':'credits'};
+  function anyModalOpen(){return document.querySelector('.mo.open');}
+  document.addEventListener('keydown',function(e){
+    const tag=(e.target.tagName||'').toLowerCase();
+
+    // ESCAPE → close topmost open modal (Back)
+    if(e.key==='Escape'){
+      const open=anyModalOpen();
+      if(open){
+        if(open.id==='m-notepad'){closeNotepad();}
+        else{open.classList.remove('open');}
+        e.preventDefault();
+      }
+      return;
+    }
+
+    // ENTER → trigger primary save button inside an open modal (not in textarea)
+    if(e.key==='Enter' && !e.shiftKey){
+      const open=anyModalOpen();
+      if(open && tag!=='textarea'){
+        const primary=open.querySelector('.btn-gold, .sb2, .sb');
+        if(primary){primary.click();e.preventDefault();return;}
+      }
+    }
+
+    // ALT + number/letter → navigation. Use e.code (layout-independent).
+    if(e.altKey && !e.ctrlKey && !e.metaKey){
+      const code=e.code;
+      if(tabByCode[code] && !anyModalOpen()){showTab(tabByCode[code]);e.preventDefault();return;}
+      if(code==='KeyN'){openNotepad();e.preventDefault();return;}
+      if(code==='KeyS'){pdlSyncNow();e.preventDefault();return;}
+    }
+  });
+})();
 
 // ===== START =====
 // init() called by Firebase sync after data loaded
@@ -3129,12 +3758,12 @@ if('serviceWorker' in navigator){
 <!-- LOGIN SCREEN -->
 <div id="pp-login">
   <div class="lg-box">
-    <div class="lg-mark">𝑃</div>
+    <div class="lg-mark"><svg viewBox="0 0 100 100" width="40" height="40" fill="none" stroke="#1a1a2e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="#1a1a2e" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
-      <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off"/>
+      <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
       <div class="lg-err" id="lg-err"></div>
       <button class="lg-btn" onclick="doLogin()">Unlock</button>
     </div>
@@ -3142,8 +3771,8 @@ if('serviceWorker' in navigator){
       <div style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center;">First-time setup — create the <b style="color:var(--gold)">Admin</b> account</div>
       <input class="lg-fi" id="su-name" placeholder="Your name (e.g. Owner)"/>
       <input class="lg-fi" id="su-uid" placeholder="Login ID (e.g. admin)" autocapitalize="none"/>
-      <input class="lg-fi" id="su-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Choose PIN (4–6 digits)"/>
-      <input class="lg-fi" id="su-pin2" type="password" inputmode="numeric" maxlength="6" placeholder="Confirm PIN"/>
+      <input class="lg-fi" id="su-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Choose PIN (4–6 digits)" autocomplete="off" name="pdl-newpin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
+      <input class="lg-fi" id="su-pin2" type="password" inputmode="numeric" maxlength="6" placeholder="Confirm PIN" autocomplete="off" name="pdl-newpin2" data-1p-ignore data-lpignore="true" data-form-type="other"/>
       <div class="lg-err" id="su-err"></div>
       <button class="lg-btn" onclick="doSetup()">Create Admin & Enter</button>
     </div>
@@ -3173,7 +3802,7 @@ if('serviceWorker' in navigator){
       <div class="fg"><label class="fl">Active</label><select class="fi" id="ue-active"><option value="1">Yes</option><option value="0">No (disabled)</option></select></div>
     </div>
     <div class="fg"><label class="fl">Linked Staff Record (for own attendance &amp; tasks)</label><select class="fi" id="ue-staff"><option value="">— Not linked —</option></select></div>
-    <div class="fg"><label class="fl">PIN (4–6 digits)</label><input class="fi" id="ue-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Leave blank to keep current PIN"/></div>
+    <div class="fg"><label class="fl">PIN (4–6 digits)</label><input class="fi" id="ue-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Leave blank to keep current PIN" autocomplete="off" name="pdl-uepin" data-1p-ignore data-lpignore="true" data-form-type="other"/></div>
     <button class="sb2" onclick="saveUser()">Save User</button>
     <button id="ue-del" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteUser()">Delete User</button>
   </div>
@@ -3222,10 +3851,41 @@ function ppRefresh(){if(!PPS||!PPS.id)return;const u=ppUsers().find(x=>x.id===PP
 function ppAuthGate(){
   const users=ppUsers();
   const lg=document.getElementById('pp-login');
-  if(!users.length){ /* first run → setup admin */
+  if(!users.length){
+    /* No users locally. Likely the cloud hasn't synced yet (fresh install /
+       cache clear). Try pulling pp_users from the cloud — retry a few times
+       before ever concluding it's a genuine first-time studio. */
+    window._gateTries=(window._gateTries||0);
+    if(window._gateTries<5 && typeof _pdb!=='undefined' && navigator.onLine!==false){
+      window._gateTries++;
+      if(lg){lg.style.display='flex';
+        const sub=document.getElementById('lg-sub');if(sub)sub.textContent='Checking cloud… ('+window._gateTries+')';
+        document.getElementById('lg-login-area').style.display='none';
+        document.getElementById('lg-setup-area').style.display='none';
+      }
+      _pdb.collection('pilates').doc('pp_users').get().then(d=>{
+        if(d.exists&&d.data()&&d.data().value){localStorage.setItem('pp_users',d.data().value);}
+      }).catch(()=>{}).then(()=>{
+        const found=ppUsers().length>0;
+        if(found){ppAuthGate();}
+        else{setTimeout(()=>ppAuthGate(),1200);} /* wait & retry */
+      });
+      return false;
+    }
+    /* After retries, still no users → could be genuine first run, OR the device
+       isn't reaching the cloud. Show setup BUT with a clear recheck option. */
     document.getElementById('lg-login-area').style.display='none';
     document.getElementById('lg-setup-area').style.display='block';
     document.getElementById('lg-sub').textContent='Welcome · First-Time Setup';
+    /* inject a recheck button if not already there */
+    if(!document.getElementById('gate-recheck')){
+      const su=document.getElementById('lg-setup-area');
+      if(su){const b=document.createElement('button');b.id='gate-recheck';
+        b.textContent='↻ I already have an account — check cloud again';
+        b.style.cssText='width:100%;margin-top:10px;background:none;border:1px solid var(--gold);color:var(--gold);border-radius:20px;padding:10px;font-family:Jost,sans-serif;font-size:12px;cursor:pointer;';
+        b.onclick=function(){window._gateTries=0;ppAuthGate();};
+        su.appendChild(b);}
+    }
     lg.style.display='flex';
     return false;
   }
@@ -3295,6 +3955,16 @@ function doLogout(){
   localStorage.removeItem('pp_session');
   setTimeout(()=>location.reload(),400);
 }
+function switchStudioAccount(){
+  showConfirm('↪','Sign out of cloud account?','This signs this device out of the studio cloud account (Firebase). You will need to sign in again with a studio email + password. Use this to switch devices or test a different account.',[
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+    {label:'Sign out',color:'var(--gold)',action:()=>{
+      localStorage.removeItem('pp_session');
+      try{firebase.auth().signOut().then(()=>location.reload()).catch(()=>location.reload());}
+      catch(e){location.reload();}
+    }}
+  ]);
+}
 document.getElementById('lg-pin').addEventListener('keyup',e=>{if(e.key==='Enter')doLogin();});
 
 /* ================= ROLE APPLICATION ================= */
@@ -3314,6 +3984,8 @@ function applyRole(){
     });
     /* staff tab: hide Add / Share buttons */
     document.querySelectorAll('#tab-staff .sh button').forEach(b=>b.style.display='none');
+    /* hide Manage Plans (plan definitions are admin-only) */
+    var _mp=document.getElementById('btn-manage-plans');if(_mp)_mp.style.display='none';
     /* tasks tab: hide filter tabs, add button & share */
     document.querySelectorAll('#tab-bills .sh button, #tab-bills .ftab').forEach(b=>b.style.display='none');
   }
@@ -3657,7 +4329,7 @@ function deleteUser(){
   };
 
   /* block financial/edit modals for staff (safety net) */
-  ['openCashEntry','openEditPayment','openEditClient','openAddStaff','openAddBillTodo','openStaffAdv','openManagePlans','openAddReferralBonus','exportPPData','importPPData','resetAllData'].forEach(fn=>{
+  ['openCashEntry','openEditPayment','openAddStaff','openAddBillTodo','openStaffAdv','openManagePlans','openAddReferralBonus','exportPPData','importPPData','resetAllData'].forEach(fn=>{
     const o=window[fn];
     if(typeof o!=='function')return;
     window[fn]=function(){
@@ -3665,6 +4337,22 @@ function deleteUser(){
       return o.apply(this,arguments);
     };
   });
+  /* staff: editing existing clients & reassigning existing plans = admin only */
+  (function(){
+    const oEdit=window.openEditClient;
+    if(typeof oEdit==='function')window.openEditClient=function(){
+      if(ppIsStaff()){toast('🔒 Only admin can edit a saved member');return;}
+      return oEdit.apply(this,arguments);
+    };
+    const oAssign=window.openAssignMembership;
+    if(typeof oAssign==='function')window.openAssignMembership=function(cid){
+      if(ppIsStaff()){
+        const m=ld('pp_memberships',{})[cid];
+        if(m){toast('🔒 Plan already set — only admin can change it');return;}
+      }
+      return oAssign.apply(this,arguments);
+    };
+  })();
   /* trainer is strictly view-only: block all adding/editing actions */
   ['openAddClient','openTrialReg','openAssignMembership','openBookingModal','saveBooking','cycleSlot','confirmCycleSlot','cycStaffAtt','saveClient','saveMembership','savePayment','saveCashEntry','saveBillTask','delTodo','toggleBillStatus','saveStaff','delStaff','saveStaffAdv','saveTrialReg','saveReferralBonus','toggleReferralBonus','archiveClient'].forEach(fn=>{
     const o=window[fn];
@@ -3685,9 +4373,15 @@ function deleteUser(){
         const d=document.createElement('div');d.id='admin-tools';
         d.innerHTML=`<div class="div-section">🔐 Admin Tools</div>
           <button class="sb2" onclick="openReports()" style="margin-bottom:8px;">📊 Business Reports</button>
+          <button class="sb2" onclick="openStatement()" style="margin-bottom:8px;">📑 Account Statement (passbook)</button>
+          <button class="sb2" onclick="openStudioEdit()" style="margin-bottom:8px;">🏛 Studio Details (receipt header)</button>
+          <button class="sb2" onclick="openAnnounce()" style="margin-bottom:8px;">📢 Booking Page Announcement</button>
+          <button class="sb2" onclick="switchStudioAccount()" style="margin-bottom:8px;">↪ Sign out of studio cloud account (switch device/login)</button>
           <button class="sb2" onclick="openUsersModal()" style="margin-bottom:8px;">👥 Users &amp; Access</button>
           <button class="sb2" onclick="openCompRule()" style="background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);margin-bottom:8px;">🎁 Referral Reward Rule</button>
-          <button class="sb2" onclick="openAuditModal()" style="background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>`;
+          <button class="sb2" onclick="openAuditModal()" style="background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>
+          <div style="font-size:11px;color:var(--text3);margin:10px 0 6px;text-align:center;">☁️ Cloud device: ${(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'not signed in (offline mode)'}</div>
+          <button class="sb2" onclick="cloudSignOut()" style="background:none;border:1.5px solid var(--rose);color:var(--rose);">☁️ Cloud Device Sign-out</button>`;
         cc.appendChild(d);
       }
     }
@@ -3779,7 +4473,9 @@ function saveComp(){
     try{
       const cid=document.getElementById('bk-client').value;
       const date=document.getElementById('bk-date').value;
-      if(cid&&date>=td()){
+      if(window._bkOverride){
+        window._bkOverride=false;
+      }else if(cid&&date>=td()){
         const mems=ld('pp_memberships',{});
         const mem=mems[cid];
         const c=ld('pp_clients',[]).find(x=>x.id===cid)||{};
@@ -3790,10 +4486,19 @@ function saveComp(){
         else if(mem.plan!=='unlimited'&&(mem.sessionsLeft||0)<=0)problem='has no sessions left on the plan';
         if(problem){
           if(ppIsAdmin()){
-            if(!confirm('⚠️ '+nm+' '+problem+'.\n\nBook anyway? (admin override)'))return;
-            if(typeof AUD==='function')AUD('⚠️ Booking limit overridden',nm+' — '+problem);
+            showConfirm('⚠️','Plan Limit',nm+' '+problem+'. Book anyway?',[
+              {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+              {label:'Book Anyway',color:'var(--gold)',action:()=>{
+                window._bkOverride=true;
+                if(typeof AUD==='function')AUD('⚠️ Booking limit overridden',nm+' — '+problem);
+                saveBooking();
+              }}
+            ]);
+            return;
           }else{
-            alert('🔒 Cannot book: '+nm+' '+problem+'. Please ask admin to renew/extend the plan.');
+            showConfirm('🔒','Booking Not Allowed',nm+' '+problem+'. Please ask admin to renew or extend the plan.',[
+              {label:'OK',color:'var(--gold)',action:null}
+            ]);
             return;
           }
         }
@@ -3957,6 +4662,7 @@ function _applyComp(mem,classes,cash){
       <div id="rep-ml" style="font-size:15px;font-weight:700;color:var(--gold);min-width:130px;text-align:center;"></div>
       <button class="btn btn-outline btn-sm" onclick="chRepM(1)">&#9654;</button>
     </div>
+    <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-bottom:12px;" onclick="printPnL()">🖨 Print / Save PDF — P&amp;L Statement</button>
     <div id="rep-content"></div>
   </div>
 </div>
@@ -3980,7 +4686,7 @@ function _opsCash(){
   const cashRaw=ld('pp_cash',[]);
   const legacyPays=ld('pp_payments',[]).map(p=>({id:'leg_'+p.id,type:'in',desc:p.forWhat||'Payment',cid:p.cid,amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes}));
   const ids=new Set(cashRaw.map(e=>e.id));
-  return [...cashRaw,...legacyPays.filter(p=>!ids.has(p.id))].filter(e=>e.type!=='contra'&&e.cat!=='Contra');
+  return [...cashRaw,...legacyPays.filter(p=>!ids.has(p.id))].filter(e=>e.type!=='contra'&&e.cat!=='Contra'&&!/security deposit|deposit refund|capital|loan|asset/i.test(e.cat||''));
 }
 function _inMonth(dstr,y,m){const d=new Date(dstr+'T00:00:00');return d.getFullYear()===y&&d.getMonth()===m;}
 function _bar(label,val,max,color){
@@ -4019,7 +4725,7 @@ function renderReports(){
       ${revCats.length?'<div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px;">REVENUE BY CATEGORY</div>'+revCats.map(([k,v])=>_bar(k,v,maxRev,'var(--green)')).join(''):''}
       ${expCats.length?'<div style="font-size:12px;font-weight:700;color:var(--red);margin:10px 0 6px;">EXPENSES BY CATEGORY</div>'+expCats.map(([k,v])=>_bar(k,v,maxExp,'var(--red)')).join(''):''}
       ${!revCats.length&&!expCats.length?'<div style="text-align:center;color:var(--text3);font-size:13px;padding:10px;">No entries this month</div>':''}
-      <div style="font-size:11px;color:var(--text3);margin-top:8px;">Contra (mode transfers) excluded. Based on cashbook entries.</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">Excluded from P&amp;L: contra transfers, security deposits, capital &amp; loans — these are not operating income/expense.</div>
     </div>`;
 
   /* ===== D1: Trial Conversion ===== */
@@ -4085,6 +4791,1173 @@ function renderReports(){
     </div>`;
 
   document.getElementById('rep-content').innerHTML=html;
+}
+</script>
+
+<!-- ================= PHASE 4: PRINT / PDF ================= -->
+<style id="pp-print-css">
+#print-area{display:none;}
+@media print{
+  body>*:not(#print-area){display:none!important;}
+  #print-area{display:block!important;background:#fff;color:#111;font-family:'Jost',Arial,sans-serif;padding:6px;}
+}
+#print-area h1{font-size:21px;margin:0;color:#111;font-family:'Playfair Display',Georgia,serif;}
+#print-area .ph-sub{color:#555;font-size:11px;margin:2px 0 14px;}
+#print-area h2{font-size:14px;margin:16px 0 6px;border-bottom:2px solid #c9a84c;padding-bottom:3px;color:#111;}
+#print-area table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;}
+#print-area th,#print-area td{border:1px solid #bbb;padding:4px 6px;text-align:left;color:#111;vertical-align:top;}
+#print-area th{background:#f3edd9;font-weight:700;}
+#print-area .pr-tot td{font-weight:700;background:#faf7ec;}
+#print-area .pr-net td{font-weight:800;background:#f3edd9;font-size:12px;}
+#print-area .pr-note{font-size:10px;color:#666;margin-top:6px;}
+</style>
+<div id="print-area"></div>
+
+<script>
+/* ================= PRINT / PDF SYSTEM ================= */
+/* Print in a clean popup window — tiny DOM prints instantly (avoids 30-60s delay
+   that came from printing the whole heavy app page). */
+function ppPrintHTML(innerHtml,docTitle){
+  const css=`<style>
+    @page{margin:12mm;}
+    *{box-sizing:border-box;}
+    body{font-family:'Jost','Helvetica Neue',Arial,sans-serif;color:#111;margin:0;padding:8px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    h1{font-family:Georgia,'Times New Roman',serif;font-size:21px;margin:0;}
+    .ph-sub{color:#555;font-size:11px;margin:2px 0 14px;}
+    h2{font-size:14px;margin:16px 0 6px;border-bottom:2px solid #c9a84c;padding-bottom:3px;}
+    table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;}
+    th,td{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top;}
+    th{background:#f3edd9;font-weight:700;}
+    .pr-tot td{font-weight:700;background:#faf7ec;}
+    .pr-net td{font-weight:800;background:#f3edd9;font-size:12px;}
+    .pr-note{font-size:10px;color:#666;margin-top:6px;}
+  </style>`;
+  const w=window.open('','_blank','width=440,height=660,menubar=no,toolbar=no');
+  if(!w){toast('Please allow popups for this site to print/save PDF');return;}
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+(docTitle||'Pilates DLuxe')+'</title>'+css+
+    '<scr'+'ipt>window.onafterprint=function(){setTimeout(function(){window.close();},300);};</scr'+'ipt>'+
+    '</head><body>'+innerHtml+
+    '<div class="noprint" style="text-align:center;margin-top:16px;"><button onclick="window.print()" style="padding:10px 22px;border:none;border-radius:20px;background:#c9a84c;color:#1a1a2e;font-weight:700;font-size:14px;cursor:pointer;">🖨 Print / Save PDF</button> <button onclick="window.close()" style="padding:10px 18px;border:1px solid #ccc;border-radius:20px;background:#fff;cursor:pointer;">Close</button></div>'+
+    '<style>@media print{.noprint{display:none!important;}}</style>'+
+    '</body></html>');
+  w.document.close();
+  w.focus();
+  /* no auto-print — the preview window has its own Print button so the user
+     reviews first and avoids the confusing double print/PDF dialog */
+}
+function ppPrint(title,bodyHtml){
+  const d=new Date();
+  const html=`<h1>Pilates D'Luxe</h1><div class="ph-sub">${title} • Generated ${d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})} ${d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}${PPS?' • by '+PPS.name:''}</div>`+bodyHtml;
+  ppPrintHTML(html,title);
+}
+function _esc(s){return (s||'').toString().replace(/</g,'&lt;');}
+
+/* ---- Member list ---- */
+function printMembers(){
+  const clients=ld('pp_clients',[]).filter(c=>!c.archived).sort((a,b)=>(a.memNo||'').localeCompare(b.memNo||''));
+  const mems=ld('pp_memberships',{});
+  const rows=clients.map(c=>{
+    const m=mems[c.id];
+    const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:'—';
+    const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-getClientTotalPaid(c.id):0;
+    const st=getMembershipStatus(m);
+    return `<tr><td>${_esc(c.memNo)}</td><td>${_esc(c.fname+' '+(c.lname||''))}</td><td>${_esc(c.phone)}</td><td>${_esc(c.email||'—')}</td><td>${_esc(plan)}</td>
+      <td>${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}</td><td>${m?fmt(m.startDate):'—'}</td><td>${m?fmt(m.endDate):'—'}</td>
+      <td>${m&&m.plan!=='unlimited'?(m.sessionsLeft||0)+'/'+(m.sessionsTotal||0):'—'}</td>
+      <td>${due>0?'₹'+due.toLocaleString('en-IN'):'—'}</td><td>${st==='none'?'No Plan':st.charAt(0).toUpperCase()+st.slice(1)}</td></tr>`;
+  }).join('');
+  ppPrint('Member List ('+clients.length+' active members)',
+    `<table><tr><th>Mem No</th><th>Name</th><th>Phone</th><th>Email</th><th>Plan</th><th>Joined</th><th>Starts</th><th>Expires</th><th>Sessions</th><th>Due</th><th>Status</th></tr>${rows}</table>`);
+}
+
+/* ---- Member profile + attendance ---- */
+function printProfile(cid){
+  const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
+  const mems=ld('pp_memberships',{});const m=mems[cid];
+  const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:null;
+  const pays=ld('pp_payments',[]).filter(p=>p.cid===cid).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const totalPaid=getClientTotalPaid(cid);
+  const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-totalPaid:0;
+  const refBy=c.refId?(ld('pp_clients',[]).find(x=>x.id===c.refId)||{}).fname||'':'';
+  let html=`<h2>👤 Profile — ${_esc(c.fname+' '+(c.lname||''))} (${_esc(c.memNo)})</h2>
+    <table><tr><th style="width:28%">Phone</th><td>${_esc(c.phone)||'—'}</td></tr>
+    <tr><th>Email</th><td>${_esc(c.email)||'—'}</td></tr>
+    <tr><th>Address</th><td>${_esc(c.addr||c.address)||'—'}</td></tr>
+    <tr><th>Joined / Registered</th><td>${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}</td></tr>
+    ${refBy?`<tr><th>Referred By</th><td>${_esc(refBy)}</td></tr>`:''}
+    ${c.notes?`<tr><th>Notes</th><td>${_esc(c.notes)}</td></tr>`:''}</table>`;
+  if(m){
+    html+=`<h2>🎟 Current Membership</h2>
+    <table><tr><th style="width:28%">Plan</th><td>${_esc(plan)}</td></tr>
+    <tr><th>Period</th><td>${fmt(m.startDate)} → ${fmt(m.endDate)} (${getMembershipStatus(m)})</td></tr>
+    <tr><th>Sessions</th><td>${m.plan==='unlimited'?'Unlimited':(m.sessionsLeft||0)+' left of '+(m.sessionsTotal||0)}</td></tr>
+    <tr><th>Fee</th><td>₹${(m.fee||0).toLocaleString('en-IN')}${(m.disc||0)>0?' − ₹'+(m.disc||0).toLocaleString('en-IN')+' complimentary = ₹'+Math.max(0,(m.fee||0)-(m.disc||0)).toLocaleString('en-IN'):''}</td></tr>
+    <tr><th>Paid / Due</th><td>₹${totalPaid.toLocaleString('en-IN')} paid${due>0?' • <b>₹'+due.toLocaleString('en-IN')+' DUE</b>':' • Fully paid'}</td></tr>
+    ${(m.bonus||0)>0?`<tr><th>Complimentary</th><td>${m.bonus} class(es)</td></tr>`:''}</table>`;
+  }
+  if(pays.length){
+    html+=`<h2>💳 Payments (${pays.length})</h2><table><tr><th>Date</th><th>Amount</th><th>Mode</th><th>For</th></tr>`+
+      pays.map(p=>`<tr><td>${fmt(p.date)}</td><td>₹${(p.amt||0).toLocaleString('en-IN')}</td><td>${_esc(p.mode)}</td><td>${_esc(p.forWhat)}</td></tr>`).join('')+'</table>';
+  }
+  /* attendance from bookings */
+  const bookings=ld('pp_bookings',{});const att=[];
+  Object.keys(bookings).forEach(date=>{Object.keys(bookings[date]||{}).forEach(slot=>{
+    (bookings[date][slot]||[]).forEach(bk=>{if(bk&&bk.cid===cid)att.push({date,slot,attended:!!bk.attended});});
+  });});
+  att.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(att.length){
+    html+=`<h2>🗓 Attendance / Bookings (last ${Math.min(att.length,50)})</h2><table><tr><th>Date</th><th>Slot</th><th>Status</th></tr>`+
+      att.slice(0,50).map(a=>`<tr><td>${fmt(a.date)}</td><td>${a.slot}</td><td>${a.attended?'✓ Attended':'Booked'}</td></tr>`).join('')+'</table>';
+  }
+  ppPrint('Member Profile',html);
+}
+
+/* ---- Staff attendance (selected month) ---- */
+function printStaffAtt(onlyStaffId){
+  const staffAll=ld('pp_staff',[]);
+  const staff=onlyStaffId?staffAll.filter(s=>s.id===onlyStaffId):staffAll;
+  if(!staff.length){toast('No staff records');return;}
+  const now=new Date();const M=_staffM||{y:now.getFullYear(),m:now.getMonth()};
+  const {y,m}=M;const dim=new Date(y,m+1,0).getDate();
+  const today=new Date();today.setHours(0,0,0,0);
+  const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const rows=staff.map(s=>{
+    const att=ld('pp_satt_'+s.id,{});const ma=att[y+'-'+m]||{};
+    let startDay=1;
+    if(s.join){const jd=new Date(s.join+'T00:00:00');
+      if(jd.getFullYear()===y&&jd.getMonth()===m)startDay=jd.getDate();
+      else if(jd>new Date(y,m+1,0))startDay=dim+1;}
+    let P=0,H=0,A=0,HD=0;const abs=[],half=[];
+    for(let d=1;d<=dim;d++){
+      const dt=new Date(y,m,d);if(dt>today||d<startDay)continue;
+      const isOff=s.offday!==undefined&&dt.getDay()===parseInt(s.offday);
+      const st=ma[d]!==undefined?ma[d]:(isOff?'H':'P');
+      if(st==='P')P++;else if(st==='Half'){H++;half.push(d);}else if(st==='A'){A++;abs.push(d);}else HD++;
+    }
+    /* salary: pro-rata on (present + half*0.5 + holidays) over month days */
+    const sal=parseFloat(s.sal||s.salary||0)||0;
+    const perDay=sal>0?sal/dim:0;
+    const payableDays=P+HD+(H*0.5);
+    const earned=Math.round(perDay*payableDays);
+    /* advances taken this month */
+    const adv=ld('pp_sadv_'+s.id,[]);
+    const advThisMonth=(Array.isArray(adv)?adv:[]).filter(a=>a.date&&new Date(a.date).getMonth()===m&&new Date(a.date).getFullYear()===y).reduce((t,a)=>t+(a.amt||0),0);
+    const net=earned-advThisMonth;
+    return `<tr><td>${_esc(s.fname+' '+(s.lname||''))}</td><td>${_esc(s.role)}</td><td>${P}</td><td>${H}</td><td>${A}</td><td>${HD}</td>
+      <td style="text-align:right;">${sal?'₹'+sal.toLocaleString('en-IN'):'—'}</td>
+      <td style="text-align:right;">${sal?'₹'+earned.toLocaleString('en-IN'):'—'}</td>
+      <td style="text-align:right;">${advThisMonth?'₹'+advThisMonth.toLocaleString('en-IN'):'—'}</td>
+      <td style="text-align:right;font-weight:700;">${sal?'₹'+net.toLocaleString('en-IN'):'—'}</td></tr>
+      ${(abs.length||half.length)?`<tr><td colspan="10" style="font-size:10px;color:#666;">${abs.length?'Absent on: '+abs.join(', '):''}${abs.length&&half.length?' | ':''}${half.length?'Half-day: '+half.join(', '):''}</td></tr>`:''}`;
+  }).join('');
+  ppPrint((onlyStaffId?'Salary & Attendance — '+_esc((staff[0].fname+' '+(staff[0].lname||'')).trim()):'Staff Salary & Attendance')+' — '+MN[m]+' '+y,
+    `<table><tr><th>Staff</th><th>Role</th><th>P</th><th>½</th><th>A</th><th>H</th><th style="text-align:right;">Salary</th><th style="text-align:right;">Earned</th><th style="text-align:right;">Advance</th><th style="text-align:right;">Net Payable</th></tr>${rows}</table>
+     <div class="pr-note">P=Present, ½=Half-day, A=Absent, H=Holiday. Earned = salary pro-rated on (present + holidays + ½ half-days) ÷ ${dim} days. Net Payable = Earned − Advance taken this month. Counted till today.</div>`);
+}
+
+/* ---- P&L statement (detailed, for selected report month) ---- */
+function printPnL(){
+  const now=new Date();const M=_repM||{y:now.getFullYear(),m:now.getMonth()};
+  const {y,m}=M;
+  const ops=_opsCash().filter(e=>_inMonth(e.date,y,m));
+  const rev=ops.filter(e=>e.type==='in'),exp=ops.filter(e=>e.type==='out');
+  const byCat=arr=>{const o={};arr.forEach(e=>{const k=e.cat||'Other';if(!o[k])o[k]={amt:0,n:0};o[k].amt+=e.amt;o[k].n++;});return Object.entries(o).sort((a,b)=>b[1].amt-a[1].amt);};
+  const rT=rev.reduce((s,e)=>s+e.amt,0),eT=exp.reduce((s,e)=>s+e.amt,0);
+  const profit=rT-eT;
+  /* non-operating movements for transparency */
+  const cashAll=[...ld('pp_cash',[])].filter(e=>_inMonth(e.date,y,m));
+  const nonOp=cashAll.filter(e=>e.type==='contra'||e.cat==='Contra'||/security deposit|deposit refund|capital|loan|asset/i.test(e.cat||''));
+  const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let html=`<h2>Operating Revenue</h2><table><tr><th>Category</th><th>Entries</th><th>Amount</th></tr>`+
+    byCat(rev).map(([k,v])=>`<tr><td>${_esc(k)}</td><td>${v.n}</td><td>₹${v.amt.toLocaleString('en-IN')}</td></tr>`).join('')+
+    `<tr class="pr-tot"><td>Total Revenue</td><td>${rev.length}</td><td>₹${rT.toLocaleString('en-IN')}</td></tr></table>
+    <h2>Operating Expenses</h2><table><tr><th>Category</th><th>Entries</th><th>Amount</th></tr>`+
+    byCat(exp).map(([k,v])=>`<tr><td>${_esc(k)}</td><td>${v.n}</td><td>₹${v.amt.toLocaleString('en-IN')}</td></tr>`).join('')+
+    `<tr class="pr-tot"><td>Total Expenses</td><td>${exp.length}</td><td>₹${eT.toLocaleString('en-IN')}</td></tr>
+    <tr class="pr-net"><td colspan="2">${profit>=0?'NET PROFIT (Operating)':'NET LOSS (Operating)'}</td><td>${profit<0?'−':''}₹${Math.abs(profit).toLocaleString('en-IN')}</td></tr></table>`;
+  if(nonOp.length){
+    html+=`<h2>Non-Operating Movements (excluded from P&amp;L)</h2><table><tr><th>Date</th><th>Type</th><th>Detail</th><th>Amount</th></tr>`+
+      nonOp.map(e=>`<tr><td>${fmt(e.date)}</td><td>${e.type==='contra'?'Contra':e.type==='in'?'Receipt':'Payment'}</td><td>${_esc(e.desc||e.cat)}${e.type==='contra'?' ('+_esc(e.mode)+' → '+_esc(e.mode2)+')':''}</td><td>₹${(e.amt||0).toLocaleString('en-IN')}</td></tr>`).join('')+'</table>';
+  }
+  html+=`<div class="pr-note">Cash-basis statement from cashbook entries for ${MN[m]} ${y}. Excludes contra transfers, security deposits, capital and loans. Member dues not yet received are not included (cash basis).</div>`;
+  ppPrint('Profit &amp; Loss Statement — '+MN[m]+' '+y,html);
+}
+
+/* ---- inject print buttons (admin only) ---- */
+function injectPrintButtons(){
+  if(!ppIsAdmin())return;
+  const mk=(fn,title)=>{const b=document.createElement('button');b.className='btn btn-outline btn-sm pp-print';b.textContent='🖨';b.title=title;b.onclick=fn;return b;};
+  const ch=document.querySelector('#tab-clients .sh');
+  if(ch&&!ch.querySelector('.pp-print'))ch.appendChild(mk(printMembers,'Print member list'));
+}
+(function(){
+  const _oAR=window.applyRole;
+  window.applyRole=function(){const r=_oAR.apply(this,arguments);try{injectPrintButtons();}catch(e){}return r;};
+  /* profile print button inside client detail */
+  const _oOD=window.openDetail;
+  window.openDetail=function(cid){
+    const r=_oOD.apply(this,arguments);
+    try{
+      if(ppIsAdmin()){
+        const dc=document.getElementById('detail-content');
+        if(dc&&!dc.querySelector('.pp-print-prof')){
+          const b=document.createElement('button');
+          b.className='sb2 pp-print-prof';
+          b.style.cssText='background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:10px;';
+          b.textContent='🖨 Print / Save PDF — Profile & Attendance';
+          b.onclick=()=>printProfile(cid);
+          dc.appendChild(b);
+        }
+      }
+    }catch(e){}
+    return r;
+  };
+})();
+</script>
+
+
+<script>
+/* ===== Backup reminder (admin) ===== */
+(function(){
+  const _oEx=window.exportPPData;
+  window.exportPPData=function(){
+    const r=_oEx.apply(this,arguments);
+    try{localStorage.setItem('pp_last_backup',td());}catch(e){}
+    return r;
+  };
+  const _oDash2=window.renderDash;
+  window.renderDash=function(){
+    const r=_oDash2.apply(this,arguments);
+    try{
+      if(ppIsAdmin()){
+        const last=localStorage.getItem('pp_last_backup');
+        const days=last?Math.floor((new Date(td())-new Date(last))/(86400000)):999;
+        if(days>7){
+          const dc=document.getElementById('dash-content');
+          if(dc&&!document.getElementById('bk-reminder')){
+            const d=document.createElement('div');d.id='bk-reminder';
+            d.style.cssText='padding:11px 14px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:var(--rsm);margin-bottom:12px;display:flex;align-items:center;gap:10px;';
+            d.innerHTML='<span style="font-size:18px;">📥</span><div style="flex:1;font-size:12px;color:var(--text2);">'+(last?'Last backup was '+days+' days ago':'No backup taken yet')+' — a weekly backup keeps your data extra safe.</div><button onclick="exportPPData();this.parentNode.remove();toast(\'✓ Backup downloaded\')" style="background:var(--amber);border:none;border-radius:14px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;color:#1a1a2e;font-family:\'Jost\',sans-serif;flex-shrink:0;">Backup Now</button>';
+            dc.insertBefore(d,dc.firstChild);
+          }
+        }
+      }
+    }catch(e){}
+    return r;
+  };
+})();
+</script>
+
+
+<script>
+/* ===== Audit coverage: list edits (payment modes, pay-for, cash categories) ===== */
+(function(){
+  function wrapList(fnName,getVal,labelFn){
+    const o=window[fnName];if(typeof o!=='function')return;
+    window[fnName]=function(){
+      let val='';try{val=getVal?getVal.apply(this,arguments):'';}catch(e){}
+      const before=_ppSnap();
+      const r=o.apply(this,arguments);
+      try{
+        const after=_ppSnap();let changed=false;
+        const keys=new Set([...Object.keys(before),...Object.keys(after)]);
+        for(const k of keys){if(before[k]!==after[k]){changed=true;break;}}
+        if(changed)AUD(labelFn(val),'');
+      }catch(e){}
+      return r;
+    };
+  }
+  wrapList('addPayListItem',
+    ()=>document.getElementById('paylist-new').value.trim(),
+    v=>'➕ '+(_payListType==='modes'?'Payment mode added':'"Payment For" item added')+(v?': '+v:''));
+  wrapList('delPayListItem',
+    function(i){const items=_payListType==='modes'?getPayModes():getPayFor();return items[i]||'';},
+    v=>'🗑 '+(_payListType==='modes'?'Payment mode deleted':'"Payment For" item deleted')+(v?': '+v:''));
+  wrapList('addCashCat',
+    ()=>document.getElementById('cashcats-new').value.trim(),
+    v=>'➕ Cashbook '+(_cashCatType==='in'?'credit':'debit')+' category added'+(v?': '+v:''));
+  wrapList('delCashCat',
+    function(i){const cats=_cashCatType==='in'?getCreditCats():getDebitCats();return cats[i]||'';},
+    v=>'🗑 Cashbook '+(_cashCatType==='in'?'credit':'debit')+' category deleted'+(v?': '+v:''));
+})();
+</script>
+
+<!-- ================= PHASE 5: CLOUD AUTHENTICATION GATE ================= -->
+<div id="pp-cloud" style="position:fixed;inset:0;background:var(--bg);z-index:9100;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div class="lg-box">
+    <div class="lg-mark">☁️</div>
+    <div class="lg-title">Studio Cloud Sign-in</div>
+    <div class="lg-sub">One-time setup for this device</div>
+    <input class="lg-fi" id="cl-email" type="email" placeholder="Studio email" autocapitalize="none" autocomplete="username"/>
+    <input class="lg-fi" id="cl-pass" type="password" placeholder="Studio cloud password" autocomplete="current-password"/>
+    <div class="lg-err" id="cl-err"></div>
+    <button class="lg-btn" onclick="doCloudLogin()">Connect This Device</button>
+    <div style="font-size:12px;color:var(--text3);margin-top:14px;line-height:1.5;">This links the device to the studio's secure cloud database.<br>After this, the regular user PIN screen appears.</div>
+    <div style="margin-top:14px;"><a href="#" onclick="event.preventDefault();_cloudOffline();" style="font-size:12px;color:var(--text3);text-decoration:underline;">Continue offline (no cloud sync)</a></div>
+  </div>
+</div>
+
+<script>
+/* ================= CLOUD AUTH ================= */
+function _showCloudGate(){
+  const g=document.getElementById('pp-cloud');
+  if(g)g.style.display='flex';
+}
+function _cloudOffline(){
+  const g=document.getElementById('pp-cloud');
+  if(g)g.style.display='none';
+  if(!window._pStarted){window._pStarted=true;_pInit();}
+}
+async function doCloudLogin(){
+  const err=document.getElementById('cl-err');
+  const email=document.getElementById('cl-email').value.trim();
+  const pass=document.getElementById('cl-pass').value;
+  if(!email||!pass){err.textContent='Enter studio email and password';return;}
+  err.textContent='';
+  try{
+    await firebase.auth().signInWithEmailAndPassword(email,pass);
+    /* onAuthStateChanged hides the gate and starts sync */
+    if(typeof toast==='function')toast('☁️ Device connected to studio cloud');
+  }catch(e){
+    const code=(e&&e.code)||'';
+    if(code.indexOf('wrong-password')>-1||code.indexOf('invalid-credential')>-1||code.indexOf('invalid-login')>-1)err.textContent='Wrong password — please try again';
+    else if(code.indexOf('user-not-found')>-1)err.textContent='No cloud account with this email';
+    else if(code.indexOf('too-many-requests')>-1)err.textContent='Too many attempts — wait a few minutes';
+    else if(code.indexOf('network')>-1)err.textContent='Network error — check your internet';
+    else err.textContent='Sign-in failed: '+(e.message||code||'unknown error');
+  }
+}
+function cloudSignOut(){
+  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  showConfirm('☁️','Sign out this device from cloud?','The app will stop syncing on this device until the studio email & password are entered again. Local data stays on the device.',[
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+    {label:'Sign Out Device',color:'var(--rose)',action:()=>{
+      if(typeof AUD==='function')AUD('☁️ Cloud device signed out','');
+      setTimeout(()=>{firebase.auth().signOut().then(()=>location.reload()).catch(()=>location.reload());},400);
+    }}
+  ]);
+}
+</script>
+
+<!-- ================= PHASE 6: RECEIPT + POLISH ================= -->
+<div class="mo" id="m-receipt" style="z-index:500;align-items:center;">
+  <div class="md" style="max-height:90vh;overflow-y:auto;">
+    <button class="mc2" onclick="closeM('m-receipt')">✕</button>
+    <h2>🧾 Payment Receipt</h2>
+    <div id="receipt-preview" style="background:#fff;color:#111;border-radius:10px;padding:18px;margin:8px 0 14px;font-family:'Jost',Arial,sans-serif;"></div>
+    <button class="sb2" onclick="printReceipt()">🖨 Print / Save PDF</button>
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px;line-height:1.5;">💡 To send on WhatsApp: tap above → "Save as PDF" → then attach that PDF file in the client's WhatsApp chat.</div>
+    <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:8px;" onclick="closeM('m-receipt')">Close</button>
+  </div>
+</div>
+
+<script>
+/* ===== STUDIO PROFILE (editable) ===== */
+function getStudio(){return ld('pp_studio',{name:"PILATES D'LUXE",tagline:'Luxurious French Pilates',addr:'Model Town, Delhi',phone:'+91-9354106025',insta:'@pilatesdluxemodeltown',gst:''});}
+
+/* ===== RECEIPT ===== */
+let _curReceiptId='';
+let _curReceiptSrc='pay';
+function offerReceipt(payId){
+  showConfirm('🧾','Receipt Ready','Payment saved. Generate a printable receipt for the client?',[
+    {label:'Not now',color:'var(--border2)',outline:true,action:null},
+    {label:'Show Receipt',color:'var(--gold)',action:()=>showReceipt(payId)}
+  ]);
+}
+function _receiptHtml(pay,forPrint){
+  const s=getStudio();
+  const c=ld('pp_clients',[]).find(x=>x.id===pay.cid)||{};
+  const mems=ld('pp_memberships',{});const m=mems[pay.cid];
+  const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:'';
+  const totalPaid=getClientTotalPaid(pay.cid);
+  const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-totalPaid:0;
+  const rcptNo='PDL-'+(pay.id||'').toString().slice(-8);
+  const dt=new Date((pay.date||td())+'T00:00:00');
+  const txt=forPrint?'#111':'#111';
+  return `
+  <div style="text-align:center;border-bottom:2px solid #c9a84c;padding-bottom:10px;margin-bottom:12px;">
+    <div style="font-family:'Playfair Display',Georgia,serif;font-size:23px;letter-spacing:4px;color:#1a1a1a;">${s.name}</div>
+    <div style="font-size:11px;letter-spacing:2px;color:#8a7a52;text-transform:uppercase;margin-top:2px;">${s.tagline}</div>
+    <div style="font-size:11px;color:#555;margin-top:6px;">📍 ${s.addr} &nbsp; 📞 ${s.phone}${s.insta?'<br>📷 '+s.insta:''}${s.gst?'<br>GSTIN: '+s.gst:''}</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:12px;color:#333;margin-bottom:10px;">
+    <div><b>Receipt No:</b> ${rcptNo}</div>
+    <div><b>Date:</b> ${dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;color:#111;">
+    <tr><td style="padding:4px 0;color:#666;width:38%;">Received From</td><td style="padding:4px 0;font-weight:700;">${c.fname||''} ${c.lname||''}</td></tr>
+    <tr><td style="padding:4px 0;color:#666;">Membership ID</td><td style="padding:4px 0;">${c.memNo||'—'}</td></tr>
+    ${c.phone?`<tr><td style="padding:4px 0;color:#666;">Phone</td><td style="padding:4px 0;">${c.phone}</td></tr>`:''}
+    ${plan?`<tr><td style="padding:4px 0;color:#666;">Plan</td><td style="padding:4px 0;">${plan}${m&&m.sessionsTotal?' ('+(m.plan==='unlimited'?'Unlimited':m.sessionsTotal+' sessions')+')':''}${m&&m.startDate&&m.endDate?'<br><span style="font-size:11px;color:#777;">Valid from '+fmt(m.startDate)+' to '+fmt(m.endDate)+'</span>':''}</td></tr>`:''}
+    <tr><td style="padding:4px 0;color:#666;">Payment For</td><td style="padding:4px 0;">${pay.payType||pay.forWhat||'Membership Fee'}</td></tr>
+    <tr><td style="padding:4px 0;color:#666;">Mode</td><td style="padding:4px 0;">${pay.mode||''}</td></tr>
+  </table>
+  <div style="background:#f3edd9;border-radius:8px;padding:12px;margin:12px 0;text-align:center;">
+    <div style="font-size:11px;color:#8a7a52;text-transform:uppercase;letter-spacing:1px;">Amount Received</div>
+    <div style="font-family:'Playfair Display',Georgia,serif;font-size:26px;color:#1a1a1a;font-weight:700;">₹${(pay.amt||0).toLocaleString('en-IN')}</div>
+  </div>
+  ${due>0?`<div style="font-size:12px;color:#b00;text-align:center;margin-bottom:8px;">Balance Due: ₹${due.toLocaleString('en-IN')}</div>`:`<div style="font-size:12px;color:#2e7d32;text-align:center;margin-bottom:8px;">✓ Fully Paid</div>`}
+  <div style="border-top:1px dashed #bbb;padding-top:8px;font-size:11px;color:#777;display:flex;justify-content:space-between;">
+    <span>Issued by: ${PPS?PPS.name:'Studio'}</span>
+    <span>${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>
+  </div>
+  <div style="text-align:center;font-size:11px;color:#999;margin-top:10px;">Thank you for choosing ${s.name} 🙏</div>`;
+}
+function showReceipt(payId){
+  const pay=ld('pp_payments',[]).find(p=>p.id===payId);
+  if(!pay){toast('Payment not found');return;}
+  _curReceiptId=payId;_curReceiptSrc='pay';
+  document.getElementById('receipt-preview').innerHTML=_receiptHtml(pay,false);
+  openM('m-receipt');
+}
+/* receipt from a cashbook credit entry */
+function printLatestReceipt(cid){
+  /* find the member's most recent payment from cashbook (client-linked credits) or payments */
+  const cashPays=ld('pp_cash',[]).filter(e=>e.type==='in'&&e.cid===cid).map(e=>({src:'cash',id:e.id,date:e.date,amt:e.amt}));
+  const payPays=ld('pp_payments',[]).filter(p=>p.cid===cid).map(p=>({src:'pay',id:p.id,date:p.date,amt:p.amt}));
+  const all=[...cashPays,...payPays].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(!all.length){toast('No payment found for this member yet');return;}
+  closeM('m-detail');
+  const latest=all[0];
+  if(latest.src==='cash')showReceiptCash(latest.id);else showReceipt(latest.id);
+}
+function offerReceiptCash(ceId){
+  showConfirm('🧾','Receipt Ready','Payment recorded. Generate a printable receipt for the client?',[
+    {label:'Not now',color:'var(--border2)',outline:true,action:null},
+    {label:'Show Receipt',color:'var(--gold)',action:()=>showReceiptCash(ceId)}
+  ]);
+}
+function _cashToPay(ce){
+  return {id:ce.id,cid:ce.cid,amt:ce.amt,date:ce.date,mode:ce.mode,forWhat:ce.cat||ce.desc||'Membership Fee',payType:ce.payType||'',notes:ce.notes};
+}
+function showReceiptCash(ceId){
+  const ce=ld('pp_cash',[]).find(x=>x.id===ceId);
+  if(!ce){toast('Entry not found');return;}
+  _curReceiptId=ceId;_curReceiptSrc='cash';
+  document.getElementById('receipt-preview').innerHTML=_receiptHtml(_cashToPay(ce),false);
+  openM('m-receipt');
+}
+function printReceipt(){
+  let pay=null;
+  if(_curReceiptSrc==='cash'){const ce=ld('pp_cash',[]).find(x=>x.id===_curReceiptId);if(ce)pay=_cashToPay(ce);}
+  else pay=ld('pp_payments',[]).find(p=>p.id===_curReceiptId);
+  if(!pay)return;
+  ppPrintHTML('<div style="max-width:380px;margin:0 auto;">'+_receiptHtml(pay,true)+'</div>','Receipt');
+}
+
+/* ===== CASHBOOK: running balance of selected mode ===== */
+function _modeBalance(mode){
+  let bal=0;
+  ld('pp_cash',[]).forEach(e=>{
+    if(e.type==='contra'){
+      if(e.mode===mode)bal-=e.amt;
+      if(e.mode2===mode)bal+=e.amt;
+    }else if(e.mode===mode){
+      bal+=(e.type==='in'?e.amt:-e.amt);
+    }
+  });
+  /* legacy payments counted as credit to their mode */
+  ld('pp_payments',[]).forEach(p=>{if(p.mode===mode)bal+=p.amt;});
+  return bal;
+}
+/* running total of a category ledger account (e.g. Electricity, Rent, Membership Fee) */
+function _catBalance(cat,type){
+  let bal=0;
+  ld('pp_cash',[]).forEach(e=>{
+    if(e.type==='contra')return; /* contra has no category */
+    if((e.cat||'')===cat)bal+=e.amt;
+  });
+  /* legacy payments: their forWhat acts as the category */
+  ld('pp_payments',[]).forEach(p=>{if((p.forWhat||'Membership Fee')===cat)bal+=p.amt;});
+  return bal;
+}
+function _updateModeBalance(){
+  const amt=parseFloat(document.getElementById('ce-amt')?document.getElementById('ce-amt').value:0)||0;
+  const type=document.getElementById('ce-type')?document.getElementById('ce-type').value:'in';
+  const el=document.getElementById('ce-mode-bal');
+  if(el){
+    const mode=document.getElementById('ce-mode').value;
+    const bal=_modeBalance(mode);
+    let proj=bal;
+    if(type==='in')proj=bal+amt;else if(type==='out'||type==='contra')proj=bal-amt;
+    const projTxt=amt>0?` → after: <b style="color:${proj>=0?'var(--green)':'var(--red)'};">₹${proj.toLocaleString('en-IN')}</b>`:'';
+    el.innerHTML=`${mode}: <b style="color:${bal>=0?'var(--green)':'var(--red)'};">₹${bal.toLocaleString('en-IN')}</b>${projTxt}`;
+  }
+  /* client due (when a client is selected on a credit entry) */
+  const cd=document.getElementById('ce-client-due');
+  if(cd){
+    const cid=document.getElementById('ce-cid').value;
+    if(cid){
+      const m=ld('pp_memberships',{})[cid];
+      const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-getClientTotalPaid(cid):0;
+      const after=Math.max(0,due-(type==='in'?amt:0));
+      cd.innerHTML=due>0?`Outstanding due: <b style="color:var(--amber);">₹${due.toLocaleString('en-IN')}</b>${amt>0?` → after: <b style="color:${after>0?'var(--amber)':'var(--green)'};">₹${after.toLocaleString('en-IN')}</b>`:''}`:`<span style="color:var(--green);">✓ No dues</span>`;
+    }else cd.innerHTML='';
+  }
+  const el2=document.getElementById('ce-mode2-bal');
+  const m2row=document.getElementById('ce-mode2-row');
+  if(el2&&m2row&&m2row.style.display!=='none'){
+    const mode2=document.getElementById('ce-mode2').value;
+    const bal2=_modeBalance(mode2);
+    const proj2=amt>0?bal2+amt:bal2;
+    el2.innerHTML=`${mode2}: <b style="color:${bal2>=0?'var(--green)':'var(--red)'};">₹${bal2.toLocaleString('en-IN')}</b>${amt>0?` → after: <b style="color:${proj2>=0?'var(--green)':'var(--red)'};">₹${proj2.toLocaleString('en-IN')}</b>`:''}`;
+  }
+  /* category ledger account balance (the OTHER side of the entry) */
+  const cb=document.getElementById('ce-cat-bal');
+  const catRow=document.getElementById('ce-cat-row');
+  if(cb&&catRow&&catRow.style.display!=='none'&&type!=='contra'){
+    const cat=document.getElementById('ce-cat').value;
+    if(cat){
+      const cbal=_catBalance(cat);
+      const cproj=amt>0?cbal+amt:cbal;
+      cb.style.display='block';
+      cb.innerHTML=`${cat} a/c: <b style="color:var(--gold);">₹${cbal.toLocaleString('en-IN')}</b>${amt>0?` → after: <b style="color:var(--gold);">₹${cproj.toLocaleString('en-IN')}</b>`:''}`;
+    }else cb.innerHTML='';
+  }else if(cb){cb.style.display='none';}
+}
+
+/* ===== AUTO-LOCK (5 min idle or app hidden) ===== */
+(function(){
+  let t=null;
+  const LOCK_MS=5*60*1000;
+  function doLock(){
+    if(typeof PPS==='undefined'||!PPS)return;
+    if(typeof firebase!=='undefined'&&firebase.auth&&!firebase.auth().currentUser)return; /* offline mode, skip */
+    localStorage.removeItem('pp_session');
+    location.reload();
+  }
+  function reset(){clearTimeout(t);t=setTimeout(doLock,LOCK_MS);}
+  ['click','keydown','touchstart','mousemove','scroll'].forEach(ev=>document.addEventListener(ev,reset,{passive:true}));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){localStorage.setItem('pp_hid',Date.now());}
+    else{
+      const h=parseInt(localStorage.getItem('pp_hid')||'0');
+      if(h&&Date.now()-h>LOCK_MS)doLock();else reset();
+    }
+  });
+  reset();
+})();
+
+/* ===== UPDATE NOTIFICATION ===== */
+function checkForUpdate(){
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v24.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  toast('Checking for updates…');
+  navigator.serviceWorker.getRegistrations().then(async regs=>{
+    let updateWaiting=false;
+    for(const r of regs){
+      try{await r.update();}catch(e){}
+      if(r.waiting)updateWaiting=true;
+    }
+    setTimeout(()=>{
+      if(updateWaiting||window._reloadingForUpdate){
+        showConfirm('🆕','Update Available','A newer version is ready to install.<br><br>Tap "Update now" to load the latest version.',[
+          {label:'Later',color:'var(--border2)',outline:true,action:null},
+          {label:'Update now',color:'var(--gold)',action:()=>{
+            if('caches' in window){caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).then(()=>location.reload(true));}
+            else location.reload(true);
+          }}
+        ]);
+      }else{
+        showConfirm('✅','Up to Date','You are running <b>v24</b> — the latest version. 🎉<br><br>No update needed.',[
+          {label:'Great!',color:'var(--gold)',action:null}
+        ]);
+      }
+    },1400);
+  }).catch(()=>{
+    showConfirm('✅','Up to Date','You are running <b>v24</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+  });
+}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(window._reloadingForUpdate)return;
+    window._reloadingForUpdate=true;
+    const b=document.createElement('div');
+    b.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--gold,#c9a84c);color:#1a1a2e;padding:11px 18px;border-radius:24px;font-family:Jost,sans-serif;font-weight:700;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.3);cursor:pointer;';
+    b.textContent='🔄 New version ready — tap to refresh';
+    b.onclick=()=>location.reload();
+    document.body.appendChild(b);
+  });
+}
+
+/* ===== KEYBOARD: Enter=next/save · Cmd/Ctrl+S=save · Escape=close ===== */
+function _openModal(){
+  /* find the currently visible modal */
+  const mods=document.querySelectorAll('.mo');
+  for(const m of mods){if(m.classList.contains('open')||getComputedStyle(m).display!=='none'&&m.offsetParent!==null)return m;}
+  return null;
+}
+function _saveModal(modal){
+  if(!modal)return false;
+  const btn=modal.querySelector('.sb2,.btn-gold');
+  if(btn){btn.click();return true;}
+  return false;
+}
+document.addEventListener('keydown',function(e){
+  const modal=_openModal();
+  // Cmd/Ctrl + S → save current modal
+  if((e.metaKey||e.ctrlKey)&&(e.key==='s'||e.key==='S')){
+    if(modal){e.preventDefault();_saveModal(modal);}
+    return;
+  }
+  // Escape → close current modal
+  if(e.key==='Escape'){
+    if(modal){
+      e.preventDefault();
+      const x=modal.querySelector('.mc2');
+      if(x)x.click();else modal.classList.remove('open');
+    }
+    return;
+  }
+  // Enter → next field, or save on last field
+  if(e.key==='Enter'){
+    const el=e.target;
+    if(!el)return;
+    if(el.tagName==='TEXTAREA')return;
+    if(el.tagName!=='INPUT'&&el.tagName!=='SELECT')return;
+    if(el.type==='date')return;
+    if(!modal)return;
+    e.preventDefault();
+    const fields=Array.from(modal.querySelectorAll('input:not([type=hidden]):not([readonly]):not([disabled]),select,textarea')).filter(f=>f.offsetParent!==null);
+    const i=fields.indexOf(el);
+    if(i>-1&&i<fields.length-1){const nx=fields[i+1];nx.focus();if(nx.select)try{nx.select();}catch(_){}}
+    else _saveModal(modal);
+  }
+});
+
+/* ===== SCROLL POSITIONING: forms focus first field; pages scroll top ===== */
+(function(){
+  const _oOpenM=window.openM;
+  window.openM=function(id){
+    const r=_oOpenM.apply(this,arguments);
+    setTimeout(()=>{
+      const modal=document.getElementById(id);
+      if(!modal)return;
+      const body=modal.querySelector('.md');
+      if(body)body.scrollTop=0;
+      /* focus first visible input/select in forms */
+      const first=modal.querySelector('input:not([type=hidden]):not([readonly]),select,textarea');
+      if(first&&modal.classList.contains('mo')){try{first.focus({preventScroll:true});}catch(e){first.focus();}}
+    },120);
+    return r;
+  };
+  const _oShowTab=window.showTab;
+  window.showTab=function(){
+    const r=_oShowTab.apply(this,arguments);
+    setTimeout(()=>{const c=document.querySelector('.tab.active')||document.querySelector('#app');if(c)c.scrollTop=0;window.scrollTo&&window.scrollTo(0,0);},60);
+    return r;
+  };
+  /* cashbook: refresh balance when modal opens / mode changes */
+  const _oOpenCE=window.openCashEntry;
+  if(typeof _oOpenCE==='function')window.openCashEntry=function(){
+    const r=_oOpenCE.apply(this,arguments);
+    setTimeout(()=>{
+      const mSel=document.getElementById('ce-mode');
+      if(mSel&&!mSel._balHooked){mSel._balHooked=true;mSel.addEventListener('change',_updateModeBalance);}
+      const m2Sel=document.getElementById('ce-mode2');
+      if(m2Sel&&!m2Sel._balHooked){m2Sel._balHooked=true;m2Sel.addEventListener('change',_updateModeBalance);}
+      _updateModeBalance();
+    },130);
+    return r;
+  };
+  /* refresh balances when switching Credit/Debit/Contra */
+  const _oSetCE=window.setCEType;
+  if(typeof _oSetCE==='function')window.setCEType=function(){
+    const r=_oSetCE.apply(this,arguments);
+    setTimeout(_updateModeBalance,20);
+    return r;
+  };
+})();
+</script>
+
+<!-- ================= PHASE 6b: AUDIT FIX + STUDIO EDITOR ================= -->
+<div class="mo" id="m-studio" style="z-index:400;align-items:center;">
+  <div class="md">
+    <button class="mc2" onclick="closeM('m-studio')">✕</button>
+    <h2>🏛 Studio Details</h2>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Shown on the header of every printed receipt.</div>
+    <div class="fg"><label class="fl">Studio Name</label><input class="fi" id="st-name"/></div>
+    <div class="fg"><label class="fl">Tagline</label><input class="fi" id="st-tagline"/></div>
+    <div class="fg"><label class="fl">Address</label><input class="fi" id="st-addr"/></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Phone</label><input class="fi" id="st-phone"/></div>
+      <div class="fg"><label class="fl">Instagram</label><input class="fi" id="st-insta"/></div>
+    </div>
+    <div class="fg"><label class="fl">GSTIN (optional)</label><input class="fi" id="st-gst"/></div>
+    <button class="sb2" onclick="saveStudio()">Save Studio Details</button>
+  </div>
+</div>
+
+<script>
+/* ===== Studio editor ===== */
+function openStudioEdit(){
+  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const s=getStudio();
+  document.getElementById('st-name').value=s.name;
+  document.getElementById('st-tagline').value=s.tagline;
+  document.getElementById('st-addr').value=s.addr;
+  document.getElementById('st-phone').value=s.phone;
+  document.getElementById('st-insta').value=s.insta;
+  document.getElementById('st-gst').value=s.gst||'';
+  openM('m-studio');
+}
+function saveStudio(){
+  const s={
+    name:document.getElementById('st-name').value.trim()||"PILATES D'LUXE",
+    tagline:document.getElementById('st-tagline').value.trim(),
+    addr:document.getElementById('st-addr').value.trim(),
+    phone:document.getElementById('st-phone').value.trim(),
+    insta:document.getElementById('st-insta').value.trim(),
+    gst:document.getElementById('st-gst').value.trim()
+  };
+  sv('pp_studio',s);
+  if(typeof AUD==='function')AUD('🏛 Studio details updated','');
+  closeM('m-studio');toast('✓ Studio details saved');
+}
+
+/* ===== AUDIT RELIABILITY: log directly at the data layer ===== */
+(function(){
+  if(typeof sv!=='function')return;
+  const LABELS={
+    pp_clients:'👤 Client record saved/changed',
+    pp_memberships:'🎯 Membership assigned/changed',
+    pp_payments:'💳 Payment recorded',
+    pp_cash:'💰 Cashbook entry saved/changed',
+    pp_bookings:'📅 Booking / attendance changed',
+    pp_staff:'👨‍🏫 Staff record changed',
+    pp_todos:'📋 Task changed',
+    pp_bills:'💡 Bill changed',
+    pp_plans:'📐 Plan changed',
+    pp_ref_bonuses:'🎁 Complimentary / referral changed',
+    pp_users:'👥 User account changed',
+    pp_comp_rule:'🎁 Referral rule changed',
+    pp_studio:'🏛 Studio details changed',
+    pp_pay_modes:'💳 Payment modes changed',
+    pp_pay_for:'📋 "Payment For" list changed',
+    pp_credit_cats:'💚 Credit categories changed',
+    pp_debit_cats:'🔴 Debit categories changed'
+  };
+  function lbl(k){
+    if(LABELS[k])return LABELS[k];
+    if(/^pp_satt_/.test(k))return '🗓 Staff attendance changed';
+    if(/^pp_sadv_/.test(k))return '💵 Staff advance changed';
+    return '';
+  }
+  /* Disable the old fragile snapshot-diff wrappers — data-layer logging replaces them.
+     They already wrapped functions at load, so also suppress their AUD output by
+     tagging this logger as authoritative and de-duping in AUD. */
+  if(typeof window.wrapAudit==='function')window.wrapAudit=function(){};
+  /* Wrap AUD to drop duplicate action+detail within 2s (covers old wrappers firing alongside) */
+  if(typeof window.AUD==='function'&&!window._audDedup){
+    window._audDedup=true;
+    const _oAUD=window.AUD;
+    window.AUD=function(action,detail){
+      try{
+        const key=(action||'')+'|'+(detail||'');
+        const now=Date.now();
+        window._audSeen=window._audSeen||{};
+        if(window._audSeen[key]&&now-window._audSeen[key]<2000)return;
+        window._audSeen[key]=now;
+      }catch(e){}
+      return _oAUD.apply(this,arguments);
+    };
+  }
+  const _oSv=window.sv;
+  window.sv=function(k,v){
+    const r=_oSv.apply(this,arguments);
+    try{
+      /* never log the audit log itself, sessions, locks, or the last-backup marker */
+      if(k==='pp_audit'||k==='pp_session'||k==='pp_lock'||k==='pp_last_backup'||k==='pp_hid')return r;
+      /* only log once auth/session is active to avoid noise during initial sync */
+      if(typeof PPS==='undefined'||!PPS)return r;
+      const L=lbl(k);
+      if(L&&typeof AUD==='function'){
+        /* de-dup rapid repeats of same key within 1.5s (one logical action) */
+        const now=Date.now();
+        window._audLast=window._audLast||{};
+        if(!window._audLast[k]||now-window._audLast[k]>1500){
+          window._audLast[k]=now;
+          AUD(L,_audDetail(k,v));
+        }
+      }
+    }catch(e){}
+    return r;
+  };
+  /* build a human detail for the most-relevant record in the saved value */
+  function _audDetail(k,v){
+    try{
+      const cname=cid=>{const c=ld('pp_clients',[]).find(x=>x.id===cid);return c?(c.fname+' '+(c.lname||'')).trim():'';};
+      if(k==='pp_cash'&&Array.isArray(v)&&v.length){
+        const e=v[v.length-1];
+        const sign=e.type==='in'?'+':e.type==='contra'?'⇄':'-';
+        return `${sign}₹${(e.amt||0).toLocaleString('en-IN')} ${e.mode||''}${e.type==='contra'?' → '+(e.mode2||''):' • '+(e.cat||'')}${e.cid?' ('+cname(e.cid)+')':''}`;
+      }
+      if(k==='pp_memberships'&&v&&typeof v==='object'){
+        /* find the most recently assigned */
+        let latest=null;
+        Object.values(v).forEach(m=>{if(m&&(!latest||(m.assignedAt||'')>=(latest.assignedAt||'')))latest=m;});
+        if(latest){const pl=(getPlans().find(p=>p.id===latest.plan)||{}).name||latest.plan;return `${cname(latest.cid)} → ${pl} (₹${(latest.fee||0).toLocaleString('en-IN')})`;}
+      }
+      if(k==='pp_payments'&&Array.isArray(v)&&v.length){
+        const p=v[v.length-1];return `₹${(p.amt||0).toLocaleString('en-IN')} ${p.mode||''}${p.cid?' ('+cname(p.cid)+')':''}`;
+      }
+      if(k==='pp_clients'&&Array.isArray(v)&&v.length){
+        const c=v[v.length-1];return (c.fname+' '+(c.lname||'')).trim()+(c.memNo?' ['+c.memNo+']':'');
+      }
+      if(/^pp_satt_/.test(k)){
+        const sid=k.replace('pp_satt_','');const s=ld('pp_staff',[]).find(x=>x.id===sid);
+        return s?(s.fname+' '+(s.lname||'')).trim():'';
+      }
+    }catch(e){}
+    return '';
+  }
+})();
+</script>
+
+<!-- ================= PHASE 7: ACCOUNT STATEMENT ================= -->
+<div class="mo" id="m-statement" style="z-index:400;align-items:center;">
+  <div class="md" style="max-height:90vh;overflow-y:auto;">
+    <button class="mc2" onclick="closeM('m-statement')">✕</button>
+    <h2>📑 Account Statement</h2>
+    <div class="fg"><label class="fl">Account / Mode(s)</label>
+      <div id="stmt-modes" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">From Date</label><input class="fi" id="stmt-from" type="date"/></div>
+      <div class="fg"><label class="fl">To Date</label><input class="fi" id="stmt-to" type="date"/></div>
+    </div>
+    <button class="sb2" onclick="genStatement()">View Statement</button>
+    <div id="stmt-result" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<script>
+let _stmtSel=[];
+function openStatement(){
+  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const modes=getPayModes();
+  _stmtSel=modes.slice();
+  document.getElementById('stmt-modes').innerHTML=modes.map(m=>`<button type="button" class="stmt-chip" data-m="${m}" onclick="toggleStmtMode('${m.replace(/'/g,"\\'")}',this)" style="background:var(--gold);border:1px solid var(--gold);color:#1a1a2e;border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;">${m}</button>`).join('');
+  const now=new Date();
+  document.getElementById('stmt-from').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+  document.getElementById('stmt-to').value=td();
+  document.getElementById('stmt-result').innerHTML='';
+  openM('m-statement');
+}
+function toggleStmtMode(m,btn){
+  const i=_stmtSel.indexOf(m);
+  if(i>-1){_stmtSel.splice(i,1);btn.style.background='none';btn.style.color='var(--text2)';}
+  else{_stmtSel.push(m);btn.style.background='var(--gold)';btn.style.color='#1a1a2e';}
+}
+function _allCashEntries(){
+  const cashRaw=ld('pp_cash',[]);
+  const legacy=ld('pp_payments',[]).map(p=>({id:'leg_'+p.id,type:'in',desc:p.forWhat||'Payment',cid:p.cid,amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes}));
+  const ids=new Set(cashRaw.map(e=>e.id));
+  return [...cashRaw,...legacy.filter(p=>!ids.has(p.id))];
+}
+function genStatement(){
+  const from=document.getElementById('stmt-from').value;
+  const to=document.getElementById('stmt-to').value;
+  if(!from||!to){toast('Pick both dates');return;}
+  if(!_stmtSel.length){toast('Select at least one account');return;}
+  const clients=ld('pp_clients',[]);
+  const cname=cid=>{const c=clients.find(x=>x.id===cid);return c?(c.fname+' '+(c.lname||'')).trim():'';};
+  /* opening balance: all entries for selected modes strictly before "from" */
+  let opening=0;
+  const all=_allCashEntries();
+  all.forEach(e=>{
+    if(e.date>=from)return;
+    if(e.type==='contra'){
+      if(_stmtSel.includes(e.mode))opening-=e.amt;
+      if(_stmtSel.includes(e.mode2))opening+=e.amt;
+    }else if(_stmtSel.includes(e.mode)){
+      opening+=(e.type==='in'?e.amt:-e.amt);
+    }
+  });
+  /* rows within range, in date order */
+  const rows=[];
+  all.filter(e=>e.date>=from&&e.date<=to).sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(e=>{
+    if(e.type==='contra'){
+      if(_stmtSel.includes(e.mode))rows.push({date:e.date,desc:(e.desc||'Transfer')+' → '+e.mode2,out:e.amt,in:0,who:''});
+      if(_stmtSel.includes(e.mode2))rows.push({date:e.date,desc:(e.desc||'Transfer')+' ← '+e.mode,out:0,in:e.amt,who:''});
+    }else if(_stmtSel.includes(e.mode)){
+      rows.push({date:e.date,desc:(e.desc||e.cat||'')+(e.mode&&_stmtSel.length>1?' ['+e.mode+']':''),in:e.type==='in'?e.amt:0,out:e.type==='out'?e.amt:0,who:e.cid?cname(e.cid):''});
+    }
+  });
+  let bal=opening;
+  let totIn=0,totOut=0;
+  const body=rows.map(r=>{
+    bal+=r.in-r.out;totIn+=r.in;totOut+=r.out;
+    return `<tr><td>${fmt(r.date)}</td><td>${r.desc}${r.who?'<br><span style="font-size:11px;color:#777;">'+r.who+'</span>':''}</td><td style="text-align:right;color:#2e7d32;">${r.in?'₹'+r.in.toLocaleString('en-IN'):''}</td><td style="text-align:right;color:#b00;">${r.out?'₹'+r.out.toLocaleString('en-IN'):''}</td><td style="text-align:right;font-weight:700;">₹${bal.toLocaleString('en-IN')}</td></tr>`;
+  }).join('');
+  const html=`<div style="background:#fff;color:#111;border-radius:10px;padding:16px;font-family:'Jost',Arial,sans-serif;" id="stmt-print-body">
+    <div style="text-align:center;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:10px;">
+      <div style="font-family:'Playfair Display',Georgia,serif;font-size:18px;letter-spacing:3px;">${getStudio().name}</div>
+      <div style="font-size:12px;color:#555;">Account Statement</div>
+      <div style="font-size:11px;color:#777;margin-top:3px;">${_stmtSel.join(', ')} &nbsp;•&nbsp; ${fmt(from)} to ${fmt(to)}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <tr style="background:#f3edd9;"><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Date</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Particulars</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:right;">Credit</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:right;">Debit</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:right;">Balance</th></tr>
+      <tr><td colspan="4" style="border:1px solid #bbb;padding:4px 6px;font-style:italic;color:#666;">Opening Balance</td><td style="border:1px solid #bbb;padding:4px 6px;text-align:right;font-weight:700;">₹${opening.toLocaleString('en-IN')}</td></tr>
+      ${body.replace(/<td>/g,'<td style="border:1px solid #bbb;padding:4px 6px;">').replace(/<td style="text-align:right;/g,'<td style="border:1px solid #bbb;padding:4px 6px;text-align:right;')}
+      <tr style="background:#faf7ec;font-weight:700;"><td colspan="2" style="border:1px solid #bbb;padding:4px 6px;">Totals / Closing</td><td style="border:1px solid #bbb;padding:4px 6px;text-align:right;color:#2e7d32;">₹${totIn.toLocaleString('en-IN')}</td><td style="border:1px solid #bbb;padding:4px 6px;text-align:right;color:#b00;">₹${totOut.toLocaleString('en-IN')}</td><td style="border:1px solid #bbb;padding:4px 6px;text-align:right;">₹${bal.toLocaleString('en-IN')}</td></tr>
+    </table>
+    <div style="font-size:10px;color:#777;margin-top:8px;">${rows.length} transaction(s). Generated ${new Date().toLocaleDateString('en-IN')}${PPS?' by '+PPS.name:''}.</div>
+  </div>
+  <button class="sb2" style="margin-top:12px;" onclick="printStatement()">🖨 Print / Save PDF</button>`;
+  document.getElementById('stmt-result').innerHTML=html;
+}
+function printStatement(){
+  const body=document.getElementById('stmt-print-body');
+  if(!body)return;
+  ppPrintHTML(body.outerHTML,'Account Statement');
+}
+</script>
+
+
+<script>
+/* ===== Themed alert (replaces native browser alert with app-styled popup) ===== */
+(function(){
+  if(typeof showConfirm!=='function')return;
+  window._nativeAlert=window.alert;
+  window.alert=function(msg){
+    try{
+      showConfirm('ℹ️','Notice',String(msg),[{label:'OK',color:'var(--gold)',action:null}]);
+    }catch(e){window._nativeAlert(msg);}
+  };
+})();
+</script>
+
+<!-- ================= PHASE 8: ANNOUNCEMENT + OFFLINE ================= -->
+<div class="mo" id="m-announce" style="z-index:400;align-items:center;">
+  <div class="md">
+    <button class="mc2" onclick="closeM('m-announce')">✕</button>
+    <h2>📢 Booking Page Announcement</h2>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">This message shows at the top of the member booking page (holidays, timing changes, offers). Leave blank to hide.</div>
+    <div class="fg"><label class="fl">Announcement</label>
+      <textarea class="fi" id="an-msg" rows="4" style="resize:none;" placeholder="e.g. Studio closed on 15 Aug for Independence Day. Classes resume 16 Aug."></textarea>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Type</label>
+        <select class="fi" id="an-type">
+          <option value="info">ℹ️ Info (blue)</option>
+          <option value="warn">⚠️ Important (amber)</option>
+          <option value="offer">🎉 Offer (gold)</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Show until (optional)</label><input class="fi" id="an-until" type="date"/></div>
+    </div>
+    <button class="sb2" onclick="saveAnnounce()">Save Announcement</button>
+    <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:8px;" onclick="clearAnnounce()">Clear / Hide</button>
+  </div>
+</div>
+
+<script>
+function getAnnounce(){return ld('pp_announce',{msg:'',type:'info',until:''});}
+function openAnnounce(){
+  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const a=getAnnounce();
+  document.getElementById('an-msg').value=a.msg||'';
+  document.getElementById('an-type').value=a.type||'info';
+  document.getElementById('an-until').value=a.until||'';
+  openM('m-announce');
+}
+function saveAnnounce(){
+  const a={msg:document.getElementById('an-msg').value.trim(),type:document.getElementById('an-type').value,until:document.getElementById('an-until').value};
+  sv('pp_announce',a);
+  if(typeof AUD==='function')AUD('📢 Booking announcement updated',a.msg?a.msg.slice(0,40):'(cleared)');
+  closeM('m-announce');toast('✓ Announcement saved');
+}
+function clearAnnounce(){
+  sv('pp_announce',{msg:'',type:'info',until:''});
+  if(typeof AUD==='function')AUD('📢 Booking announcement cleared','');
+  closeM('m-announce');toast('Announcement hidden');
+}
+</script>
+
+<!-- ================= PHASE 9: QR ID CARD + CHECK-IN SCANNER ================= -->
+<div class="mo" id="m-qrcard" style="z-index:500;align-items:center;">
+  <div class="md" style="max-height:90vh;overflow-y:auto;">
+    <button class="mc2" onclick="closeM('m-qrcard')">✕</button>
+    <h2>🪪 Member ID Card</h2>
+    <div id="qrcard-body" style="background:#fff;color:#111;border-radius:14px;padding:20px;margin:10px 0 14px;text-align:center;font-family:'Jost',Arial,sans-serif;"></div>
+    <button class="sb2" onclick="printQRCard()">🖨 Print / Save Card</button>
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px;">Save to the member's phone or print as a card. They show this at the studio to check in.</div>
+  </div>
+</div>
+
+<div class="mo" id="m-scanner" style="z-index:600;align-items:center;">
+  <div class="md" style="max-height:92vh;overflow-y:auto;">
+    <button class="mc2" onclick="closeScanner()">✕</button>
+    <h2>📷 Check-in Scanner</h2>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Point the camera at a member's QR code to mark them present for today.</div>
+    <div id="scanner-view" style="width:100%;border-radius:12px;overflow:hidden;background:#000;min-height:240px;"></div>
+    <div id="scanner-status" style="text-align:center;font-size:14px;margin:12px 0;min-height:22px;"></div>
+    <div id="scanner-recent" style="font-size:12px;color:var(--text2);"></div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Camera not reading? Type the member number and tap Check-in:</div>
+      <div style="display:flex;gap:8px;">
+        <input id="manual-code" class="fi" placeholder="e.g. PDL001" style="flex:1;" onkeydown="if(event.key==='Enter')manualCheckin()"/>
+        <button class="btn btn-gold btn-sm" onclick="manualCheckin()">Check-in</button>
+      </div>
+    </div>
+    <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:12px;" onclick="closeScanner()">Done</button>
+  </div>
+</div>
+
+<script>
+/* ===== QR ID CARD (Phase 1) ===== */
+function _memberQRPayload(c){return 'PDL:'+c.id;} /* compact, studio-specific token */
+function resetBookingPin(cid){
+  if(typeof ppIsTrainer==='function'&&ppIsTrainer()){toast('🔒 Not allowed');return;}
+  const c=ld('pp_clients',[]).find(x=>x.id===cid)||{};
+  const mems=ld('pp_memberships',{});
+  if(!mems[cid]||!mems[cid].bookPin){toast('This member has no booking PIN set yet.');return;}
+  showConfirm('🔓','Reset Booking PIN?','Clear '+(c.fname||'this member')+'\'s booking PIN? They will be asked to set a new one the next time they book online.',[
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+    {label:'Reset PIN',color:'var(--gold)',action:()=>{
+      delete mems[cid].bookPin;sv('pp_memberships',mems);
+      if(typeof AUD==='function')AUD('🔓 Booking PIN reset',(c.fname+' '+(c.lname||'')).trim());
+      toast('✓ Booking PIN cleared');
+    }}
+  ]);
+}
+function showMemberQR(cid){
+  const c=ld('pp_clients',[]).find(x=>x.id===cid);
+  if(!c){toast('Member not found');return;}
+  const s=getStudio();
+  const body=document.getElementById('qrcard-body');
+  body.innerHTML=`
+    <div style="font-family:'Playfair Display',Georgia,serif;font-size:20px;letter-spacing:3px;color:#1a1a1a;">${s.name}</div>
+    <div style="font-size:10px;letter-spacing:2px;color:#8a7a52;text-transform:uppercase;margin-bottom:14px;">${s.tagline||''}</div>
+    <div id="qr-target" style="display:flex;justify-content:center;margin:0 auto 12px;width:180px;height:180px;"></div>
+    <div style="font-size:18px;font-weight:700;color:#111;">${c.fname} ${c.lname||''}</div>
+    <div style="font-size:13px;color:#666;margin-top:2px;">Member ID: ${c.memNo||'—'}</div>
+    <div style="font-size:11px;color:#999;margin-top:10px;">Show this code at the studio to check in</div>`;
+  openM('m-qrcard');
+  setTimeout(()=>{
+    const t=document.getElementById('qr-target');
+    if(t){t.innerHTML='';
+      try{new QRCode(t,{text:_memberQRPayload(c),width:180,height:180,colorDark:'#1a1a2e',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
+      catch(e){t.innerHTML='<div style="color:#b00;font-size:12px;">QR could not load (check internet once).</div>';}
+    }
+  },150);
+}
+function printQRCard(){
+  const body=document.getElementById('qrcard-body');
+  if(!body)return;
+  const html='<div style="max-width:320px;margin:0 auto;border:2px solid #c9a84c;border-radius:14px;padding:20px;text-align:center;">'+body.innerHTML+'</div>';
+  if(typeof ppPrintHTML==='function')ppPrintHTML(html,'Member ID Card');
+}
+
+/* ===== CHECK-IN SCANNER (Phase 2) ===== */
+let _scanner=null,_scanBusy=false,_scanRecent=[];
+function openScanner(){
+  if(typeof ppIsTrainer==='function'&&ppIsTrainer()){toast('🔒 Staff/Admin only');return;}
+  _scanRecent=[];
+  document.getElementById('scanner-status').innerHTML='Starting camera…';
+  document.getElementById('scanner-recent').innerHTML='';
+  document.getElementById('scanner-view').innerHTML='<div id="qr-reader" style="width:100%;"></div>';
+  openM('m-scanner');
+  if(typeof Html5Qrcode==='undefined'){
+    document.getElementById('scanner-status').innerHTML='<span style="color:var(--red);">Scanner library did not load. Connect to the internet once and reopen. You can still use manual check-in below.</span>';
+    return;
+  }
+  setTimeout(()=>{
+    try{_scanner=new Html5Qrcode('qr-reader');}catch(e){
+      document.getElementById('scanner-status').innerHTML='<span style="color:var(--red);">Could not start scanner: '+(e.message||e)+'</span>';return;
+    }
+    const cfg={fps:10,qrbox:{width:240,height:240},aspectRatio:1.0};
+    _scanner.start({facingMode:'environment'},cfg,onScanSuccess,onScanFail)
+      .then(()=>{document.getElementById('scanner-status').innerHTML='📷 Camera on — point at the member\'s QR code';})
+      .catch(()=>{
+        Html5Qrcode.getCameras().then(cams=>{
+          if(cams&&cams.length){
+            _scanner.start(cams[cams.length-1].id,cfg,onScanSuccess,onScanFail)
+              .then(()=>{document.getElementById('scanner-status').innerHTML='📷 Camera on — point at the QR code';})
+              .catch(err=>{document.getElementById('scanner-status').innerHTML='<span style="color:var(--red);">Camera blocked. Allow camera permission in your browser, then reopen. Or use manual check-in below.</span>';});
+          }else{
+            document.getElementById('scanner-status').innerHTML='<span style="color:var(--red);">No camera found. Use manual check-in below.</span>';
+          }
+        }).catch(()=>{document.getElementById('scanner-status').innerHTML='<span style="color:var(--red);">Camera permission needed. Allow it and reopen, or use manual check-in.</span>';});
+      });
+  },250);
+}
+function onScanFail(){/* per-frame decode misses are normal; ignore quietly */}
+function closeScanner(){
+  if(_scanner){try{_scanner.stop().then(()=>{try{_scanner.clear();}catch(e){}_scanner=null;}).catch(()=>{_scanner=null;});}catch(e){_scanner=null;}}
+  closeM('m-scanner');
+}
+function manualCheckin(){
+  const v=(document.getElementById('manual-code')||{}).value||'';
+  let cid=v.trim();
+  if(cid.indexOf('PDL:')===0)cid=cid.slice(4);
+  if(!cid){toast('Enter a member number');return;}
+  const clients=ld('pp_clients',[]);
+  let c=clients.find(x=>x.id===cid);
+  if(!c)c=clients.find(x=>(x.memNo||'').toLowerCase()===cid.toLowerCase());
+  if(!c){document.getElementById('scanner-status').innerHTML='<span style="color:var(--amber);">❓ No member found for "'+cid+'"</span>';return;}
+  markPresentByScan(c);
+  const mc=document.getElementById('manual-code');if(mc)mc.value='';
+}
+function onScanSuccess(decoded){
+  if(_scanBusy)return;
+  let cid='';
+  if(decoded&&decoded.indexOf('PDL:')===0)cid=decoded.slice(4);
+  else cid=decoded;
+  cid=(cid||'').trim();
+  const clients=ld('pp_clients',[]);
+  let c=clients.find(x=>x.id===cid);
+  if(!c)c=clients.find(x=>(x.memNo||'').toLowerCase()===cid.toLowerCase());
+  if(!c){document.getElementById('scanner-status').innerHTML='<span style="color:var(--amber);">❓ Scanned, but member not recognised. (Code: '+(cid.slice(0,20))+')</span>';return;}
+  _scanBusy=true;
+  setTimeout(()=>{_scanBusy=false;},1800);
+  markPresentByScan(c);
+}
+function markPresentByScan(c){
+  const today=td();
+  const bookings=ld('pp_bookings',{});
+  const status=document.getElementById('scanner-status');
+  const day=bookings[today]||{};
+  const nm=(c.fname+' '+(c.lname||'')).trim();
+
+  /* collect THIS member's bookings for today */
+  const slotsBooked=[];
+  for(const s of SLOTS){
+    const arr=day[s]||[];
+    const b=arr.find(x=>x.cid===c.id);
+    if(b)slotsBooked.push({slot:s,bk:b});
+  }
+
+  /* RULE: no booking today -> reject (do NOT auto-mark a random slot) */
+  if(slotsBooked.length===0){
+    status.innerHTML='<span style="color:var(--red);font-size:15px;font-weight:700;">⛔ '+c.fname+' has NO booking today</span><br><span style="font-size:12px;color:var(--text2);">Attendance not marked. Book a slot first, or use the schedule to add one.</span>';
+    _addScanRecent(c,'no booking — rejected');
+    return;
+  }
+
+  /* if all of today's bookings are already attended */
+  const pending=slotsBooked.filter(x=>!x.bk.attended);
+  if(pending.length===0){
+    const where=slotsBooked.map(x=>x.slot).join(', ');
+    status.innerHTML='<span style="color:var(--amber);font-size:15px;font-weight:700;">✓ '+c.fname+' already marked present</span><br><span style="font-size:12px;color:var(--text2);">('+where+')</span>';
+    _addScanRecent(c,'already present');
+    return;
+  }
+
+  /* mark present on the member's EARLIEST pending booked slot */
+  const target=pending[0];
+  target.bk.attended=true;
+  sv('pp_bookings',bookings);
+  if(typeof AUD==='function')AUD('📷 Checked in (QR)',nm+' • '+target.slot);
+  status.innerHTML='<span style="color:var(--green);font-size:16px;font-weight:700;">✓ '+c.fname+' marked present!</span><br><span style="font-size:12px;color:var(--text2);">'+target.slot+(pending.length>1?' (more bookings pending today)':'')+'</span>';
+  _addScanRecent(c,'present ✓ '+target.slot);
+  if(typeof renderSchedule==='function'&&_activeTab==='schedule')renderSchedule();
+}
+function _addScanRecent(c,note){
+  _scanRecent.unshift(`${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} — ${c.fname} ${c.lname||''} (${note})`);
+  if(_scanRecent.length>8)_scanRecent.length=8;
+  document.getElementById('scanner-recent').innerHTML='<div style="font-weight:700;color:var(--text);margin-bottom:4px;">Recent check-ins:</div>'+_scanRecent.map(r=>'• '+r).join('<br>');
 }
 </script>
 
