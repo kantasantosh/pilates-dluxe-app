@@ -364,7 +364,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v27</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v28</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:center;">
@@ -2433,15 +2433,33 @@ function saveReferralBonus(){
   openDetail(refId); // Refresh detail in place
 }
 function resetAllData(){
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Only an admin can reset data');return;}
   showConfirm('🗑','Reset All Data?',
-    'This will permanently delete ALL clients, bookings, payments, staff and settings. This cannot be undone!',
+    'This will permanently delete all dummy CLIENTS, BOOKINGS, PAYMENTS, CASH entries, STAFF and ATTENDANCE — on this device AND the cloud. Your login users, membership PLANS and settings are KEPT. This cannot be undone!',
     [
       {label:'Cancel',color:'var(--border2)',outline:true,action:null},
-      {label:'Reset Everything',color:'var(--red)',action:()=>{
-        const keys=Object.keys(localStorage).filter(k=>k.startsWith('pp_'));
-        keys.forEach(k=>localStorage.removeItem(k));
-        toast('✓ All data reset!');
-        setTimeout(()=>location.reload(),1000);
+      {label:'Reset Everything',color:'var(--red)',action:async()=>{
+        toast('🗑 Clearing data…');
+        /* keys to KEEP (so you stay logged in and the studio identity remains) */
+        const KEEP=['pp_users','pp_pins','pp_studio'];
+        const dataKeys=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_bills','pp_todos','pp_audit','pp_announce','pp_notepad'];
+        /* 1) clear the CLOUD copies first (so they don't sync back) */
+        try{
+          if(typeof _pdb!=='undefined'){
+            await Promise.all(dataKeys.map(k=>
+              _pdb.collection('pilates').doc(k).set({value:JSON.stringify(k==='pp_clients'||k==='pp_staff'||k==='pp_cash'||k==='pp_payments'||k==='pp_ref_bonuses'||k==='pp_bills'||k==='pp_todos'||k==='pp_audit'?[]:{}),updated:Date.now()}).catch(()=>{})
+            ));
+            /* also clear any per-staff attendance/advance docs (pp_satt_* / pp_sadv_*) */
+            try{const snap=await _pdb.collection('pilates').get();
+              await Promise.all(snap.docs.filter(d=>/^pp_(satt|sadv)_/.test(d.id)).map(d=>d.ref.delete().catch(()=>{})));
+            }catch(e){}
+          }
+        }catch(e){}
+        /* 2) clear LOCAL copies (except KEEP) */
+        Object.keys(localStorage).filter(k=>k.startsWith('pp_')&&KEEP.indexOf(k)<0).forEach(k=>localStorage.removeItem(k));
+        if(typeof AUD==='function')try{AUD('🗑 All studio data reset','Clients, bookings, payments, cash, staff cleared (cloud + local)');}catch(e){}
+        toast('✓ All data reset (cloud + local)!');
+        setTimeout(()=>location.reload(),1400);
       }},
     ]
   );
@@ -5473,7 +5491,7 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v27.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v28.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
     let updateWaiting=false;
@@ -5491,13 +5509,13 @@ function checkForUpdate(){
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v27</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running <b>v28</b> — the latest version. 🎉<br><br>No update needed.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v27</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running <b>v28</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
