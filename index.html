@@ -316,9 +316,16 @@ async function pdlSyncNow(){
     }
   }
 }
-/* auto-pull whenever the app comes back to the foreground (covers mobile waking) */
+/* auto-pull whenever the app comes back to the foreground (covers mobile waking).
+   SILENT: never pops the cloud-login here — that would interrupt data entry. */
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden&&_pSync&&navigator.onLine!==false){try{pdlSyncNow();}catch(e){}}
+  if(document.hidden||!_pSync||navigator.onLine===false)return;
+  let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(e){}
+  if(!signedIn)return; /* not signed in → don't nag; user can tap Sync when ready */
+  _pdb.collection('pilates').get().then(snap=>{
+    snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){localStorage.setItem(d.id,dd.value);_pLast[d.id]=dd.updated||Date.now();}});
+    _pRerenderActive();
+  }).catch(()=>{}); /* stay quiet on failure */
 });
 window.addEventListener('load',()=>{
   /* Offline-first: if there's no network, don't block on cloud auth —
@@ -364,7 +371,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v28</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v30</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:center;">
@@ -666,7 +673,10 @@ window.addEventListener('load',()=>{
       <div class="fg"><label class="fl">Plan Name</label><input class="fi" id="np-name" placeholder="e.g. Premium, Student..."/></div>
       <div class="fr">
         <div class="fg"><label class="fl">Sessions</label><input class="fi" id="np-sessions" type="number" placeholder="12"/></div>
-        <div class="fg"><label class="fl">Duration (days)</label><input class="fi" id="np-days" type="number" placeholder="30"/></div>
+        <div class="fg"><label class="fl">Duration</label><input class="fi" id="np-dur" type="number" placeholder="1"/></div>
+        <div class="fg"><label class="fl">Unit</label>
+          <select class="fi" id="np-unit"><option value="month">Month(s)</option><option value="day">Day(s)</option><option value="week">Week(s)</option></select>
+        </div>
       </div>
       <div class="fg"><label class="fl">Price (₹)</label><input class="fi" id="np-price" type="number" placeholder="0"/></div>
       <button class="sb2" onclick="saveNewPlan()">Add Plan</button>
@@ -842,8 +852,8 @@ window.addEventListener('load',()=>{
     </div>
     <div class="fg"><label class="fl">Address</label><input class="fi" id="c-addr" placeholder="Sector 15, Noida"/></div>
     <div class="fr">
-      <div class="fg"><label class="fl">Birthday</label><input class="fi" id="c-bday" type="date"/></div>
-      <div class="fg"><label class="fl">Anniversary</label><input class="fi" id="c-anni" type="date"/></div>
+      <div class="fg"><label class="fl">Birthday <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="c-bday" type="date"/></div>
+      <div class="fg"><label class="fl">Anniversary <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="c-anni" type="date"/></div>
     </div>
     <div class="fg"><label class="fl">Joining Date</label><input class="fi" id="c-join" type="date"/></div>
     <div class="fg">
@@ -1359,12 +1369,12 @@ function renderClients(){
       <div class="client-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
       <div class="client-info">
         <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}</div>
-        <div class="client-sub">${c.phone||''}${plan?' • <b style="color:var(--gold);">'+plan.name+'</b>'+(plan.sessions&&plan.sessions!==999?' ('+plan.sessions+' sess)':''):''}</div>
+        <div class="client-sub">${_fmtPhone(c.phone)}${plan?' • <b style="color:var(--gold);">'+plan.name+'</b>'+(plan.sessions&&plan.sessions!==999?' ('+plan.sessions+' sess)':''):''}</div>
         <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'} • 📅 Joined ${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem?' • Starts '+fmt(mem.startDate)+' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
             `<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
-          ${mem&&mem.plan!=='unlimited'&&!c.isTrial?`<span style="font-size:12px;color:var(--text2);">${mem.sessionsLeft}/${mem.sessionsTotal} sessions</span>`:''}
+          ${mem&&mem.plan!=='unlimited'&&!c.isTrial?`<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft} of ${mem.sessionsTotal}</span>`:''}
           ${(()=>{const due=(mems[c.id]?Math.max(0,(mems[c.id].fee||0)-(mems[c.id].disc||0)):0)-getClientTotalPaid(c.id);return due>0?`<span style="font-size:12px;color:var(--red);font-weight:700;">₹${due.toLocaleString('en-IN')} due</span>`:'';})()} 
         </div>
       </div>
@@ -1417,7 +1427,7 @@ function openDetail(cid){
       <div class="detail-meta">
         <div style="font-size:13px;color:var(--gold);letter-spacing:1px;font-weight:700;margin-bottom:2px;">${c.memNo||''}</div>
         <div class="detail-name">${c.fname} ${c.lname}</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">${c.phone||''} ${c.email?'• '+c.email:''}</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">${_fmtPhone(c.phone)} ${c.email?'• '+c.email:''}</div>
         <span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>
       </div>
     </div>
@@ -1465,10 +1475,12 @@ function openDetail(cid){
       <button class="btn btn-outline" onclick="openWA('${cid}');closeM('m-detail')" style="font-size:12px;">💬 WhatsApp</button>
       <button class="btn btn-outline" onclick="closeM('m-detail');openAssignMembership('${cid}')" style="font-size:12px;">🎯 Manage Plan</button>
     </div>
+    ${mem?`<button onclick="extendMembership('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--teal,#14b8a6);background:none;color:var(--teal,#14b8a6);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">⏸ Pause / Extend Plan (add days)</button>`:''}
     <button onclick="printLatestReceipt('${cid}')" style="width:100%;padding:11px;border-radius:30px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">🖨 Print / Save Receipt (latest payment)</button>
     <button onclick="showMemberQR('${cid}')" style="width:100%;padding:11px;border-radius:30px;border:1.5px solid var(--gold);background:none;color:var(--gold);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">🪪 Show / Print QR ID Card</button>
     <button onclick="resetBookingPin('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--border2);background:none;color:var(--text2);font-family:'Jost',sans-serif;font-weight:700;font-size:12px;cursor:pointer;margin-bottom:14px;">🔓 Reset member's Booking PIN</button>
-    <button onclick="archiveClient('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--border2);background:none;color:var(--text2);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">${(ld('pp_clients',[]).find(c=>c.id===cid)||{}).archived?'✅ Reactivate Client':'⏸ Deactivate Client'}</button>
+    <button onclick="archiveClient('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--border2);background:none;color:var(--text2);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:8px;">${(ld('pp_clients',[]).find(c=>c.id===cid)||{}).archived?'✅ Reactivate Client':'⏸ Deactivate Client'}</button>
+    <button onclick="deleteClient('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--red);background:none;color:var(--red);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">🗑 Delete (wrong entry)</button>
 
     ${c.bday?`<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">🎂 Birthday: ${fmt(c.bday)}</div>`:''}
     ${c.anni?`<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">💍 Anniversary: ${fmt(c.anni)}</div>`:''}
@@ -1677,7 +1689,7 @@ function updateMemPayable(){
 }
 function openRenewMembership(cid){openAssignMembership(cid);}
 function renderPlanChips(selected){
-  const plans=getPlans();
+  const plans=getPlans().filter(p=>p.id!=='trial');
   document.getElementById('plan-chips').innerHTML=plans.map(p=>`
     <button class="plan-chip${selected===p.id?' active':''}" onclick="selectPlan('${p.id}')">
       ${p.name}<br><small style="font-weight:400;opacity:0.7;">${p.sessions===999?'Unlimited':p.sessions+' sessions'} • ${!p.days?'':p.days===1?'1 day':p.days===7?'1 week':p.days===30?'1 month':p.days===90?'3 months':p.days===180?'6 months':p.days+' days'} • ₹${(p.price||0).toLocaleString('en-IN')}</small>
@@ -1709,7 +1721,18 @@ function saveMembership(){
   // Timezone-safe date calculation
   const sp=startDate.split('-');
   const startDt=new Date(parseInt(sp[0]),parseInt(sp[1])-1,parseInt(sp[2]));
-  const endDt=new Date(startDt);endDt.setDate(endDt.getDate()+(plan&&plan.days?plan.days:30)-1);
+  /* Expiry: month-based plans (30/60/90/180/360 days) expire by CALENDAR month,
+     not by counting days. e.g. 1 month from 15 May → 14 Jun; 6 months from
+     30 Apr → 29 Oct. Short plans (weekly/daily) still use day arithmetic. */
+  const _planDays=(plan&&plan.days)?plan.days:30;
+  const endDt=new Date(startDt);
+  if(_planDays>=28 && _planDays%30===0){
+    const months=_planDays/30;
+    endDt.setMonth(endDt.getMonth()+months);
+    endDt.setDate(endDt.getDate()-1); /* inclusive last day */
+  }else{
+    endDt.setDate(endDt.getDate()+_planDays-1);
+  }
   const endDate=`${endDt.getFullYear()}-${String(endDt.getMonth()+1).padStart(2,'0')}-${String(endDt.getDate()).padStart(2,'0')}`;
   const bonus=parseInt(document.getElementById('m-bonus').value)||0;
   const disc=parseFloat(document.getElementById('m-disc').value)||0;
@@ -1904,7 +1927,7 @@ function renderPayments(){
         <div class="client-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
         <div class="client-info">
           <div class="client-name">${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname}</div>
-          <div class="client-sub">${c.phone||''}</div>
+          <div class="client-sub">${_fmtPhone(c.phone)}</div>
           <span class="badge badge-expired">₹${due.toLocaleString('en-IN')} due</span>
         </div>
         <button class="btn btn-gold btn-sm" onclick="event.stopPropagation();openPaymentModal('${c.id}')">+ Receipt</button>
@@ -2271,7 +2294,7 @@ function showTab(n,btn){
   if(n==='credits')renderCredits();
 }
 function renderPlanChips(selected){
-  const plans=getPlans();
+  const plans=getPlans().filter(p=>p.id!=='trial');
   document.getElementById('plan-chips').innerHTML=plans.map(p=>`
     <button class="plan-chip${selected===p.id?' active':''}" onclick="selectPlan('${p.id}')">
       ${p.name}<br><small style="font-weight:400;opacity:0.7;">${p.sessions===999?'Unlimited':p.sessions+' sessions'} • ${!p.days?'':p.days===1?'1 day':p.days===7?'1 week':p.days===30?'1 month':p.days===90?'3 months':p.days===180?'6 months':p.days+' days'} • ₹${(p.price||0).toLocaleString('en-IN')}</small>
@@ -2369,6 +2392,66 @@ function archiveClient(cid){
         renderClients();renderDash();
         // Refresh the detail view in place
         openDetail(cid);
+      }},
+    ]
+  );
+}
+
+function extendMembership(cid){
+  const mems=ld('pp_memberships',{});
+  const m=mems[cid];
+  if(!m){toast('No active membership to extend');return;}
+  const cur=m.endDate?fmt(m.endDate):'—';
+  themedPrompt('⏸ Pause / Extend Plan',
+    'Current expiry: '+cur+'. Enter days to ADD (e.g. 14 for a two-week pause). The end date moves forward by that many days.',
+    '',function(val){
+    if(val===null||val==='')return;
+    const days=parseInt(val);
+    if(!days||days<1){toast('Enter a valid number of days');return;}
+    const end=new Date((m.endDate||td())+'T00:00:00');
+    end.setDate(end.getDate()+days);
+    const newEnd=`${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;
+    m.endDate=newEnd;
+    m.pauseLog=m.pauseLog||[];
+    m.pauseLog.push({days,on:td(),newEnd});
+    sv('pp_memberships',mems);
+    const c=ld('pp_clients',[]).find(x=>x.id===cid);
+    if(typeof AUD==='function')AUD('⏸ Plan extended',((c?c.fname:'')+' +'+days+' days → '+fmt(newEnd)));
+    toast('✓ Plan extended by '+days+' days — now valid till '+fmt(newEnd));
+    openDetail(cid);
+  });
+}
+function deleteClient(cid){
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Only an admin can delete a client');return;}
+  const clients=ld('pp_clients',[]);
+  const c=clients.find(x=>x.id===cid);
+  if(!c)return;
+  const nm=(c.fname+' '+(c.lname||'')).trim();
+  /* SAFETY THUMB-RULE: only allow delete if the client has NO transaction history.
+     If any cash/payment/attendance/booking exists, must deactivate instead. */
+  const cash=ld('pp_cash',[]).filter(e=>e.cid===cid);
+  const pays=ld('pp_payments',[]).filter(p=>p.cid===cid);
+  const bk=ld('pp_bookings',{});
+  let hasBooking=false;
+  Object.values(bk).forEach(day=>Object.values(day||{}).forEach(arr=>{if((arr||[]).some(b=>b.cid===cid))hasBooking=true;}));
+  if(cash.length||pays.length||hasBooking){
+    showConfirm('🔒','Cannot Delete — Has Records',
+      `<b>${nm}</b> has transaction or booking history (${cash.length+pays.length} payment/cash entr${(cash.length+pays.length)===1?'y':'ies'}${hasBooking?', plus bookings':''}). To protect your records, clients with any history can only be <b>deactivated</b>, not deleted.<br><br>Deleting is only for clients added by mistake with no entries at all.`,
+      [{label:'OK',color:'var(--gold)',action:null},
+       {label:'Deactivate Instead',color:'var(--amber)',action:()=>{archiveClient(cid);}}]);
+    return;
+  }
+  showConfirm('🗑','Delete Client?',
+    `<b>${nm}</b> has no transactions or bookings. Permanently delete this mistaken entry? This cannot be undone.`,
+    [
+      {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+      {label:'Delete Permanently',color:'var(--red)',action:()=>{
+        sv('pp_clients',clients.filter(x=>x.id!==cid));
+        const mems=ld('pp_memberships',{});if(mems[cid]){delete mems[cid];sv('pp_memberships',mems);}
+        if(typeof AUD==='function')AUD('🗑 Client deleted (mistaken entry, no records)',nm);
+        toast('🗑 Client deleted');
+        closeM('m-detail');
+        renderClients();renderDash();
       }},
     ]
   );
@@ -3261,6 +3344,18 @@ function openManagePlans(){
   renderPlansList();
   openM('m-plans');
 }
+function _fmtPhone(p){
+  if(!p)return '';
+  const d=(p+'').replace(/\D/g,'').replace(/^91(?=\d{10}$)/,''); /* strip +91 if 12-digit */
+  if(d.length===10)return d.slice(0,5)+'-'+d.slice(5);
+  return p;
+}
+function _durLabel(days){
+  if(!days)return '—';
+  if(days%30===0)return (days/30)+' month'+(days/30>1?'s':'');
+  if(days%7===0)return (days/7)+' week'+(days/7>1?'s':'');
+  return days+' day'+(days>1?'s':'');
+}
 function renderPlansList(){
   const plans=getPlans();
   document.getElementById('plans-list').innerHTML=plans.map((p,i)=>`
@@ -3268,18 +3363,20 @@ function renderPlansList(){
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:700;color:var(--text);">${p.name}</div>
-          <div style="font-size:13px;color:var(--text2);">${p.sessions===999?'Unlimited':p.sessions+' sessions'} • ${p.days} days</div>
+          <div style="font-size:13px;color:var(--text2);">${p.sessions===999?'Unlimited':p.sessions+' sessions'} • ${_durLabel(p.days)}</div>
         </div>
         <div style="font-size:14px;font-weight:700;color:var(--gold);">₹${p.price.toLocaleString('en-IN')}</div>
         <button onclick="editPlanPrice(${i})" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 8px;color:var(--text2);cursor:pointer;font-size:13px;">✏️</button>
-        ${!['std','unlimited','weekly','daily','3month','6month'].includes(p.id)?`<button onclick="delPlan(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;">🗑</button>`:''}
+        <button onclick="delPlan(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;">🗑</button>
       </div>
-      <div id="edit-plan-${i}" style="display:none;margin-top:8px;display:none;">
-        <div style="display:flex;gap:6px;align-items:center;">
-          <input id="ep-price-${i}" type="number" placeholder="Price" value="${p.price}" style="flex:1;" class="fi"/>
-          <input id="ep-sessions-${i}" type="number" placeholder="Sessions" value="${p.sessions===999?'':p.sessions}" style="flex:1;" class="fi"/>
-          <button onclick="savePlanEdit(${i})" style="background:var(--gold);border:none;border-radius:8px;padding:8px 12px;color:#1a1a2e;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;font-size:12px;">Save</button>
+      <div id="edit-plan-${i}" style="display:none;margin-top:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+          <input id="ep-name-${i}" placeholder="Name" value="${(p.name||'').replace(/"/g,'&quot;')}" class="fi"/>
+          <input id="ep-days-${i}" type="number" placeholder="Days" value="${p.days||30}" class="fi"/>
+          <input id="ep-price-${i}" type="number" placeholder="Price" value="${p.price}" class="fi"/>
+          <input id="ep-sessions-${i}" type="number" placeholder="Sessions" value="${p.sessions===999?'':p.sessions}" class="fi"/>
         </div>
+        <button onclick="savePlanEdit(${i})" style="width:100%;background:var(--gold);border:none;border-radius:8px;padding:9px 12px;color:#1a1a2e;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;font-size:12px;">Save Changes</button>
       </div>
     </div>`).join('');
 }
@@ -3289,32 +3386,72 @@ function editPlanPrice(idx){
 }
 function savePlanEdit(idx){
   const plans=getPlans();
+  const name=(document.getElementById('ep-name-'+idx).value||'').trim()||plans[idx].name;
+  const days=parseInt(document.getElementById('ep-days-'+idx).value)||plans[idx].days||30;
   const price=parseFloat(document.getElementById('ep-price-'+idx).value)||0;
   const sessVal=document.getElementById('ep-sessions-'+idx).value;
   const sessions=sessVal?parseInt(sessVal):plans[idx].sessions;
+  plans[idx].name=name;
+  plans[idx].days=days;
   plans[idx].price=price;
   plans[idx].sessions=sessions;
-  plans[idx].label=`${sessions===999?'Unlimited':sessions+' sessions'} / ${plans[idx].days||0} days`;
+  plans[idx].label=`${sessions===999?'Unlimited':sessions+' sessions'} / ${days} days`;
   sv('pp_plans',plans);
+  if(typeof AUD==='function')AUD('✏️ Plan edited',name);
   renderPlansList();
-  renderPlanChips(document.getElementById('m-plan').value);
+  try{renderPlanChips(document.getElementById('m-plan').value);}catch(e){}
   toast('✓ Plan updated!');
+}
+function delPlan(idx){
+  const plans=getPlans();
+  const p=plans[idx];if(!p)return;
+  /* SAFETY THUMB-RULE: a plan can be deleted only if NO membership (current
+     OR historical) ever used it — protects past records. */
+  const mems=ld('pp_memberships',{});
+  let inUse=0;
+  Object.values(mems).forEach(m=>{
+    if(m.plan===p.id)inUse++;
+    if(Array.isArray(m.history)&&m.history.some(h=>h.plan===p.id))inUse++;
+  });
+  if(inUse>0){
+    showConfirm('🔒','Cannot Delete — Plan In Use',
+      `<b>${p.name}</b> is used in ${inUse} current or past membership${inUse>1?'s':''}. To protect your records, a plan with any history cannot be deleted.<br><br>You can still <b>edit</b> its name, price, sessions or duration instead.`,
+      [{label:'OK',color:'var(--gold)',action:null}]);
+    return;
+  }
+  showConfirm('🗑','Delete Plan?',`Delete the <b>${p.name}</b> plan? It has never been used, so this is safe. This cannot be undone.`,
+    [{label:'Cancel',color:'var(--border2)',outline:true,action:null},
+     {label:'Delete',color:'var(--red)',action:()=>{_doDelPlan(p.id);}}]);
+}
+function _doDelPlan(pid){
+  const plans=getPlans().filter(x=>x.id!==pid);
+  sv('pp_plans',plans);
+  if(typeof AUD==='function')AUD('🗑 Plan deleted',pid);
+  renderPlansList();
+  toast('🗑 Plan deleted');
 }
 function saveNewPlan(){
   const name=document.getElementById('np-name').value.trim();
   if(!name){alert('Enter plan name');return;}
+  const dur=parseInt(document.getElementById('np-dur').value)||1;
+  const unit=document.getElementById('np-unit').value;
+  let days;
+  if(unit==='month')days=dur*30;      /* multiples of 30 → expiry uses calendar months */
+  else if(unit==='week')days=dur*7;
+  else days=dur;
   const plans=getPlans();
   plans.push({
     id:'custom_'+Date.now(),name,
     sessions:parseInt(document.getElementById('np-sessions').value)||12,
-    days:parseInt(document.getElementById('np-days').value)||30,
+    days,
     price:parseFloat(document.getElementById('np-price').value)||0,
-    label:document.getElementById('np-name').value
+    label:name
   });
   sv('pp_plans',plans);
-  ['np-name','np-sessions','np-days','np-price'].forEach(id=>document.getElementById(id).value='');
+  if(typeof AUD==='function')AUD('➕ Plan added',name+' • '+dur+' '+unit+'(s)');
+  ['np-name','np-sessions','np-dur','np-price'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   renderPlansList();
-  renderPlanChips(document.getElementById('m-plan').value);
+  try{renderPlanChips(document.getElementById('m-plan').value);}catch(e){}
   toast('✓ Plan added!');
 }
 function delPlan(idx){
@@ -3880,6 +4017,7 @@ if('serviceWorker' in navigator){
     <input type="hidden" id="ue-id"/>
     <div class="fg"><label class="fl">Name</label><input class="fi" id="ue-name" placeholder="e.g. Priyanka"/></div>
     <div class="fg"><label class="fl">Login ID</label><input class="fi" id="ue-uid" placeholder="e.g. priyanka" autocapitalize="none"/></div>
+    <div class="fg"><label class="fl">Email <span style="color:var(--text3);font-weight:400;">(for booking-page login)</span></label><input class="fi" id="ue-email" type="email" autocapitalize="none" placeholder="name@gmail.com" autocomplete="off"/></div>
     <div class="fr">
       <div class="fg"><label class="fl">Role</label><select class="fi" id="ue-role"><option value="staff">Staff</option><option value="trainer">Trainer (view-only)</option><option value="admin">Admin</option></select></div>
       <div class="fg"><label class="fl">Active</label><select class="fi" id="ue-active"><option value="1">Yes</option><option value="0">No (disabled)</option></select></div>
@@ -4260,6 +4398,7 @@ function openUserEdit(id){
   document.getElementById('ue-id').value=u?u.id:'';
   document.getElementById('ue-name').value=u?u.name:'';
   document.getElementById('ue-uid').value=u?u.uid:'';
+  document.getElementById('ue-email').value=u&&u.email?u.email:'';
   document.getElementById('ue-role').value=u?u.role:'staff';
   document.getElementById('ue-active').value=u&&u.active===false?'0':'1';
   document.getElementById('ue-pin').value='';
@@ -4291,6 +4430,7 @@ async function saveUser(){
   }
   const data={
     id:id||Date.now().toString(),name,uid,role,staffId,active,
+    email:(document.getElementById('ue-email').value||'').trim().toLowerCase(),
     created:existing?existing.created:td(),
     pinH:pin?await ppHash(uid,pin):(existing?existing.pinH:'')
   };
@@ -5467,10 +5607,10 @@ function _updateModeBalance(){
   }else if(cb){cb.style.display='none';}
 }
 
-/* ===== AUTO-LOCK (5 min idle or app hidden) ===== */
+/* ===== AUTO-LOCK (30 min idle or long absence) ===== */
 (function(){
   let t=null;
-  const LOCK_MS=5*60*1000;
+  const LOCK_MS=15*60*1000; /* 15 min idle */
   function doLock(){
     if(typeof PPS==='undefined'||!PPS)return;
     if(typeof firebase!=='undefined'&&firebase.auth&&!firebase.auth().currentUser)return; /* offline mode, skip */
@@ -5491,7 +5631,7 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v28.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v30.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
     let updateWaiting=false;
@@ -5509,13 +5649,13 @@ function checkForUpdate(){
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v28</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running <b>v30</b> — the latest version. 🎉<br><br>No update needed.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v28</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running <b>v30</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
