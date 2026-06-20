@@ -371,7 +371,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v31</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v33</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:center;">
@@ -902,7 +902,7 @@ window.addEventListener('load',()=>{
       <div id="m-modebal" style="font-size:12px;color:var(--text2);margin:-2px 0 8px;padding:5px 9px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
       <div id="m-balnote" style="font-size:12px;margin-bottom:6px;text-align:center;"></div>
     </div>
-    <button class="sb2" onclick="saveMembership()">Save & Issue Receipt</button>
+    <button class="sb2" id="m-save-btn" onclick="saveMembership()">Save & Issue Receipt</button>
   </div>
 </div>
 
@@ -1709,9 +1709,20 @@ function selectPlan(pid){
   updateMemPayable();
 }
 function saveMembership(){
+  const _btn=document.getElementById('m-save-btn');
+  if(_btn&&_btn.disabled)return; /* already saving — block double-tap */
   const cid=document.getElementById('m-cid').value;
   const pid=document.getElementById('m-plan').value;
   if(!pid){alert('Please select a plan');return;}
+  /* Staff rule: renewal (same plan) + first assignment + trial conversion are OK.
+     Switching an existing member to a DIFFERENT plan is admin-only. */
+  if(typeof ppIsStaff==='function'&&ppIsStaff()){
+    const _prev=ld('pp_memberships',{})[cid];
+    if(_prev&&_prev.plan&&_prev.plan!==pid&&_prev.plan!=='trial'){
+      alert('Changing to a different plan needs an admin. You can renew the same plan, or ask an admin to change it.');return;
+    }
+  }
+  if(_btn){_btn.disabled=true;_btn.style.opacity='0.5';setTimeout(()=>{if(_btn){_btn.disabled=false;_btn.style.opacity='';}},2500);}
   const plan=getPlans().find(p=>p.id===pid);
   const startDate=document.getElementById('m-start').value||td();
   // #6: start date cannot precede the member's joining date
@@ -4675,10 +4686,11 @@ function deleteUser(){
     };
     const oAssign=window.openAssignMembership;
     if(typeof oAssign==='function')window.openAssignMembership=function(cid){
-      if(ppIsStaff()){
-        const m=ld('pp_memberships',{})[cid];
-        if(m){toast('🔒 Plan already set — only admin can change it');return;}
-      }
+      /* Staff (receptionist): may ASSIGN a new plan, RENEW the same plan, and
+         CONVERT trials + take payment. But CHANGING to a DIFFERENT plan is
+         admin-only. We allow the form to open; saveMembership enforces the
+         change-vs-renewal rule. */
+      window._assignOpenerStaff=ppIsStaff();
       return oAssign.apply(this,arguments);
     };
   })();
@@ -5675,7 +5687,7 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v31.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v33.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
     let updateWaiting=false;
@@ -5693,13 +5705,13 @@ function checkForUpdate(){
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v31</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running <b>v33</b> — the latest version. 🎉<br><br>No update needed.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v31</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running <b>v33</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
