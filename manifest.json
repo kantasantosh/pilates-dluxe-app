@@ -1,9 +1,9 @@
 {
-  "id": "/index.html?app=studio",
+  "id": "pdl-studio-app",
   "name": "Pilates D'Luxe Studio",
-  "short_name": "Pilates D'Luxe",
+  "short_name": "PD Studio",
   "description": "Studio Admin App for Pilates D'Luxe",
-  "start_url": "/index.html?app=studio",
+  "start_url": "/index.html",
   "scope": "/index.html",
   "display": "standalone",
   "background_color": "#0d0c0a",

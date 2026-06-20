@@ -249,6 +249,16 @@ async function _pInit(){
     _pSync=true;el.textContent='✓ Synced';el.style.color='#2ecc71';
     setTimeout(()=>el.remove(),2000);
     if(typeof init==='function')init();
+    /* If the login screen is showing (cloud just connected), make sure the
+       user chips are rendered now that pp_users has arrived — without this,
+       the user list could appear blank until a manual refresh. */
+    try{
+      const lg=document.getElementById('pp-login');
+      if(lg&&lg.style.display!=='none'&&ppUsers().length){
+        window._gateTries=0;
+        if(typeof ppAuthGate==='function')ppAuthGate();
+      }
+    }catch(_e){}
   }catch(e){
     /* Read failed. On mobile this is almost always a lost/absent cloud
        sign-in (Firestore rejects the read), NOT a real network problem.
@@ -267,13 +277,19 @@ async function _pInit(){
       if(typeof init==='function')init();
     }
   }
-  _pdb.collection('pilates').onSnapshot(qs=>{
+  _pdb.collection('pilates').onSnapshot({includeMetadataChanges:false},qs=>{
     let changed=false;
     qs.docChanges().forEach(ch=>{
       const k=ch.doc.id;if(k.indexOf('pp_')!==0)return;
       const dd=ch.doc.data();if(!dd||dd.value===undefined)return;
       const ts=dd.updated||0;
-      if(!_pLast[k]||ts>_pLast[k]+1000){localStorage.setItem(k,dd.value);_pLast[k]=ts;changed=true;}
+      /* accept the change if it's newer OR if the stored value actually differs
+         (the old "+1000ms" guard could skip legitimate near-simultaneous edits). */
+      const cur=localStorage.getItem(k);
+      if(ts>=(_pLast[k]||0) || cur!==dd.value){
+        if(cur!==dd.value){localStorage.setItem(k,dd.value);changed=true;}
+        _pLast[k]=Math.max(ts,_pLast[k]||0);
+      }
     });
     if(changed)_pRerenderActive();
   });
@@ -371,7 +387,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v33</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v39</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:center;">
@@ -494,6 +510,7 @@ window.addEventListener('load',()=>{
     <button class="ftab" onclick="setCashFilter('contra',this)">🔁 Contra</button>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries (name, note, amount, mode)…" style="flex:2;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
     <select id="cash-catfilter" onchange="renderCash()" style="flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">All categories</option>
     </select>
@@ -699,6 +716,7 @@ window.addEventListener('load',()=>{
     <div class="fg"><label class="fl">Description</label><input class="fi" id="ce-desc" placeholder="Membership fee, rent, salary..."/></div>
     <!-- Credit: client dropdown -->
     <div id="ce-client-row" class="fg"><label class="fl">Client (Credits only)</label>
+      <input class="fi" id="ce-client-search" placeholder="🔍 Type name or member no…" oninput="_filterCeClients()" style="margin-bottom:6px;"/>
       <select class="fi" id="ce-cid" onchange="_updateModeBalance()"><option value="">— Not client related —</option></select>
       <div id="ce-client-due" style="font-size:12px;margin-top:6px;text-align:center;"></div>
     </div>
@@ -728,7 +746,7 @@ window.addEventListener('load',()=>{
       <div id="ce-cat-bal" style="font-size:12px;color:var(--text2);margin-top:6px;padding:5px 9px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="ce-notes" placeholder="Reference, UPI ID..."/></div>
-    <button class="sb2" onclick="saveCashEntry()">Save Entry</button>
+    <button class="sb2" id="ce-save-btn" onclick="saveCashEntry()">Save Entry</button>
     <button id="ce-del-btn" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteCashEntry()">🗑 Delete Entry</button>
   </div>
 </div>
@@ -863,7 +881,7 @@ window.addEventListener('load',()=>{
       </select>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="c-notes" placeholder="Any special notes..."/></div>
-    <button class="sb2" onclick="saveClient()">Save Client</button>
+    <button class="sb2" id="c-save-btn" onclick="saveClient()">Save Client</button>
   </div>
 </div>
 
@@ -934,7 +952,7 @@ window.addEventListener('load',()=>{
       <select class="fi" id="p-for"></select>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="p-notes" placeholder="Reference, UPI ID, note..."/></div>
-    <button class="sb2" onclick="savePayment()">Save Receipt</button>
+    <button class="sb2" id="pay-save-btn" onclick="savePayment()">Save Receipt</button>
   </div>
 </div>
 
@@ -961,7 +979,8 @@ window.addEventListener('load',()=>{
     <input type="hidden" id="bk-date"/>
     <div class="fg"><label class="fl">Time Slot</label><input class="fi" id="bk-slotname" readonly style="opacity:0.6;"/></div>
     <div class="fg"><label class="fl">Client</label>
-      <select class="fi" id="bk-client"></select>
+      <input class="fi" id="bk-client-search" placeholder="🔍 Type name or member no…" oninput="_filterBookClients()" style="margin-bottom:6px;"/>
+      <select class="fi" id="bk-client" size="6" style="height:auto;"></select>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="bk-notes" placeholder="Optional note..."/></div>
     <button class="sb2" onclick="saveBooking()">Confirm Booking</button>
@@ -1088,6 +1107,26 @@ function startDashClock(){
 
 // ===== MODALS =====
 function openM(id){document.getElementById(id).classList.add('open');}
+/* ===== Form dirty-tracking: grey out Save until something actually changes =====
+   Call armDirty(modalId, saveBtnId) AFTER populating the form. The save button
+   starts disabled and enables on the first real change to any field. */
+function armDirty(modalId,btnId){
+  const modal=document.getElementById(modalId);
+  const btn=document.getElementById(btnId);
+  if(!modal||!btn)return;
+  const setEnabled=(on)=>{btn.disabled=!on;btn.style.opacity=on?'':'0.45';btn.style.pointerEvents=on?'':'none';};
+  setEnabled(false);
+  const fields=modal.querySelectorAll('input,select,textarea');
+  const mark=()=>setEnabled(true);
+  fields.forEach(f=>{
+    if(f._dirtyHooked)return;f._dirtyHooked=true;
+    f.addEventListener('input',mark);
+    f.addEventListener('change',mark);
+  });
+  /* expose a manual trigger for code-driven changes (e.g. plan chip clicks) */
+  modal._markDirty=mark;
+}
+function markDirty(modalId){const m=document.getElementById(modalId);if(m&&m._markDirty)m._markDirty();}
 function closeM(id){document.getElementById(id).classList.remove('open');}
 
 // ===== DASHBOARD =====
@@ -1355,6 +1394,13 @@ function renderClients(){
     pf.value=cur;
   }
   let filtered=_getFilteredClients();
+  /* Newest on top — by JOINING date (what the user actually thinks of as
+     "latest member"), then by record id as tie-breaker for same-day joins. */
+  filtered=filtered.slice().sort((a,b)=>{
+    const ja=(a.join||a.joinDate||a.createdAt||''), jb=(b.join||b.joinDate||b.createdAt||'');
+    if(ja!==jb)return jb.localeCompare(ja);      /* later join date first */
+    return (parseInt(b.id)||0)-(parseInt(a.id)||0); /* same day → later entry first */
+  });
   if(!filtered.length){
     document.getElementById('client-list').innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--text2);">No clients found</div>`;
     return;
@@ -1588,6 +1634,7 @@ function openEditClient(cid){
   document.getElementById('c-ref').innerHTML='<option value="">None</option>'+
     clients.filter(cl=>cl.id!==cid&&!cl.archived).map(cl=>`<option value="${cl.id}"${cl.id===c.refId?' selected':''}>${cl.memNo?cl.memNo+' — ':''}${cl.fname} ${cl.lname}</option>`).join('');
   openM('m-client');
+  setTimeout(()=>armDirty('m-client','c-save-btn'),50);
 }
 function saveClient(){
   const fname=document.getElementById('c-fname').value.trim();
@@ -1601,6 +1648,7 @@ function saveClient(){
   const refId=document.getElementById('c-ref').value;
   const oldData=existing?clients.find(c=>c.id===existing)||{}:{};
   const data={
+    ...oldData,                       /* preserve convertedFrom, conversionDate, isTrial, trialDate, etc. */
     id:existing||Date.now().toString(),
     memNo:existing?oldData.memNo:generateMemNo(),
     fname,lname:document.getElementById('c-lname').value.trim(),
@@ -1639,9 +1687,12 @@ function openAssignMembership(cid){
   document.getElementById('mem-modal-title').textContent=existing?'Renew / Change Plan':'Assign Membership';
   document.getElementById('m-cid').value=cid;
   document.getElementById('m-cname').value=c.fname+' '+c.lname;
-  // For renewal, default start = day after current expiry (using date parts to avoid timezone issues)
-  let defaultStart=td();
-  if(existing&&existing.endDate>=td()){
+  // Start date default:
+  //  • Fresh assignment / trial conversion / plan CHANGE  → BLANK (staff enters real date)
+  //  • Genuine RENEWAL of the SAME, still-valid plan       → day after current expiry
+  let defaultStart='';
+  const _isTrialConv=existing&&(existing.plan==='trial'||c.isTrial);
+  if(existing&&!_isTrialConv&&existing.endDate>=td()){
     const parts=existing.endDate.split('-');
     const expDt=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
     expDt.setDate(expDt.getDate()+1);
@@ -1663,6 +1714,7 @@ function openAssignMembership(cid){
   document.getElementById('m-paid').value='';
   updateMemPayable();
   openM('m-membership');
+  setTimeout(()=>armDirty('m-membership','m-save-btn'),50);
 }
 function updateMemPayable(){
   const fee=parseFloat(document.getElementById('m-fee').value)||0;
@@ -1698,6 +1750,7 @@ function renderPlanChips(selected){
 function selectPlan(pid){
   document.getElementById('m-plan').value=pid;
   renderPlanChips(pid);
+  markDirty('m-membership');
   const plan=getPlans().find(p=>p.id===pid);
   // B1 fix: always reset fee to the selected plan's price (including 0 for Trial/Drop-in)
   // so stale amounts from the previous plan never carry over.
@@ -1714,6 +1767,8 @@ function saveMembership(){
   const cid=document.getElementById('m-cid').value;
   const pid=document.getElementById('m-plan').value;
   if(!pid){alert('Please select a plan');return;}
+  const _startVal=document.getElementById('m-start').value;
+  if(!_startVal){alert('Please enter the plan Start Date.');return;}
   /* Staff rule: renewal (same plan) + first assignment + trial conversion are OK.
      Switching an existing member to a DIFFERENT plan is admin-only. */
   if(typeof ppIsStaff==='function'&&ppIsStaff()){
@@ -2147,21 +2202,41 @@ function _openBookingForm(slotIdx){
   document.getElementById('bk-slotname').value=slot+' — '+new Date(_schedDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
   document.getElementById('bk-notes').value='';
   // Show ALL clients (not just active — drop-ins and expired can also book)
-  document.getElementById('bk-client').innerHTML=clients.filter(c=>!c.archived).map(c=>{
+  _bookClientList=clients.filter(c=>!c.archived).map(c=>{
     const mems=ld('pp_memberships',{});
     const st=getMembershipStatus(mems[c.id]);
     const stLabel=st==='active'?'✓':st==='expiring'?'⚠':st==='expired'?'✗':'—';
     const mn=c.memNo?c.memNo+' — ':'';
-    return `<option value="${c.id}">${mn}${c.fname} ${c.lname} ${stLabel}</option>`;
-  }).join('');
+    return {id:c.id,label:`${mn}${c.fname} ${c.lname||''} ${stLabel}`,search:`${mn}${c.fname} ${c.lname||''}`.toLowerCase()};
+  });
+  const _bs=document.getElementById('bk-client-search');if(_bs)_bs.value='';
+  _renderBookClientOptions(_bookClientList);
   openM('m-booking');
+}
+let _bookClientList=[];
+function _renderBookClientOptions(list){
+  const sel=document.getElementById('bk-client');
+  if(!sel)return;
+  sel.innerHTML=list.map(c=>`<option value="${c.id}">${c.label}</option>`).join('');
+  if(list.length)sel.value=list[0].id;
+}
+function _filterBookClients(){
+  const q=((document.getElementById('bk-client-search')||{}).value||'').trim().toLowerCase();
+  if(!q){_renderBookClientOptions(_bookClientList);return;}
+  _renderBookClientOptions(_bookClientList.filter(c=>c.search.includes(q)));
 }
 function saveBooking(){
   const slotIdx=parseInt(document.getElementById('bk-slot').value);
   const slot=SLOTS[slotIdx];
   const date=document.getElementById('bk-date').value;
-  // No past bookings
-  if(date<td()&&!ppIsAdmin()){toast('❌ Cannot book past slots');closeM('m-booking');return;}
+  // No past bookings for staff; admin may book past slots for historical records
+  if(!ppIsAdmin()){
+    if(date<td()){toast('❌ Cannot book past dates');closeM('m-booking');return;}
+    if(date===td()){
+      const _sh=_slotHour24(slot);
+      if(_sh<new Date().getHours()){toast('❌ That slot time has already passed today');closeM('m-booking');return;}
+    }
+  }
   const cid=document.getElementById('bk-client').value;
   if(!cid){alert('No active clients available');return;}
   /* closed-day already handled upfront at slot-tap (openBookingModal) */
@@ -2905,6 +2980,40 @@ window.addEventListener('pageshow',(e)=>{
     renderDash();
   }
 });
+/* ===== Shared salary calculator — day-by-day so mid-month raises apply,
+   so card, WhatsApp summary and printed report ALWAYS match. ===== */
+function _salaryEarned(s,y,m){
+  const att=ld('pp_satt_'+s.id,{});
+  const key=y+'-'+m;
+  const ma=att[key]||{};
+  const dim=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  const joinD=(s.join||s.joinDate||'');
+  let startDay=1;
+  if(joinD){const jp=joinD.split('-');if(parseInt(jp[0])===y&&parseInt(jp[1])-1===m)startDay=parseInt(jp[2]);}
+  function salaryOn(ds){
+    const curFrom=s.salFrom||s.join||'1900-01-01';
+    if(ds>=curFrom)return parseFloat(s.salary||s.sal||0)||0;
+    if(s.salaryHistory&&s.salaryHistory.length){
+      for(const h of s.salaryHistory){if(h.from<=ds&&(!h.to||h.to>=ds))return h.salary;}
+    }
+    return parseFloat(s.salary||s.sal||0)||0;
+  }
+  let P=0,A=0,HD=0,HALF=0,earnedExact=0;
+  for(let d=1;d<=dim;d++){
+    const dt=new Date(y,m,d);
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isOff=s.offday!==undefined&&dt.getDay()===parseInt(s.offday);
+    const st=ma[d]!==undefined?ma[d]:(isOff?'H':'P');
+    if(!(dt>today||d<startDay)){
+      if(st==='P')P++;else if(st==='Half')HALF++;else if(st==='A')A++;else HD++;
+      let f=0;
+      if(st==='P')f=1;else if(st==='Half')f=0.5;else if(st==='A')f=0;else f=1; /* holiday paid */
+      earnedExact+=f*(salaryOn(ds)/dim);
+    }
+  }
+  return {present:P,absent:A,holiday:HD,half:HALF,dim,startDay,earned:Math.round(earnedExact)};
+}
 function shareStaffSummary(){
   const staff=ld('pp_staff',[]);
   if(!staff.length){toast('No staff to share');return;}
@@ -2914,19 +3023,8 @@ function shareStaffSummary(){
   const m=_staffM?_staffM.m:now.getMonth();
   let txt="*Pilates D'Luxe — Staff Summary*\n"+MN[m]+' '+y+'\n\n';
   staff.forEach(s=>{
-    const att=ld('pp_satt_'+s.id,{});
-    const key=y+'-'+m;
-    const ma=att[key]||{};
-    const dim=new Date(y,m+1,0).getDate();
-    let present=0,absent=0,holiday=0,half=0;
-    for(let d=1;d<=dim;d++){
-      const dt=new Date(y,m,d);if(dt>now)continue;
-      const isOff=s.offday!==undefined&&dt.getDay()===parseInt(s.offday);
-      const st=ma[d]!==undefined?ma[d]:(isOff?'H':'P');
-      if(st==='P')present++;else if(st==='Half')half++;else if(st==='A')absent++;else holiday++;
-    }
-    const perDay=s.salary/dim;
-    const earned=Math.round((present+holiday+(half*0.5))*perDay);
+    const _r=_salaryEarned(s,y,m);
+    const present=_r.present,half=_r.half,absent=_r.absent,holiday=_r.holiday,earned=_r.earned;
     txt+='*'+s.fname+' '+s.lname+'* ('+s.role+')\n';
     txt+='   P:'+present+' H:'+half+' A:'+absent+' H:'+holiday+' | Payable: Rs'+earned.toLocaleString('en-IN')+'\n\n';
   });
@@ -3591,12 +3689,33 @@ function setCEType(t){
   }
   refreshCECats();
 }
+let _ceClientList=[];
+function _renderCeClientOptions(list){
+  const sel=document.getElementById('ce-cid');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Not client related —</option>'+list.map(c=>`<option value="${c.id}">${c.label}</option>`).join('');
+  if(cur&&list.some(c=>c.id===cur))sel.value=cur;
+}
+function _filterCeClients(){
+  const q=((document.getElementById('ce-client-search')||{}).value||'').trim().toLowerCase();
+  if(!q){_renderCeClientOptions(_ceClientList);}
+  else{_renderCeClientOptions(_ceClientList.filter(c=>c.search.includes(q)));}
+  /* auto-select if exactly one match, so the due/balance shows */
+  const sel=document.getElementById('ce-cid');
+  if(sel&&sel.options.length===2){sel.selectedIndex=1;if(typeof _updateModeBalance==='function')_updateModeBalance();}
+}
 function openCashEntry(id,prefillCid){
   document.getElementById('cash-modal-title').textContent=id?'Edit Entry':'New Entry';
   document.getElementById('ce-id').value=id||'';
   const clients=ld('pp_clients',[]);
-  document.getElementById('ce-cid').innerHTML='<option value="">— Not client related —</option>'+
-    clients.filter(c=>!c.archived).map(c=>`<option value="${c.id}">${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname}</option>`).join('');
+  _ceClientList=clients.filter(c=>!c.archived).map(c=>({
+    id:c.id,
+    label:`${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname||''}`,
+    search:`${c.memNo||''} ${c.fname} ${c.lname||''}`.toLowerCase()
+  }));
+  _renderCeClientOptions(_ceClientList);
+  const _ces=document.getElementById('ce-client-search');if(_ces)_ces.value='';
   const modes=getPayModes();
   document.getElementById('ce-mode').innerHTML=modes.map(m=>`<option>${m}</option>`).join('');
   document.getElementById('ce-mode2').innerHTML=modes.map(m=>`<option>${m}</option>`).join('');
@@ -3637,6 +3756,7 @@ function openCashEntry(id,prefillCid){
   openM('m-cashentry');
   const delBtn=document.getElementById('ce-del-btn');
   if(delBtn)delBtn.style.display=(id&&(typeof ppIsAdmin!=='function'||ppIsAdmin()))?'block':'none';
+  if(id)setTimeout(()=>armDirty('m-cashentry','ce-save-btn'),50);
 }
 function deleteCashEntry(){
   if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
@@ -3710,7 +3830,22 @@ function renderCash(){
     catSel.value=cur;
   }
   const catFilter=catSel?catSel.value:'';
-  let filtered=[...cash].filter(e=>(_cashFilter==='all'||e.type===_cashFilter)&&(!catFilter||e.cat===catFilter)).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const _q=((document.getElementById('cash-search')||{}).value||'').trim().toLowerCase();
+  let filtered=[...cash].filter(e=>{
+    if(!(_cashFilter==='all'||e.type===_cashFilter))return false;
+    if(catFilter&&e.cat!==catFilter)return false;
+    if(_q){
+      const c=e.cid?clients.find(cl=>cl.id===e.cid):null;
+      const cname=c?((c.fname||'')+' '+(c.lname||'')+' '+(c.memNo||'')):'';
+      const hay=[e.desc,e.notes,e.cat,e.mode,e.mode2,String(e.amt),cname].join(' ').toLowerCase();
+      if(!hay.includes(_q))return false;
+    }
+    return true;
+  }).sort((a,b)=>{
+    const d=new Date(b.date)-new Date(a.date);
+    if(d!==0)return d;
+    return (parseInt(b.id)||0)-(parseInt(a.id)||0); /* same date → latest entered on top */
+  });
   if(!filtered.length){document.getElementById('cash-list').innerHTML=`<div style="text-align:center;padding:40px;color:var(--text2);">No entries yet. Tap + to add.</div>`;return;}
   document.getElementById('cash-list').innerHTML=filtered.map(e=>{
     const c=e.cid?clients.find(cl=>cl.id===e.cid):null;
@@ -5281,11 +5416,13 @@ function printStaffAtt(onlyStaffId){
       const st=ma[d]!==undefined?ma[d]:(isOff?'H':'P');
       if(st==='P')P++;else if(st==='Half'){H++;half.push(d);}else if(st==='A'){A++;abs.push(d);}else HD++;
     }
-    /* salary: pro-rata on (present + half*0.5 + holidays) over month days */
+    /* salary via shared day-by-day helper (handles mid-month raises) so the
+       printed figure matches the card and WhatsApp summary exactly. */
     const sal=parseFloat(s.sal||s.salary||0)||0;
+    const _er=_salaryEarned(s,y,m);
+    const earned=_er.earned;
     const perDay=sal>0?sal/dim:0;
     const payableDays=P+HD+(H*0.5);
-    const earned=Math.round(perDay*payableDays);
     /* advances taken this month */
     const adv=ld('pp_sadv_'+s.id,[]);
     const advThisMonth=(Array.isArray(adv)?adv:[]).filter(a=>a.date&&new Date(a.date).getMonth()===m&&new Date(a.date).getFullYear()===y).reduce((t,a)=>t+(a.amt||0),0);
@@ -5687,7 +5824,8 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v33.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v39.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  window._userRequestedUpdate=true;
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
     let updateWaiting=false;
@@ -5705,24 +5843,24 @@ function checkForUpdate(){
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v33</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running <b>v39</b> — the latest version. 🎉<br><br>No update needed.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v33</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running <b>v39</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    /* Only show the banner ONCE, and only when the user explicitly asked to
+       update (via checkForUpdate). This stops the banner re-appearing on every
+       service-worker re-activation (network reconnect, refocus, multi-tab). */
+    if(!window._userRequestedUpdate)return;
     if(window._reloadingForUpdate)return;
     window._reloadingForUpdate=true;
-    const b=document.createElement('div');
-    b.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--gold,#c9a84c);color:#1a1a2e;padding:11px 18px;border-radius:24px;font-family:Jost,sans-serif;font-weight:700;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.3);cursor:pointer;';
-    b.textContent='🔄 New version ready — tap to refresh';
-    b.onclick=()=>location.reload();
-    document.body.appendChild(b);
+    location.reload();
   });
 }
 

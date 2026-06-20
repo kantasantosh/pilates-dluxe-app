@@ -1,9 +1,9 @@
 {
-  "id": "/booking.html?app=booking",
+  "id": "pdl-booking-app",
   "name": "Book Pilates D'Luxe",
   "short_name": "Book Pilates",
   "description": "Book your Pilates class at Pilates D'Luxe",
-  "start_url": "/booking.html?app=booking",
+  "start_url": "/booking.html",
   "scope": "/booking.html",
   "display": "standalone",
   "background_color": "#0d0c0a",
