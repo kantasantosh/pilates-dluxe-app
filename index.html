@@ -371,7 +371,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v30</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v31</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:center;">
@@ -1372,8 +1372,8 @@ function renderClients(){
         <div class="client-sub">${_fmtPhone(c.phone)}${plan?' • <b style="color:var(--gold);">'+plan.name+'</b>'+(plan.sessions&&plan.sessions!==999?' ('+plan.sessions+' sess)':''):''}</div>
         <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'} • 📅 Joined ${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem?' • Starts '+fmt(mem.startDate)+' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
-            `<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
+          ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL · NOT CONVERTED</span>':
+            (c.convertedFrom==='trial'?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+`<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
           ${mem&&mem.plan!=='unlimited'&&!c.isTrial?`<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft} of ${mem.sessionsTotal}</span>`:''}
           ${(()=>{const due=(mems[c.id]?Math.max(0,(mems[c.id].fee||0)-(mems[c.id].disc||0)):0)-getClientTotalPaid(c.id);return due>0?`<span style="font-size:12px;color:var(--red);font-weight:700;">₹${due.toLocaleString('en-IN')} due</span>`:'';})()} 
         </div>
@@ -1738,19 +1738,24 @@ function saveMembership(){
   const disc=parseFloat(document.getElementById('m-disc').value)||0;
   const fee=parseFloat(document.getElementById('m-fee').value)||0;
   const mems=ld('pp_memberships',{});
-  // Keep history of past memberships
-  const history=mems[cid]?.history||[];
-  if(mems[cid]){
-    const {history:_h,...old}=mems[cid];
-    history.push({...old,archivedAt:td()});
+  // Determine if this is an EDIT of the SAME membership (same plan + same start)
+  // vs a genuine NEW assignment / renewal / plan-change.
+  const prevMem=mems[cid];
+  const isSameMembership = prevMem && prevMem.plan===pid && prevMem.startDate===startDate;
+  // Keep history only when REPLACING with a different membership (not a mere edit)
+  let history=prevMem?.history||[];
+  if(prevMem && !isSameMembership){
+    const {history:_h,...old}=prevMem;
+    history=[...history,{...old,archivedAt:td()}];
   }
   mems[cid]={
     cid,plan:pid,startDate,endDate,
     sessionsTotal:plan.sessions+bonus,
-    sessionsLeft:plan.sessions+bonus,
+    sessionsLeft:isSameMembership?(prevMem.sessionsLeft):(plan.sessions+bonus),
     bonus,fee,disc,history,
     notes:document.getElementById('m-notes').value.trim(),
-    assignedAt:td(),
+    assignedAt:isSameMembership?(prevMem.assignedAt||td()):td(),
+    bookPin:prevMem?prevMem.bookPin:undefined,
   };
   sv('pp_memberships',mems);
   // If converting from trial to paid plan, clear trial flag on client
@@ -1761,8 +1766,13 @@ function saveMembership(){
       c.isTrial=false;
       c.convertedFrom='trial';
       c.conversionDate=td();
+      /* #6: now assign a REAL member number (was a T-xx temp trial ID) */
+      if(!c.memNo||/^T-/.test(c.memNo)){
+        const lastPP=clients.reduce((max,x)=>{const n=parseInt(((x.memNo||'').match(/^PP(\d+)/)||[])[1]||0);return n>max?n:max;},0);
+        c.memNo='PP'+String(lastPP+1).padStart(3,'0');
+      }
       sv('pp_clients',clients);
-      toast('🎉 Trial converted to paid membership!');
+      toast('🎉 Trial converted — member ID '+c.memNo+' assigned!');
     } else {
       toast('✓ Membership saved!');
     }
@@ -1772,8 +1782,10 @@ function saveMembership(){
   closeM('m-membership');
   renderDash();renderClients();
   // post collected payment to cashbook (client-linked credit) + offer receipt
+  // BUT only for a genuine NEW/renewal/plan-change — never on a mere edit
+  // of the same membership (that would double-charge — issue #7).
   const paid=parseFloat(document.getElementById('m-paid').value)||0;
-  if(paid>0){
+  if(paid>0 && !isSameMembership){
     const mode=document.getElementById('m-mode').value;
     /* detect payment type: New / Renewal / Plan Change */
     let payType='New Membership';
@@ -3007,24 +3019,54 @@ function renderStaff(){
       else holiday++;
     }
 
-    // Determine effective salary for this month
-    // Check salary history — find salary effective for y/m
+    // Determine salary for EACH day (handles mid-month salary changes).
+    // Build a list of salary periods: history entries + current salary.
     const monthStart=`${y}-${String(m+1).padStart(2,'0')}-01`;
-    let effectiveSalary=s.salary; // default to current
-    let effectiveFrom=s.salFrom||s.join||'';
-    if(s.salaryHistory&&s.salaryHistory.length){
-      // salaryHistory entries have {salary,from,to}
-      // Find if a historical salary covers this month
-      for(const h of s.salaryHistory){
-        if(h.from<=monthStart&&(!h.to||h.to>monthStart)){
-          effectiveSalary=h.salary;effectiveFrom=h.from;break;
+    function salaryOn(dateStr){
+      // current salary applies from salFrom onward
+      const curFrom=s.salFrom||s.join||'1900-01-01';
+      if(dateStr>=curFrom)return s.salary;
+      // else look in history for the period covering this date
+      if(s.salaryHistory&&s.salaryHistory.length){
+        for(const h of s.salaryHistory){
+          if(h.from<=dateStr&&(!h.to||h.to>=dateStr))return h.salary;
         }
       }
+      // fallback: oldest known
+      return s.salary;
     }
+    const perDayBase=dim; // divide monthly salary by days in month
+    let earnedExact=0;
+    for(let d=1;d<=dim;d++){
+      const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const st=ma[d];
+      let dayFactor=0;
+      if(st==='P'||st===undefined){ // default present unless marked; but only count up to today & after join
+        // will be refined below by present/holiday/half tallies — here we mirror that logic
+      }
+      // determine paid factor for the day
+      const dt=new Date(y,m,d);
+      const isFut=dt>today;
+      const isPreJoin=d<startDay;
+      if(isFut||isPreJoin){dayFactor=0;}
+      else{
+        const isOff=s.offday!==undefined&&dt.getDay()===parseInt(s.offday);
+        const def=isOff?'H':'P';
+        const stt=ma[d]!==undefined?ma[d]:def;
+        if(stt==='P')dayFactor=1;
+        else if(stt==='H')dayFactor=1;       // holiday paid
+        else if(stt==='Half')dayFactor=0.5;
+        else dayFactor=0;                     // absent
+      }
+      earnedExact+=dayFactor*(salaryOn(dateStr)/perDayBase);
+    }
+    // effectiveSalary kept for display (the latest salary in the month)
+    let effectiveSalary=salaryOn(`${y}-${String(m+1).padStart(2,'0')}-${String(dim).padStart(2,'0')}`);
+    let effectiveFrom=s.salFrom||s.join||'';
     const eligibleDays=dim-startDay+1;
     const perDay=effectiveSalary/dim;
     const paidDays=present+holiday+(half*0.5);
-    const earned=Math.round(paidDays*perDay);
+    const earned=Math.round(earnedExact);
 
     // Advance this month
     const allAdv=ld('pp_sadv_'+s.id,[]);
@@ -3835,8 +3877,10 @@ function saveTrialReg(){
   if(!phone){alert('Enter phone number');return;}
   const clients=ld('pp_clients',[]);
   const mems=ld('pp_memberships',{});
-  const lastNum=clients.reduce((max,c)=>{const n=parseInt((c.memNo||'PP000').replace('PP',''));return n>max?n:max;},0);
-  const memNo='PP'+String(lastNum+1).padStart(3,'0');
+  /* #6: trials get a TEMP trial ID (T-xx), NOT a member number.
+     A real PPxxx is assigned only when they convert to a paid plan. */
+  const lastT=clients.reduce((max,c)=>{const n=parseInt(((c.memNo||'').match(/^T-(\d+)/)||[])[1]||0);return n>max?n:max;},0);
+  const memNo='T-'+String(lastT+1).padStart(2,'0');
   const id=Date.now().toString();
   const today=td();
   const trialDate=document.getElementById('tr-date').value||today;
@@ -5631,7 +5675,7 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v30.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v31.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
     let updateWaiting=false;
@@ -5649,13 +5693,13 @@ function checkForUpdate(){
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v30</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running <b>v31</b> — the latest version. 🎉<br><br>No update needed.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v30</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running <b>v31</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
