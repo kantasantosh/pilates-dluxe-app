@@ -366,14 +366,28 @@ window.addEventListener('load',()=>{
     }
   },8000);
   try{
+    let _authResolved=false;
     firebase.auth().onAuthStateChanged(u=>{
       clearTimeout(_fallback);
       const g=document.getElementById('pp-cloud');
       if(u){
+        _authResolved=true;
         if(g)g.style.display='none';
         if(!window._pStarted){window._pStarted=true;_pInit();}
-      }else if(!window._pStarted){
-        if(typeof _showCloudGate==='function')_showCloudGate();
+      }else if(!window._pStarted&&!_authResolved){
+        /* First null can fire BEFORE Firebase restores the LOCAL session from
+           IndexedDB. Don't show the login gate immediately — wait a moment and
+           re-check currentUser. Only show the gate if still genuinely null. */
+        setTimeout(()=>{
+          if(window._pStarted)return;
+          let still=null;try{still=firebase.auth().currentUser;}catch(_e){}
+          if(still){
+            if(g)g.style.display='none';
+            window._pStarted=true;_pInit();
+          }else if(typeof _showCloudGate==='function'){
+            _showCloudGate();
+          }
+        },2500);
       }
     });
   }catch(e){clearTimeout(_fallback);if(!window._pStarted){window._pStarted=true;_pInit();}}
@@ -388,10 +402,10 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v41</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v42</span></div>
     </div>
   </div>
-  <div class="topbar-date" style="text-align:right;">
+  <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
     <strong id="top-date"></strong>
     <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:4px;flex-wrap:wrap;">
       <span id="top-day"></span>
@@ -715,10 +729,13 @@ window.addEventListener('load',()=>{
       <input type="hidden" id="ce-type" value="in"/>
     </div>
     <div class="fg"><label class="fl">Description</label><input class="fi" id="ce-desc" placeholder="Membership fee, rent, salary..."/></div>
-    <!-- Credit: client dropdown -->
+    <!-- Credit: client picker (clean custom dropdown) -->
     <div id="ce-client-row" class="fg"><label class="fl">Client (Credits only)</label>
-      <input class="fi" id="ce-client-search" placeholder="🔍 Type name or member no…" oninput="_filterCeClients()" style="margin-bottom:6px;"/>
-      <select class="fi" id="ce-cid" onchange="_updateModeBalance()" size="5" style="height:150px;overflow-y:auto;"><option value="">— Not client related —</option></select>
+      <div style="position:relative;">
+        <input class="fi" id="ce-client-search" autocomplete="off" placeholder="🔍 Type name or member no…" oninput="_ceSearch()" onfocus="_ceSearch()" />
+        <input type="hidden" id="ce-cid" value=""/>
+        <div id="ce-client-results" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:220px;overflow-y:auto;background:var(--surface2);border:1px solid var(--gold);border-radius:var(--rsm);z-index:50;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
+      </div>
       <div id="ce-client-due" style="font-size:12px;margin-top:6px;text-align:center;"></div>
     </div>
     <div id="ce-mode-bal" style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
@@ -2435,7 +2452,7 @@ function showConfirm(icon, title, msg, buttons){
   // buttons = [{label, color, action}]
   document.getElementById('confirm-icon').textContent=icon;
   document.getElementById('confirm-title').textContent=title;
-  document.getElementById('confirm-msg').textContent=msg;
+  document.getElementById('confirm-msg').innerHTML=msg;
   document.getElementById('confirm-btns').innerHTML=buttons.map((b,i)=>`
     <button onclick="handleConfirm(${i})" style="padding:12px;border-radius:30px;border:${b.outline?'1.5px solid '+b.color:'none'};background:${b.outline?'none':b.color};color:${b.outline?b.color:'#1a1a2e'};font-family:'Jost',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">${b.label}</button>
   `).join('');
@@ -3707,21 +3724,35 @@ function setCEType(t){
   refreshCECats();
 }
 let _ceClientList=[];
-function _renderCeClientOptions(list){
-  const sel=document.getElementById('ce-cid');
-  if(!sel)return;
-  const cur=sel.value;
-  sel.innerHTML='<option value="">— Not client related —</option>'+list.map(c=>`<option value="${c.id}">${c.label}</option>`).join('');
-  if(cur&&list.some(c=>c.id===cur))sel.value=cur;
+/* show matching clients as a clean tappable panel */
+function _ceSearch(){
+  const inp=document.getElementById('ce-client-search');
+  const panel=document.getElementById('ce-client-results');
+  if(!inp||!panel)return;
+  const q=(inp.value||'').trim().toLowerCase();
+  let list=_ceClientList;
+  if(q)list=_ceClientList.filter(c=>c.search.includes(q));
+  if(!list.length){
+    panel.innerHTML='<div style="padding:10px 12px;color:var(--text3);font-size:13px;">No match</div>';
+    panel.style.display='block';return;
+  }
+  panel.innerHTML=list.slice(0,40).map(c=>
+    `<div onclick="_cePick('${c.id}')" style="padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);font-size:14px;cursor:pointer;">${c.label}</div>`
+  ).join('');
+  panel.style.display='block';
 }
-function _filterCeClients(){
-  const q=((document.getElementById('ce-client-search')||{}).value||'').trim().toLowerCase();
-  if(!q){_renderCeClientOptions(_ceClientList);}
-  else{_renderCeClientOptions(_ceClientList.filter(c=>c.search.includes(q)));}
-  /* auto-select if exactly one match, so the due/balance shows */
-  const sel=document.getElementById('ce-cid');
-  if(sel&&sel.options.length===2){sel.selectedIndex=1;if(typeof _updateModeBalance==='function')_updateModeBalance();}
+function _cePick(cid){
+  const c=_ceClientList.find(x=>x.id===cid);
+  document.getElementById('ce-cid').value=cid;
+  document.getElementById('ce-client-search').value=c?c.label:'';
+  document.getElementById('ce-client-results').style.display='none';
+  if(typeof _updateModeBalance==='function')_updateModeBalance();
 }
+/* close the panel when tapping outside */
+document.addEventListener('click',e=>{
+  const row=document.getElementById('ce-client-row');
+  if(row&&!row.contains(e.target)){const p=document.getElementById('ce-client-results');if(p)p.style.display='none';}
+});
 function openCashEntry(id,prefillCid){
   document.getElementById('cash-modal-title').textContent=id?'Edit Entry':'New Entry';
   document.getElementById('ce-id').value=id||'';
@@ -3731,8 +3762,10 @@ function openCashEntry(id,prefillCid){
     label:`${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname||''}`,
     search:`${c.memNo||''} ${c.fname} ${c.lname||''}`.toLowerCase()
   }));
-  _renderCeClientOptions(_ceClientList);
+  /* reset picker */
+  document.getElementById('ce-cid').value='';
   const _ces=document.getElementById('ce-client-search');if(_ces)_ces.value='';
+  const _cep=document.getElementById('ce-client-results');if(_cep)_cep.style.display='none';
   const modes=getPayModes();
   document.getElementById('ce-mode').innerHTML=modes.map(m=>`<option>${m}</option>`).join('');
   document.getElementById('ce-mode2').innerHTML=modes.map(m=>`<option>${m}</option>`).join('');
@@ -3740,7 +3773,7 @@ function openCashEntry(id,prefillCid){
     const e=ld('pp_cash',[]).find(x=>x.id===id)||{};
     setCEType(e.type||'in');
     document.getElementById('ce-desc').value=e.desc||'';
-    document.getElementById('ce-cid').value=e.cid||'';
+    if(e.cid){_cePick(e.cid);}
     document.getElementById('ce-amt').value=e.amt||'';
     document.getElementById('ce-date').value=e.date||td();
     document.getElementById('ce-mode').value=e.mode||modes[0];
@@ -3751,7 +3784,7 @@ function openCashEntry(id,prefillCid){
   } else if(prefillCid){
     /* opened from a client profile → Credit, pre-fill client + due amount + description */
     setCEType('in');
-    document.getElementById('ce-cid').value=prefillCid;
+    _cePick(prefillCid);
     const c=clients.find(x=>x.id===prefillCid)||{};
     const m=ld('pp_memberships',{})[prefillCid];
     const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-getClientTotalPaid(prefillCid):0;
@@ -5843,9 +5876,9 @@ function _updateModeBalance(){
 })();
 
 /* ===== UPDATE NOTIFICATION ===== */
+function _appVer(){return (document.getElementById('app-ver')||{}).textContent||'this version';}
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v41.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
-  window._userRequestedUpdate=true;
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on '+_appVer()+'.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
     let updateWaiting=false;
@@ -5854,22 +5887,25 @@ function checkForUpdate(){
       if(r.waiting)updateWaiting=true;
     }
     setTimeout(()=>{
-      if(updateWaiting||window._reloadingForUpdate){
-        showConfirm('🆕','Update Available','A newer version is ready to install.<br><br>Tap "Update now" to load the latest version.',[
+      if(updateWaiting){
+        showConfirm('🆕','Update Available','A newer version is ready. Tap "Update now" to load it.',[
           {label:'Later',color:'var(--border2)',outline:true,action:null},
           {label:'Update now',color:'var(--gold)',action:()=>{
+            window._userRequestedUpdate=true;
+            // tell the waiting SW to take over, then hard-reload
+            navigator.serviceWorker.getRegistrations().then(rs=>{rs.forEach(r=>{if(r.waiting)r.waiting.postMessage('skipWaiting');});});
             if('caches' in window){caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).then(()=>location.reload(true));}
             else location.reload(true);
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v41</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running '+_appVer()+' — the latest version.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v41</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running '+_appVer()+' — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
