@@ -48,11 +48,11 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .logo-mark{width:36px;height:36px;background:transparent;border:1.5px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);font-weight:300;font-style:italic;flex-shrink:0;}
 .logo-text{font-family:'Playfair Display',serif;font-size:18px;color:var(--text);letter-spacing:1px;font-weight:400;font-style:italic;}
 .logo-sub{font-size:10px;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;margin-top:-1px;font-family:'Jost',sans-serif;font-weight:300;}
-.topbar-date{font-size:11px;color:var(--text2);text-align:right;}
+.topbar-date{font-size:10px;color:var(--text3);text-align:right;opacity:0.75;}
 .tb-mini{background:none;border:1px solid var(--border2);border-radius:14px;padding:2px 10px;font-size:10px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
 .np-area::placeholder{color:var(--text3);opacity:0.35;}
 .np-area::-webkit-input-placeholder{color:var(--text3);opacity:0.35;}
-.topbar-date strong{display:block;color:var(--gold);font-size:12px;}
+.topbar-date strong{display:block;color:var(--text2);font-size:11px;font-weight:600;}
 
 /* BOTTOM NAV */
 .bnav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
@@ -140,7 +140,8 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .fi{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 14px;color:var(--text);font-family:'Jost',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
 .fi::placeholder{color:var(--text3);opacity:0.55;font-weight:400;}
 .fi:focus{border-color:var(--gold);}
-.fi option{background:var(--surface2);}
+.fi option{background:var(--surface2);padding:6px;}
+.fi[size] option:checked,.fi[size] option:hover{background:var(--gold)!important;color:#1a1a2e!important;font-weight:700;}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .sb2{width:100%;padding:14px;border-radius:30px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-family:'Jost',sans-serif;font-weight:700;font-size:15px;cursor:pointer;margin-top:8px;}
 
@@ -387,7 +388,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v40</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v41</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;">
@@ -717,7 +718,7 @@ window.addEventListener('load',()=>{
     <!-- Credit: client dropdown -->
     <div id="ce-client-row" class="fg"><label class="fl">Client (Credits only)</label>
       <input class="fi" id="ce-client-search" placeholder="🔍 Type name or member no…" oninput="_filterCeClients()" style="margin-bottom:6px;"/>
-      <select class="fi" id="ce-cid" onchange="_updateModeBalance()" size="5" style="height:auto;"><option value="">— Not client related —</option></select>
+      <select class="fi" id="ce-cid" onchange="_updateModeBalance()" size="5" style="height:150px;overflow-y:auto;"><option value="">— Not client related —</option></select>
       <div id="ce-client-due" style="font-size:12px;margin-top:6px;text-align:center;"></div>
     </div>
     <div id="ce-mode-bal" style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
@@ -5783,9 +5784,12 @@ function _updateModeBalance(){
     const projTxt=amt>0?` → after: <b style="color:${proj>=0?'var(--green)':'var(--red)'};">₹${proj.toLocaleString('en-IN')}</b>`:'';
     el.innerHTML=`${mode}: <b style="color:${bal>=0?'var(--green)':'var(--red)'};">₹${bal.toLocaleString('en-IN')}</b>${projTxt}`;
   }
-  /* client due (when a client is selected on a credit entry) */
+  /* client due — TEMPORARILY HIDDEN: the dues figure depends on the
+     per-member ledger that is being redesigned. Showing it now can mislead
+     (e.g. false "No dues"). Will be restored accurately after the rebuild. */
   const cd=document.getElementById('ce-client-due');
-  if(cd){
+  if(cd)cd.innerHTML='';
+  if(false){
     const cid=document.getElementById('ce-cid').value;
     if(cid){
       const m=ld('pp_memberships',{})[cid];
@@ -5840,7 +5844,7 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v40.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v41.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   window._userRequestedUpdate=true;
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
@@ -5859,13 +5863,13 @@ function checkForUpdate(){
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v40</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running <b>v41</b> — the latest version. 🎉<br><br>No update needed.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v40</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running <b>v41</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
