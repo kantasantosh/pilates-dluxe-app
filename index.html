@@ -387,12 +387,12 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v39</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v40</span></div>
     </div>
   </div>
-  <div class="topbar-date" style="text-align:center;">
+  <div class="topbar-date" style="text-align:right;">
     <strong id="top-date"></strong>
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:4px;flex-wrap:wrap;">
       <span id="top-day"></span>
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-mini">🔄 Sync</button>
       <button onclick="openNotepad()" title="Notepad — jot doubts & ideas" class="tb-mini">📝 Notes</button>
@@ -717,7 +717,7 @@ window.addEventListener('load',()=>{
     <!-- Credit: client dropdown -->
     <div id="ce-client-row" class="fg"><label class="fl">Client (Credits only)</label>
       <input class="fi" id="ce-client-search" placeholder="🔍 Type name or member no…" oninput="_filterCeClients()" style="margin-bottom:6px;"/>
-      <select class="fi" id="ce-cid" onchange="_updateModeBalance()"><option value="">— Not client related —</option></select>
+      <select class="fi" id="ce-cid" onchange="_updateModeBalance()" size="5" style="height:auto;"><option value="">— Not client related —</option></select>
       <div id="ce-client-due" style="font-size:12px;margin-top:6px;text-align:center;"></div>
     </div>
     <div id="ce-mode-bal" style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
@@ -2225,7 +2225,7 @@ function _filterBookClients(){
   if(!q){_renderBookClientOptions(_bookClientList);return;}
   _renderBookClientOptions(_bookClientList.filter(c=>c.search.includes(q)));
 }
-function saveBooking(){
+async function saveBooking(){
   const slotIdx=parseInt(document.getElementById('bk-slot').value);
   const slot=SLOTS[slotIdx];
   const date=document.getElementById('bk-date').value;
@@ -2250,12 +2250,28 @@ function saveBooking(){
     if(_bmem.startDate&&date<_bmem.startDate){alert('This member\'s plan starts on '+fmt(_bmem.startDate)+'. Bookings before the plan start date are not allowed.');return;}
     if(_bmem.endDate&&date>_bmem.endDate){alert('This member\'s plan is valid only till '+fmt(_bmem.endDate)+'. Please renew to book beyond that date.');return;}
   }
-  const bookings=ld('pp_bookings',{});
+  // Pull the LATEST bookings from cloud right before writing, so a booking
+  // just made on another device (booking app / other phone) is seen — this
+  // prevents the cross-device double-booking when sync hasn't caught up yet.
+  let bookings=ld('pp_bookings',{});
+  try{
+    if(typeof _pdb!=='undefined'&&navigator.onLine!==false){
+      const snap=await _pdb.collection('pilates').doc('pp_bookings').get();
+      if(snap.exists&&snap.data().value){bookings=JSON.parse(snap.data().value);sv('pp_bookings',bookings);}
+    }
+  }catch(e){}
   if(!bookings[date])bookings[date]={};
   if(!bookings[date][slot])bookings[date][slot]=[];
   if(bookings[date][slot].length>=MACHINES){alert('This slot is full!');return;}
   // Check if client already booked this slot
   if(bookings[date][slot].some(b=>b.cid===cid)){alert('Client already booked this slot!');return;}
+  // ONE CLASS PER DAY — check ALL slots that day (across both apps/devices)
+  const _dayHas=Object.values(bookings[date]||{}).some(arr=>(arr||[]).some(b=>b.cid===cid));
+  if(_dayHas){
+    const _c=ld('pp_clients',[]).find(x=>x.id===cid);
+    alert((_c?_c.fname:'This member')+' already has a class booked on '+fmt(date)+'. Only one class per day is allowed.');
+    return;
+  }
   // Check if trial member has used their session
   const mems=ld('pp_memberships',{});
   if(mems[cid]&&mems[cid].plan==='trial'&&mems[cid].sessionsLeft<=0){
@@ -5824,7 +5840,7 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function checkForUpdate(){
-  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v39.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
+  if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on v40.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   window._userRequestedUpdate=true;
   toast('Checking for updates…');
   navigator.serviceWorker.getRegistrations().then(async regs=>{
@@ -5843,13 +5859,13 @@ function checkForUpdate(){
           }}
         ]);
       }else{
-        showConfirm('✅','Up to Date','You are running <b>v39</b> — the latest version. 🎉<br><br>No update needed.',[
+        showConfirm('✅','Up to Date','You are running <b>v40</b> — the latest version. 🎉<br><br>No update needed.',[
           {label:'Great!',color:'var(--gold)',action:null}
         ]);
       }
     },1400);
   }).catch(()=>{
-    showConfirm('✅','Up to Date','You are running <b>v39</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
+    showConfirm('✅','Up to Date','You are running <b>v40</b> — the latest version.',[{label:'OK',color:'var(--gold)',action:null}]);
   });
 }
 if('serviceWorker' in navigator){
