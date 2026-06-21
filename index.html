@@ -146,7 +146,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .sb2{width:100%;padding:14px;border-radius:30px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-family:'Jost',sans-serif;font-weight:700;font-size:15px;cursor:pointer;margin-top:8px;}
 
 /* FAB */
-.fab{position:fixed;bottom:76px;right:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(201,168,76,0.4);z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
+.fab{position:fixed;bottom:76px;right:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#9b59b6,#8e44ad);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(155,89,182,0.4);z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
 .fab:active{transform:scale(0.92);}
 
 /* PLAN CHIPS */
@@ -413,7 +413,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v46</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v47</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -2464,8 +2464,8 @@ function renderPlanChips(selected){
 }
 function fabAction(){
   const actions={
-    dashboard:openAddClient,
-    clients:openAddClient,
+    dashboard:openTrialReg,
+    clients:openTrialReg,
     schedule:()=>toast('Tap any empty slot + to book'),
     cash:()=>openCashEntry(),
     bills:()=>openAddBillTodo(),
@@ -6747,11 +6747,15 @@ function _ufPopulatePlan(cid){
       isActive?'<span style="color:var(--green);">● Active</span>':
       '<span style="color:var(--red);">✗ Expired</span>';
     
+    const _isUnlimited=sessTotal>=999;
+    const _sessLabel=_isUnlimited?'Unlimited':''+sessTotal;
+    const _sessRemLabel=_isUnlimited?'Unlimited':''+sessLeft;
+    
     planInfo.innerHTML=`<div class="uf-plan-info">
       <div class="uf-label">Current Plan</div>
-      <div style="font-size:16px;font-weight:700;color:var(--gold);margin:4px 0;">${pName} (${sessTotal} sessions)</div>
+      <div style="font-size:16px;font-weight:700;color:var(--gold);margin:4px 0;">${pName}${_isUnlimited?' (Unlimited)':' ('+sessTotal+' sessions)'}</div>
       <div><span class="uf-label">Period:</span> ${fmt(m.startDate)} → ${fmt(m.endDate)}</div>
-      <div><span class="uf-label">Sessions:</span> ${sessUsed} used · <b>${sessLeft} remaining</b></div>
+      ${_isUnlimited?'':'<div><span class="uf-label">Sessions:</span> '+sessUsed+' used · <b>'+_sessRemLabel+' remaining</b></div>'}
       <div><span class="uf-label">Days:</span> ${daysUsed} elapsed · ${daysLeft} remaining of ${totalDays}</div>
       <div><span class="uf-label">Fee:</span> ₹${(m.fee||0).toLocaleString('en-IN')}${m.disc?' · Discount: ₹'+m.disc:''}</div>
       <div><span class="uf-label">Status:</span> ${statusLabel}</div>
@@ -7407,7 +7411,7 @@ function ufSavePayment(){
 
     <!-- WhatsApp + Complimentary -->
     <div style="display:flex;gap:8px;margin:10px 0;">
-      <button onclick="openWA(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
+      <button onclick="const _cid=document.getElementById('uf-cid').value;closeM('m-unified');setTimeout(()=>openWA(_cid),200)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
       <button onclick="openAddComp(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;">🎁 Add Complimentary</button>
     </div>
 
