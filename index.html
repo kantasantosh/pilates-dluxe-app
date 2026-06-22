@@ -413,7 +413,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v53</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v59</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -750,7 +750,7 @@ window.addEventListener('load',()=>{
     </div>
     <div id="ce-mode-bal" style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
     <div class="fr">
-      <div class="fg"><label class="fl">Amount (₹)</label><input class="fi" id="ce-amt" type="number" placeholder="0" oninput="_updateModeBalance()"/></div>
+      <div class="fg"><label class="fl">Amount (₹)</label><input class="fi" id="ce-amt" type="number" placeholder="0" oninput="_updateModeBalance();const b=document.getElementById('ce-save-btn');if(b){b.disabled=!(parseFloat(this.value)>0);b.style.opacity=parseFloat(this.value)>0?'':'0.45';}"/></div>
       <div class="fg"><label class="fl">Date</label><input class="fi" id="ce-date" type="date"/></div>
     </div>
     <div class="fg">
@@ -774,7 +774,7 @@ window.addEventListener('load',()=>{
       <div id="ce-cat-bal" style="font-size:12px;color:var(--text2);margin-top:6px;padding:5px 9px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="ce-notes" placeholder="Reference, UPI ID..."/></div>
-    <button class="sb2" id="ce-save-btn" onclick="saveCashEntry()">Save Entry</button>
+    <button class="sb2" id="ce-save-btn" onclick="saveCashEntry()" disabled style="opacity:0.45;">Save Entry</button>
     <button id="ce-del-btn" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteCashEntry()">🗑 Delete Entry</button>
   </div>
 </div>
@@ -889,7 +889,7 @@ window.addEventListener('load',()=>{
       <span id="c-memno-display" style="font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);margin-left:10px;"></span>
     </div>
     <div class="fr">
-      <div class="fg"><label class="fl">First Name</label><input class="fi" id="c-fname" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="Priya"/></div>
+      <div class="fg"><label class="fl">First Name</label><input class="fi" id="c-fname" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="Priya" oninput="const b=document.getElementById('c-save-btn');if(b){b.disabled=!this.value.trim();b.style.opacity=this.value.trim()?'':'0.45';}"/></div>
       <div class="fg"><label class="fl">Last Name</label><input class="fi" id="c-lname" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="Sharma"/></div>
     </div>
     <div class="fr">
@@ -909,7 +909,7 @@ window.addEventListener('load',()=>{
       </select>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="c-notes" placeholder="Any special notes..."/></div>
-    <button class="sb2" id="c-save-btn" onclick="saveClient()">Save Client</button>
+    <button class="sb2" id="c-save-btn" onclick="saveClient()" disabled style="opacity:0.45;">Save Client</button>
   </div>
 </div>
 
@@ -1447,11 +1447,13 @@ function renderClients(){
       <div class="client-info">
         <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}</div>
         <div class="client-sub">${_fmtPhone(c.phone)}${plan?' • <b style="color:var(--gold);">'+plan.name+'</b>'+(plan.sessions&&plan.sessions!==999?' ('+plan.sessions+' sess)':''):''}</div>
-        <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'} • 📅 Joined ${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem?' • Starts '+fmt(mem.startDate)+' • Expires '+fmt(mem.endDate):''}</div>
+        <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial '+fmt(c.trialDate):''} • 📅 ${c.isTrial?'':'Joined '}${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem&&!c.isTrial?' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL · NOT CONVERTED</span>':
-            (c.convertedFrom==='trial'?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+`<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
-          ${mem&&mem.plan!=='unlimited'&&!c.isTrial?`<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft} of ${mem.sessionsTotal}</span>`:''}
+          ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
+            (c.convertedFrom==='trial'?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+
+            (mem&&mem.history&&mem.history.some(h=>h.endReason&&h.endReason.includes('Changed'))?`<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:10px;">🔀 PLAN CHANGED</span> `:'')+
+            `<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
+          ${mem&&mem.plan!=='unlimited'&&!c.isTrial?`<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft!=null?mem.sessionsLeft:(mem.sessions||0)} of ${mem.sessions||mem.sessionsTotal||0}</span>`:''}
           ${(()=>{const due=(mems[c.id]?Math.max(0,(mems[c.id].fee||0)-(mems[c.id].disc||0)):0)-getClientTotalPaid(c.id);return due>0?`<span style="font-size:12px;color:var(--red);font-weight:700;">₹${due.toLocaleString('en-IN')} due</span>`:'';})()} 
         </div>
       </div>
@@ -1673,7 +1675,7 @@ function saveClient(){
   const _ph=document.getElementById('c-phone').value.replace(/\D/g,'');
   if(_ph&&_ph.length!==10){alert('Mobile number must be exactly 10 digits (entered after +91).');return;}
   const _em=document.getElementById('c-email').value.trim();
-  if(_em&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_em)){alert('Please enter a valid email address (e.g. name@gmail.com). Email is used for the member\'s online booking login.');return;}
+  if(_em&&!_validateEmail(_em,document.getElementById('c-id').value||''))return;
   const clients=ld('pp_clients',[]);
   const existing=document.getElementById('c-id').value;
   const refId=document.getElementById('c-ref').value;
@@ -2445,11 +2447,20 @@ function showTab(n,btn){
   }
   if(btn&&btn.classList)btn.classList.add('active');
   _activeTab=n;
-  /* Update fab color: purple on dashboard (trial), gold elsewhere */
+  /* Update fab button: purple "Trial" on dashboard, gold "+" elsewhere */
   const _fab=document.getElementById('fab-btn');
   if(_fab){
-    if(n==='dashboard'){_fab.style.background='linear-gradient(135deg,#9b59b6,#8e44ad)';_fab.style.color='#fff';_fab.style.boxShadow='0 4px 20px rgba(155,89,182,0.4)';}
-    else{_fab.style.background='';_fab.style.color='';_fab.style.boxShadow='';}
+    if(n==='dashboard'){
+      _fab.style.background='linear-gradient(135deg,#9b59b6,#8e44ad)';
+      _fab.style.color='#fff';
+      _fab.style.boxShadow='0 4px 20px rgba(155,89,182,0.4)';
+      _fab.style.fontSize='11px';_fab.style.fontWeight='700';_fab.style.width='auto';_fab.style.padding='0 16px';
+      _fab.textContent='Trial';
+    }else{
+      _fab.style.background='';_fab.style.color='';_fab.style.boxShadow='';
+      _fab.style.fontSize='';_fab.style.fontWeight='';_fab.style.width='';_fab.style.padding='';
+      _fab.textContent='＋';
+    }
   }
   if(n==='dashboard')renderDash();
   if(n==='clients')renderClients();
@@ -3785,6 +3796,15 @@ function _cePick(cid){
   document.getElementById('ce-client-search').value=cid?(c?c.label:''):'Other Receipts';
   document.getElementById('ce-client-results').style.display='none';
   if(typeof _updateModeBalance==='function')_updateModeBalance();
+  /* Show client balance immediately */
+  const cd=document.getElementById('ce-client-due');
+  if(cd&&cid){
+    const _m=ld('pp_memberships',{})[cid];
+    const _fee=_m?((_m.fee||0)-(_m.disc||0)):0;
+    const _paid=getClientTotalPaid(cid);
+    const _due=_fee-_paid;
+    cd.innerHTML=_due>0?'<span style="color:var(--amber);">Balance due: <b>₹'+_due.toLocaleString('en-IN')+'</b></span>':_due<0?'<span style="color:var(--green);">Advance: <b>₹'+Math.abs(_due).toLocaleString('en-IN')+'</b></span>':'<span style="color:var(--green);">✓ Settled</span>';
+  }else if(cd){cd.innerHTML='';}
 }
 /* close the panel when tapping outside */
 document.addEventListener('click',e=>{
@@ -3841,6 +3861,10 @@ function openCashEntry(id,prefillCid){
     document.getElementById('ce-date').value=td();
     document.getElementById('ce-cid').value='';
   }
+  /* Enable save button if amount is filled (editing existing entry) */
+  const _ceAmt=parseFloat(document.getElementById('ce-amt').value)||0;
+  const _ceSave=document.getElementById('ce-save-btn');
+  if(_ceSave){_ceSave.disabled=!(_ceAmt>0);_ceSave.style.opacity=_ceAmt>0?'':'0.45';}
   openM('m-cashentry');
   const delBtn=document.getElementById('ce-del-btn');
   if(delBtn)delBtn.style.display=(id&&(typeof ppIsAdmin!=='function'||ppIsAdmin()))?'block':'none';
@@ -3957,7 +3981,7 @@ function renderCash(){
         <div style="flex:1;">
           <div style="font-weight:600;font-size:13px;color:var(--text);">${e.desc||e.cat}</div>
           <div style="font-size:13px;color:var(--text2);">${e.type==='contra'?(e.mode||'')+' → '+(e.mode2||''):(e.mode||'')+' • '+(e.cat||'')} • ${fmt(e.date)}</div>
-          ${c?`<div style="font-size:13px;color:var(--gold);">👤 ${c.memNo||''} ${c.fname} ${c.lname}</div>`:''}
+          ${c?`<div style="font-size:13px;color:var(--gold);">👤 ${c.memNo||''} ${c.fname} ${c.lname}${(()=>{const _m=ld('pp_memberships',{})[e.cid];if(!_m)return '';const _f=(_m.fee||0)-(_m.disc||0);const _p=getClientTotalPaid(e.cid);const _b=_f-_p;return _b>0?' · <span style="color:var(--red);">₹'+_b.toLocaleString('en-IN')+' due</span>':_b<0?' · <span style="color:var(--green);">₹'+Math.abs(_b).toLocaleString('en-IN')+' advance</span>':' · <span style="color:var(--green);">✓ settled</span>';})()}</div>`:''}
           ${e.notes?`<div style="font-size:13px;color:var(--text3);">${e.notes}</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -4112,12 +4136,35 @@ function openTrialReg(){
   document.getElementById('tr-phone').value='';
   document.getElementById('tr-notes').value='';
   document.getElementById('tr-date').value=td();
-  document.getElementById('tr-date').value=td();
+  document.getElementById('tr-ref').value='';
+  document.getElementById('tr-ref-search').value='';
+  /* Build search list for referral */
   const clients=ld('pp_clients',[]);
-  document.getElementById('tr-ref').innerHTML='<option value="">No referral</option>'+
-    clients.filter(c=>!c.archived).map(c=>`<option value="${c.id}">${c.memNo||''} ${c.fname} ${c.lname}</option>`).join('');
+  window._trRefList=clients.filter(c=>!c.archived).map(c=>({id:c.id,label:(c.memNo?c.memNo+' — ':'')+c.fname+' '+(c.lname||''),search:((c.memNo||'')+' '+c.fname+' '+(c.lname||'')).toLowerCase()}));
   openM('m-trial');
 }
+/* Trial referral search */
+function _trRefSearch(){
+  const inp=document.getElementById('tr-ref-search');
+  const panel=document.getElementById('tr-ref-results');
+  if(!inp||!panel)return;
+  const q=(inp.value||'').trim().toLowerCase();
+  let list=window._trRefList||[];
+  if(q)list=list.filter(c=>c.search.includes(q));
+  let html='<div onclick="_trRefPick(\'\')" style="padding:8px 12px;border-bottom:1px solid var(--gold);color:var(--text3);font-size:12px;cursor:pointer;">No referral</div>';
+  html+=list.slice(0,30).map(c=>'<div onclick="_trRefPick(\''+c.id+'\')" style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);font-size:13px;cursor:pointer;">'+c.label+'</div>').join('');
+  panel.innerHTML=html;panel.style.display='block';
+}
+function _trRefPick(rid){
+  document.getElementById('tr-ref').value=rid;
+  const c=(window._trRefList||[]).find(x=>x.id===rid);
+  document.getElementById('tr-ref-search').value=c?c.label:'';
+  document.getElementById('tr-ref-results').style.display='none';
+}
+document.addEventListener('click',function(ev){
+  const r=document.getElementById('tr-ref-results');
+  if(r&&!r.contains(ev.target)&&ev.target.id!=='tr-ref-search')r.style.display='none';
+});
 function saveTrialReg(){
   const fname=document.getElementById('tr-fname').value.trim();
   const phone=document.getElementById('tr-phone').value.trim();
@@ -4135,7 +4182,7 @@ function saveTrialReg(){
   const client={id,memNo,fname,lname:document.getElementById('tr-lname').value.trim(),
     phone,email:'',address:'',refId:document.getElementById('tr-ref').value||null,
     notes:document.getElementById('tr-notes').value.trim(),
-    joinDate:trialDate,isTrial:true,trialDate:trialDate,createdAt:today};
+    trialDate:trialDate,isTrial:true,createdAt:today};
   clients.push(client);sv('pp_clients',clients);
   mems[id]={cid:id,plan:'trial',startDate:trialDate,endDate:trialDate,sessionsLeft:1,fee:0,isTrial:true};
   sv('pp_memberships',mems);
@@ -4203,7 +4250,7 @@ if('serviceWorker' in navigator){
     <p style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5;">Register a walk-in for a <strong>free trial class</strong>. Their record stays for future follow-up.</p>
     <div class="fg">
       <label class="fl">First Name *</label>
-      <input class="fi" id="tr-fname" placeholder="First name" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
+      <input class="fi" id="tr-fname" placeholder="First name" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" oninput="const b=document.getElementById('tr-save-btn');if(b){b.disabled=!this.value.trim();b.style.opacity=this.value.trim()?'':'0.45';}"/>
     </div>
     <div class="fr">
       <div class="fg">
@@ -4217,9 +4264,11 @@ if('serviceWorker' in navigator){
     </div>
     <div class="fg">
       <label class="fl">Referred By (if any)</label>
-      <select class="fi" id="tr-ref">
-        <option value="">— No referral —</option>
-      </select>
+      <div style="position:relative;">
+        <input class="fi" id="tr-ref-search" autocomplete="off" placeholder="🔍 Search member…" oninput="_trRefSearch()" onfocus="_trRefSearch()"/>
+        <input type="hidden" id="tr-ref" value=""/>
+        <div id="tr-ref-results" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:180px;overflow-y:auto;background:var(--surface2);border:1px solid var(--gold);border-radius:var(--rsm);z-index:50;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
+      </div>
     </div>
     <div class="fr">
       <div class="fg">
@@ -4238,7 +4287,7 @@ if('serviceWorker' in navigator){
         ✅ Book their slot in Schedule tab as usual
       </div>
     </div>
-    <button class="sb2" onclick="saveTrialReg()">Register Trial Member ✓</button>
+    <button class="sb2" id="tr-save-btn" onclick="saveTrialReg()" disabled style="opacity:0.45;">Register Trial Member ✓</button>
   </div>
 </div>
 <!-- ================= PHASE 1: AUTH + RBAC + AUDIT LOG ================= -->
@@ -5776,7 +5825,7 @@ function _receiptHtml(pay,forPrint){
     <tr><td style="padding:4px 0;color:#666;width:38%;">Received From</td><td style="padding:4px 0;font-weight:700;">${c.fname||''} ${c.lname||''}</td></tr>
     <tr><td style="padding:4px 0;color:#666;">Membership ID</td><td style="padding:4px 0;">${c.memNo||'—'}</td></tr>
     ${c.phone?`<tr><td style="padding:4px 0;color:#666;">Phone</td><td style="padding:4px 0;">${c.phone}</td></tr>`:''}
-    ${plan?`<tr><td style="padding:4px 0;color:#666;">Plan</td><td style="padding:4px 0;">${plan} (${m?(m.plan==='unlimited'?'Unlimited':(m.sessions||0)+(m.bonus?'+'+m.bonus:'')+' sessions'):''})<br><span style="font-size:11px;color:#777;">Valid from ${m?fmt(m.startDate):''} to ${m?fmt(m.endDate):''}</span></td></tr>`:''}
+    ${plan?`<tr><td style="padding:4px 0;color:#666;">Plan</td><td style="padding:4px 0;">${plan} (${m?(m.plan==='unlimited'?'Unlimited':((m.sessions||m.sessionsTotal||0)+(m.bonus&&m.sessions?'+'+m.bonus:'')+' sessions')):''})<br>${c&&c.trialDate?'<span style="font-size:11px;color:#777;">Trial: '+fmt(c.trialDate)+' · </span>':''}${m?'<span style="font-size:11px;color:#777;">Regular: '+fmt(m.startDate)+' → '+fmt(m.endDate)+'</span>':''}</td></tr>`:''}
     <tr><td style="padding:4px 0;color:#666;">Payment For</td><td style="padding:4px 0;">${pay.desc||pay.payType||'Membership Fee'}</td></tr>
     <tr><td style="padding:4px 0;color:#666;">Mode</td><td style="padding:4px 0;">${pay.mode||''}</td></tr>
   </table>
@@ -5878,15 +5927,16 @@ function _updateModeBalance(){
      per-member ledger that is being redesigned. Showing it now can mislead
      (e.g. false "No dues"). Will be restored accurately after the rebuild. */
   const cd=document.getElementById('ce-client-due');
-  if(cd)cd.innerHTML='';
-  if(false){
+  if(cd){
+    cd.innerHTML='';
     const cid=document.getElementById('ce-cid').value;
     if(cid){
-      const m=ld('pp_memberships',{})[cid];
-      const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-getClientTotalPaid(cid):0;
-      const after=Math.max(0,due-(type==='in'?amt:0));
-      cd.innerHTML=due>0?`Outstanding due: <b style="color:var(--amber);">₹${due.toLocaleString('en-IN')}</b>${amt>0?` → after: <b style="color:${after>0?'var(--amber)':'var(--green)'};">₹${after.toLocaleString('en-IN')}</b>`:''}`:`<span style="color:var(--green);">✓ No dues</span>`;
-    }else cd.innerHTML='';
+      const _m=ld('pp_memberships',{})[cid];
+      const _fee=_m?((_m.fee||0)-(_m.disc||0)):0;
+      const _paid=getClientTotalPaid(cid);
+      const _due=_fee-_paid;
+      cd.innerHTML=_due>0?'<span style="color:var(--amber);">Balance due: <b>₹'+_due.toLocaleString('en-IN')+'</b></span>':_due<0?'<span style="color:var(--green);">Advance: <b>₹'+Math.abs(_due).toLocaleString('en-IN')+'</b></span>':'<span style="color:var(--green);">✓ Settled</span>';
+    }
   }
   const el2=document.getElementById('ce-mode2-bal');
   const m2row=document.getElementById('ce-mode2-row');
@@ -6635,6 +6685,15 @@ function _addScanRecent(c,note){
 function _localDate(dt){
   return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
 }
+/* ===== Email validation: Gmail only + duplicate check ===== */
+function _validateEmail(email,currentCid){
+  if(!email)return true; /* optional */
+  if(!email.endsWith('@gmail.com')){toast('❌ Only Gmail addresses are accepted');return false;}
+  const clients=ld('pp_clients',[]);
+  const dup=clients.find(c=>c.id!==currentCid&&!c.archived&&c.email&&c.email.toLowerCase()===email.toLowerCase());
+  if(dup){toast('❌ This email is already registered to '+(dup.fname||'another member'));return false;}
+  return true;
+}
 
 /* =========================================================================
    UNIFIED MEMBER FORM — 3 collapsible sections (Profile / Plan / Payment)
@@ -6649,6 +6708,7 @@ function openUnified(cid,focusSection){
   /* Header */
   document.getElementById('uf-name').textContent=(c.fname||'')+' '+(c.lname||'');
   document.getElementById('uf-memno').textContent=c.memNo||'';
+  document.getElementById('uf-profile-summary').textContent=_fmtPhone(c.phone)+(c.email?' · '+c.email:'');
   const phEl=document.getElementById('uf-photo');
   phEl.innerHTML=c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;"/>`:'👤';
   /* Populate all 3 sections */
@@ -6739,6 +6799,8 @@ function ufSaveProfile(){
   const cid=document.getElementById('uf-cid').value;
   const fname=document.getElementById('uf-fname').value.trim();
   if(!fname){alert('First name is required');return;}
+  const _email=document.getElementById('uf-email').value.trim();
+  if(_email&&!_validateEmail(_email,cid))return;
   const clients=ld('pp_clients',[]);
   const idx=clients.findIndex(x=>x.id===cid);
   if(idx<0){toast('Client not found');return;}
@@ -6814,11 +6876,20 @@ function _ufPopulatePlan(cid){
       <div class="uf-label">Current Plan</div>
       <div style="font-size:16px;font-weight:700;color:var(--gold);margin:4px 0;">${pName}${_isUnlimited?' (Unlimited)':' ('+sessTotal+' sessions)'}</div>
       <div><span class="uf-label">Period:</span> ${fmt(m.startDate)} → ${fmt(m.endDate)}</div>
-      ${_isUnlimited?'':'<div><span class="uf-label">Sessions:</span> '+sessUsed+' used · <b>'+_sessRemLabel+' remaining</b></div>'}
-      <div><span class="uf-label">Days:</span> ${daysUsed} elapsed · ${daysLeft} remaining of ${totalDays}</div>
+      ${_isUnlimited?'':'<div><span class="uf-label">Sessions:</span> <b>'+_sessRemLabel+' sessions remaining</b></div>'}
+      <div><span class="uf-label">Days:</span> <b>${daysLeft} days remaining</b> of ${totalDays}</div>
       <div><span class="uf-label">Fee:</span> ₹${(m.fee||0).toLocaleString('en-IN')}${m.disc?' · Discount: ₹'+m.disc:''}</div>
       <div><span class="uf-label">Status:</span> ${statusLabel}</div>
-      ${m.frozenDays?'<div><span class="uf-label">Frozen:</span> '+m.frozenDays+' days</div>':''}
+      ${m.frozenDays||m.frozenDate||m.status==='frozen'?`<div><span class="uf-label">Freeze Info:</span> ${m.frozenDate?'Froze on '+fmt(m.frozenDate):''}${m.resumeDate?' · Resumed '+fmt(m.resumeDate):''}${m.frozenDays?' · '+m.frozenDays+' days frozen':''}</div>`:''}
+      ${typeof ppIsAdmin==='function'&&ppIsAdmin()?'<div style="margin-top:6px;"><a href="#" onclick="event.preventDefault();_ufEditDates()" style="font-size:11px;color:var(--gold);">✏️ Edit dates/fee (admin)</a></div>':''}
+    </div>
+    <div id="uf-edit-dates" style="display:none;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:8px;">
+      <div class="fr">
+        <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-edit-start" type="date"/></div>
+        <div class="fg"><label class="fl">End Date</label><input class="fi" id="uf-edit-end" type="date"/></div>
+      </div>
+      <div class="fg"><label class="fl">Fee (₹)</label><input class="fi" id="uf-edit-fee" type="number"/></div>
+      <button class="sb2" onclick="_ufSaveDates()" style="margin-top:6px;">Save Changes</button>
     </div>`;
     
     /* Trial plan = show "Assign First Plan" form, not action buttons */
@@ -6888,18 +6959,56 @@ function _ufRenderHistory(cid){
   const mems=ld('pp_memberships',{});
   const m=mems[cid];
   const hist=(m&&m.history)?m.history:[];
+  const events=(m&&m.events)?m.events:[];
   const el=document.getElementById('uf-plan-history');
-  if(!hist.length){el.innerHTML='';return;}
-  el.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\' none\'">📋 Previous Memberships ('+hist.length+')</div><div style="display:none;">'+
-    hist.map(h=>{
+  if(!hist.length&&!events.length){el.innerHTML='';return;}
+  let html='';
+  if(hist.length){
+    html+=hist.map(h=>{
       const plans=getPlans();
       const p=plans.find(x=>x.id===h.plan);
-      return `<div class="uf-history-item">
-        <b>${p?p.name:h.plan}</b> · ${fmt(h.startDate)} → ${fmt(h.endDate)}<br/>
-        Fee: ₹${(h.fee||0).toLocaleString('en-IN')}${h.endReason?' · '+h.endReason:''}
-        ${h.adjustmentNote?'<br/><span style="color:var(--gold);">'+h.adjustmentNote+'</span>':''}
-      </div>`;
-    }).join('')+'</div>';
+      return '<div class="uf-history-item"><b>'+(p?p.name:h.plan)+'</b> · '+fmt(h.startDate)+' → '+fmt(h.endDate)+'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN')+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'</div>';
+    }).join('');
+  }
+  const evtItems=events.filter(e=>['freeze','resume','extend'].includes(e.type));
+  if(evtItems.length){
+    html+=evtItems.map(e=>{
+      const d=e.details||{};
+      if(e.type==='freeze')return '<div class="uf-history-item" style="border-left-color:#3498db;">❄️ <b>Frozen</b> on '+fmt(e.date)+(d.unusedDays?' · '+d.unusedDays+' days remaining':'')+'</div>';
+      if(e.type==='resume')return '<div class="uf-history-item" style="border-left-color:#2ecc71;">▶️ <b>Resumed</b> on '+fmt(e.date)+(d.actualFrozen?' · was frozen '+d.actualFrozen+' days':'')+(d.newExpiry?' · new expiry '+fmt(d.newExpiry):'')+'</div>';
+      if(e.type==='extend')return '<div class="uf-history-item" style="border-left-color:var(--gold);">➕ <b>Extended</b> on '+fmt(e.date)+(d.days?' by '+d.days+' days':'')+(d.reason?' · '+d.reason:'')+'</div>';
+      return '';
+    }).join('');
+  }
+  const total=hist.length+evtItems.length;
+  el.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;">📋 History ('+total+')</div><div>'+html+'</div>';
+}
+
+/* ---- EDIT DATES (admin only) ---- */
+function _ufEditDates(){
+  const cid=document.getElementById('uf-cid').value;
+  const mems=ld('pp_memberships',{});
+  const m=mems[cid];if(!m)return;
+  document.getElementById('uf-edit-start').value=m.startDate||'';
+  document.getElementById('uf-edit-end').value=m.endDate||'';
+  document.getElementById('uf-edit-fee').value=m.fee||'';
+  document.getElementById('uf-edit-dates').style.display='';
+}
+function _ufSaveDates(){
+  const cid=document.getElementById('uf-cid').value;
+  const mems=ld('pp_memberships',{});
+  const m=mems[cid];if(!m)return;
+  const ns=document.getElementById('uf-edit-start').value;
+  const ne=document.getElementById('uf-edit-end').value;
+  const nf=parseFloat(document.getElementById('uf-edit-fee').value)||m.fee||0;
+  if(ns)m.startDate=ns;
+  if(ne)m.endDate=ne;
+  m.fee=nf;
+  mems[cid]=m;sv('pp_memberships',mems);
+  AUD('edit_plan','Edited dates for '+cid+': '+ns+' → '+ne+', fee ₹'+nf);
+  toast('✓ Plan dates updated');
+  document.getElementById('uf-edit-dates').style.display='none';
+  _ufPopulatePlan(cid);
 }
 
 /* ---- PLAN ACTIONS ---- */
@@ -6999,7 +7108,10 @@ function ufCalcChange(){
   const startDt=new Date(m.startDate+'T00:00:00');
   const endDt=new Date(m.endDate+'T00:00:00');
   const totalDays=Math.round((endDt-startDt)/(86400000))+1;
-  const daysUsed=Math.max(0,Math.min(totalDays,Math.round((today-startDt)/(86400000))));
+  const calendarDays=Math.max(0,Math.min(totalDays,Math.round((today-startDt)/(86400000))));
+  /* Subtract ACTUAL frozen days from consumption (freeze is accounting-neutral) */
+  const frozenDays=m.frozenDays||0;
+  const activeDays=Math.max(0,calendarDays-frozenDays);
   const bookings=ld('pp_bookings',{});
   let sessUsed=0;
   Object.entries(bookings).forEach(([dt,slots])=>{
@@ -7008,26 +7120,34 @@ function ufCalcChange(){
   const sessTotal=(m.sessions||oldP?.sessions||0)+(m.bonus||0);
   const sessLeft=Math.max(0,sessTotal-sessUsed);
   
-  const consumed=_ufConsumed(m.fee||0,totalDays,daysUsed,sessTotal,sessUsed);
-  const unused=(m.fee||0)-consumed;
+  /* Use ORIGINAL plan days for consumption (not extended), active days only */
+  const origDays=oldP?oldP.days:(totalDays-frozenDays);
+  const consumed=_ufConsumed(m.fee||0,origDays,activeDays,sessTotal,sessUsed);
+  
+  /* Carry-forward = what member PAID minus consumed (not fee minus consumed!) */
+  const totalPaid=getClientTotalPaid(cid);
+  const carryForward=Math.max(0,totalPaid-consumed);
   const isUpgrade=newP.price>(m.fee||0);
-  const netCharge=isUpgrade?newP.price-unused:newP.price;
-  const daysLeft=totalDays-daysUsed;
+  const netCharge=newP.price-carryForward;
+  const daysLeft=totalDays-calendarDays;
   
   calcDiv.innerHTML=`
     <div style="font-weight:700;color:var(--gold);margin-bottom:6px;">${isUpgrade?'⬆️ UPGRADE':'⬇️ DOWNGRADE'}</div>
     <div>Old plan fee: ₹${(m.fee||0).toLocaleString('en-IN')}</div>
-    <div>Time consumed: ${daysUsed}/${totalDays} days = ${Math.round(daysUsed/totalDays*100)}%</div>
-    <div>Sessions consumed: ${sessUsed}/${sessTotal} = ${totalDays>0?Math.round(sessUsed/sessTotal*100):0}%</div>
-    <div>MAX = ${Math.round(Math.max(daysUsed/totalDays,totalDays>0?sessUsed/sessTotal:0)*100)}% → consumed ₹${consumed.toLocaleString('en-IN')}</div>
+    <div>Active days used: ${activeDays} of ${origDays}${frozenDays?' ('+frozenDays+' frozen)':''} = ${origDays>0?Math.round(activeDays/origDays*100):0}%</div>
+    <div>Sessions used: ${sessUsed} of ${sessTotal} = ${sessTotal>0?Math.round(sessUsed/sessTotal*100):0}%</div>
+    <div>Consumed (MAX rule): ₹${consumed.toLocaleString('en-IN')}</div>
     <div style="border-top:1px solid var(--border);margin:6px 0;padding-top:6px;">
-      Unused value: <b>₹${unused.toLocaleString('en-IN')}</b><br/>
+      Total paid so far: ₹${totalPaid.toLocaleString('en-IN')}<br/>
+      Less consumed: −₹${consumed.toLocaleString('en-IN')}<br/>
+      <b>Credit to carry forward: ₹${carryForward.toLocaleString('en-IN')}</b>
+    </div>
+    <div style="border-top:1px solid var(--border);margin:6px 0;padding-top:6px;">
       New plan: ₹${newP.price.toLocaleString('en-IN')}<br/>
-      ${isUpgrade?'Less unused: −₹'+unused.toLocaleString('en-IN')+'<br/>':''}
+      Less credit: −₹${carryForward.toLocaleString('en-IN')}<br/>
       <b style="font-size:15px;">Net to charge: ₹${netCharge.toLocaleString('en-IN')}</b>
     </div>
     <div style="margin-top:6px;font-size:11px;color:var(--text3);">Sessions carried forward: ${sessLeft} (goodwill)</div>
-    ${!isUpgrade?'<div style="margin-top:4px;font-size:11px;color:var(--text3);">Unused days carried: '+daysLeft+' · No cash refund per studio policy</div>':''}
   `;
   calcDiv.style.display='';
 }
@@ -7048,19 +7168,17 @@ function ufDoFreeze(){
   const daysUsed=Math.max(0,Math.round((freezeDt-startDt)/(86400000)));
   const unusedDays=Math.max(0,totalDays-daysUsed);
   
-  /* Update membership */
   m.status='frozen';
   m.frozenDate=freezeFrom;
-  m.frozenDays=(m.frozenDays||0)+unusedDays;
+  m._unusedWhenFrozen=unusedDays; /* remaining days — for end-date extension on resume */
   m.expectedReturn=returnDate||'';
-  /* Push event */
   if(!m.events)m.events=[];
-  m.events.push({type:'freeze',date:freezeFrom,details:{unusedDays,expectedReturn:returnDate||''}});
+  m.events.push({type:'freeze',date:freezeFrom,details:{unusedDays,daysUsedBeforeFreeze:daysUsed}});
   
   mems[cid]=m;
   sv('pp_memberships',mems);
-  AUD('freeze','Froze plan for '+cid+' from '+freezeFrom+', '+unusedDays+' days unused');
-  toast('❄️ Plan frozen — '+unusedDays+' days to be restored on return');
+  AUD('freeze','Froze plan for '+cid+' from '+freezeFrom+', '+unusedDays+' remaining days');
+  toast('❄️ Plan frozen — '+unusedDays+' days will be restored on return');
   _ufPopulatePlan(cid);
 }
 
@@ -7072,21 +7190,28 @@ function ufDoResume(){
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m){toast('No plan found');return;}
   
-  const frozenDays=m.frozenDays||0;
-  /* New expiry = return date + frozen (unused) days */
+  /* Actual frozen days = resume date - freeze date (for consumption calculation) */
+  const freezeDt=new Date((m.frozenDate||returnDate)+'T00:00:00');
   const retDt=new Date(returnDate+'T00:00:00');
-  retDt.setDate(retDt.getDate()+frozenDays);
-  m.endDate=_localDate(retDt);
+  const actualFrozen=Math.max(0,Math.round((retDt-freezeDt)/(86400000)));
+  
+  /* New expiry = return date + remaining days that were saved when frozen */
+  const unusedDays=m._unusedWhenFrozen||0;
+  const newEnd=new Date(retDt);
+  newEnd.setDate(newEnd.getDate()+unusedDays);
+  
+  m.endDate=_localDate(newEnd);
   m.status='active';
   m.resumeDate=returnDate;
-  /* Don't reset frozenDays — keep the record of total frozen days for history */
+  /* Track ACTUAL frozen days (cumulative, for consumption in plan-change) */
+  m.frozenDays=(m.frozenDays||0)+actualFrozen;
   if(!m.events)m.events=[];
-  m.events.push({type:'resume',date:returnDate,details:{frozenDays,newExpiry:m.endDate}});
+  m.events.push({type:'resume',date:returnDate,details:{actualFrozen,unusedDaysRestored:unusedDays,newExpiry:m.endDate}});
   
   mems[cid]=m;
   sv('pp_memberships',mems);
-  AUD('resume','Resumed plan for '+cid+' on '+returnDate+'. New expiry: '+m.endDate);
-  toast('▶️ Plan resumed — new expiry: '+fmt(m.endDate));
+  AUD('resume','Resumed '+cid+' on '+returnDate+'. Frozen '+actualFrozen+' days. New expiry: '+m.endDate);
+  toast('▶️ Plan resumed — '+actualFrozen+' days were frozen, new expiry: '+fmt(m.endDate));
   _ufPopulatePlan(cid);
 }
 
@@ -7144,7 +7269,10 @@ function ufAssignPlan(){
   /* Push current plan to history if it exists */
   if(existing&&existing.plan){
     if(!existing.history)existing.history=[];
-    existing.history.push({...existing,endReason:'Renewed',history:undefined,events:undefined});
+    let _endReason='Renewed';
+    if(existing.plan==='trial'||isTrialConvert)_endReason='Converted to '+p.name;
+    else if(eventType==='renew')_endReason='Renewed to '+p.name;
+    existing.history.push({...existing,endReason:_endReason,history:undefined,events:undefined});
   }
   
   /* Determine event type */
@@ -7173,6 +7301,7 @@ function ufAssignPlan(){
     c.isTrial=false;
     c.convertedFrom='trial';
     c.conversionDate=td();
+    c.join=startDate; /* Joining date = when they become a regular member */
     if(c.memNo&&c.memNo.startsWith('T-'))c.memNo=generateMemNo();
     sv('pp_clients',clients);
   }
@@ -7203,12 +7332,14 @@ function ufDoChange(){
   const m=mems[cid];if(!m)return;
   const oldP=plans.find(x=>x.id===m.plan);
   
-  /* Consumption calculation */
+  /* Consumption calculation — subtract frozen days, use PAID amount for carry-forward */
   const today=new Date();
   const startDt=new Date(m.startDate+'T00:00:00');
   const endDt=new Date(m.endDate+'T00:00:00');
   const totalDays=Math.round((endDt-startDt)/(86400000))+1;
-  const daysUsed=Math.max(0,Math.min(totalDays,Math.round((today-startDt)/(86400000))));
+  const calendarDays=Math.max(0,Math.min(totalDays,Math.round((today-startDt)/(86400000))));
+  const frozenDays=m.frozenDays||0;
+  const activeDays=Math.max(0,calendarDays-frozenDays);
   const bookings=ld('pp_bookings',{});
   let sessUsed=0;
   Object.entries(bookings).forEach(([dt,slots])=>{
@@ -7216,18 +7347,21 @@ function ufDoChange(){
   });
   const sessTotal=(m.sessions||oldP?.sessions||0)+(m.bonus||0);
   const sessLeft=Math.max(0,sessTotal-sessUsed);
-  const consumed=_ufConsumed(m.fee||0,totalDays,daysUsed,sessTotal,sessUsed);
-  const unused=(m.fee||0)-consumed;
+  const origDays=oldP?oldP.days:(totalDays-frozenDays);
+  const consumed=_ufConsumed(m.fee||0,origDays,activeDays,sessTotal,sessUsed);
+  /* Carry-forward = what member PAID minus consumed (you can't carry forward unpaid money) */
+  const totalPaid=getClientTotalPaid(cid);
+  const carryForward=Math.max(0,totalPaid-consumed);
   const isUpgrade=newP.price>(m.fee||0);
-  const netCharge=isUpgrade?newP.price-unused:newP.price;
+  const netCharge=newP.price-carryForward;
   
   /* Push old plan to history */
   if(!m.history)m.history=[];
   m.history.push({
     ...m,history:undefined,events:undefined,
     endReason:'Changed to '+newP.name+(isUpgrade?' (upgrade)':' (downgrade)'),
-    adjustmentAmt:unused,
-    adjustmentNote:isUpgrade?'₹'+unused.toLocaleString('en-IN')+' unused value carried forward':'No refund (downgrade). '+sessLeft+' sessions + '+(totalDays-daysUsed)+' days carried forward'
+    adjustmentAmt:carryForward,
+    adjustmentNote:'Paid ₹'+totalPaid.toLocaleString('en-IN')+', consumed ₹'+consumed.toLocaleString('en-IN')+'. ₹'+carryForward.toLocaleString('en-IN')+' carried forward. '+sessLeft+' sessions carried (goodwill).'
   });
   
   /* Calculate new end date */
@@ -7293,6 +7427,16 @@ function _ufPopulatePayment(cid){
   document.getElementById('uf-pay-amt').value='';
   document.getElementById('uf-pay-notes').value='';
   
+  /* Auto-select Payment For based on context */
+  const payForEl=document.getElementById('uf-pay-for');
+  if(payForEl&&m){
+    const c=ld('pp_clients',[]).find(x=>x.id===cid);
+    if(c&&c.convertedFrom==='trial'&&totalPaid===0)payForEl.value='New Member';
+    else if(m.history&&m.history.some(h=>h.endReason&&h.endReason.includes('Changed')))payForEl.value='Plan Change';
+    else if(totalPaid>0)payForEl.value='Renewal';
+    else payForEl.value='New Member';
+  }
+  
   /* Payment history */
   const payHist=document.getElementById('uf-pay-history');
   if(payHist){
@@ -7306,14 +7450,40 @@ function _ufPopulatePayment(cid){
     if(!unique.length){payHist.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;">No payments yet</div>';
     }else{
       payHist.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;">Payment History ('+unique.length+')</div>'+
-        unique.slice(0,10).map(p=>
-          `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
-            <span style="color:var(--text2);">${fmt(p.date)} · ${p.mode||''}</span>
-            <span style="color:var(--green);font-weight:700;">₹${(p.amt||0).toLocaleString('en-IN')}</span>
-          </div>`
+        unique.slice(0,10).map(p=>{
+          const isCash=p.src==='cash';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+            <div style="flex:1;">
+              <span style="color:var(--text2);">${fmt(p.date)} · ${p.mode||''}</span>
+              ${p.desc&&p.desc!=='Payment'?'<span style="color:var(--text3);"> · '+p.desc+'</span>':''}
+              ${p.forWhat&&p.forWhat!=='Payment'?'<span style="color:var(--text3);"> · '+p.forWhat+'</span>':''}
+            </div>
+            <span style="color:var(--green);font-weight:700;margin-left:8px;">₹${(p.amt||0).toLocaleString('en-IN')}</span>
+            ${isCash?'<button onclick="openCashEntry(\''+p.id+'\')" style="background:none;border:none;font-size:10px;cursor:pointer;padding:2px 4px;color:var(--text3);" title="Open voucher">📋</button>':''}
+            <button onclick="_ufEditPayDesc('${p.id}')" style="background:none;border:none;font-size:10px;cursor:pointer;padding:2px 4px;color:var(--text3);" title="Change type">✏️</button>
+          </div>`;}
         ).join('')+(unique.length>10?'<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px;">…and '+(unique.length-10)+' more</div>':'');
     }
   }
+}
+
+function _ufEditPayDesc(entryId){
+  const opts=['New Member','Renewal','Plan Change','Advance','Other'];
+  const cash=ld('pp_cash',[]);
+  const entry=cash.find(e=>e.id===entryId);
+  /* Also check legacy payments */
+  const pays=ld('pp_payments',[]);
+  const legEntry=pays.find(p=>p.id===entryId.replace('leg_',''));
+  const current=entry?entry.desc:(legEntry?legEntry.forWhat:'');
+  
+  showConfirm('✏️','Payment For','Select the correct payment type:',[
+    ...opts.map(o=>({label:o,color:o===current?'var(--gold)':'var(--border2)',outline:o!==current,action:()=>{
+      if(entry){entry.desc=o;sv('pp_cash',cash);}
+      if(legEntry){legEntry.forWhat=o;sv('pp_payments',pays);}
+      toast('✓ Updated to "'+o+'"');
+      _ufPopulatePayment(document.getElementById('uf-cid').value);
+    }}))
+  ]);
 }
 
 function ufSavePayment(){
@@ -7324,9 +7494,10 @@ function ufSavePayment(){
   if(amt<=0){alert('Enter the amount received');return;}
   
   /* Single entry in pp_cash ONLY — no double-counting */
+  const payFor=document.getElementById('uf-pay-for').value||'Membership Fee';
   const cash=ld('pp_cash',[]);
   const entryId=Date.now().toString();
-  cash.push({id:entryId,type:'in',desc:'Payment',amt,date:td(),mode,cat:'Membership Fee',cid,notes});
+  cash.push({id:entryId,type:'in',desc:payFor,amt,date:td(),mode,cat:'Membership Fee',cid,notes});
   sv('pp_cash',cash);
   
   AUD('payment','Payment ₹'+amt+' from '+cid);
@@ -7341,7 +7512,7 @@ function ufSavePayment(){
   if(c&&m){
     showConfirm('🧾','Receipt','Payment of ₹'+amt.toLocaleString('en-IN')+' recorded for '+(c.fname||'')+'. View receipt?',[
       {label:'Close',color:'var(--border2)',outline:true,action:null},
-      {label:'View Receipt',color:'var(--gold)',action:()=>showReceipt(cid,pays[pays.length-1].id)}
+      {label:'View Receipt',color:'var(--gold)',action:()=>showReceiptCash(entryId)}
     ]);
   }
 }
@@ -7363,7 +7534,8 @@ function ufSavePayment(){
     <div class="uf-section" id="uf-sec-profile">
       <div class="uf-sec-hdr" onclick="ufToggle('profile')">
         <span>👤 Profile</span>
-        <span id="uf-profile-arrow" style="font-size:12px;">▼</span>
+        <span id="uf-profile-summary" style="font-size:11px;color:var(--text3);margin-left:8px;"></span>
+        <span id="uf-profile-arrow" style="font-size:12px;margin-left:auto;">▼</span>
       </div>
       <div class="uf-sec-body" id="uf-body-profile">
         <input type="hidden" id="uf-cid"/>
@@ -7380,13 +7552,15 @@ function ufSavePayment(){
           <div class="fg"><label class="fl">Birthday <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="uf-bday" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
           <div class="fg"><label class="fl">Anniversary <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="uf-anni" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
         </div>
-        <div class="fg"><label class="fl">Joining Date</label><input class="fi" id="uf-join" type="date"/></div>
-        <div class="fg">
-          <label class="fl">Referred By</label>
-          <div style="position:relative;">
-            <input class="fi" id="uf-ref-search" autocomplete="off" placeholder="🔍 Search member…" oninput="_ufRefSearch()" onfocus="_ufRefSearch()"/>
-            <input type="hidden" id="uf-ref" value=""/>
-            <div id="uf-ref-results" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:180px;overflow-y:auto;background:var(--surface2);border:1px solid var(--gold);border-radius:var(--rsm);z-index:50;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
+        <div class="fr">
+          <div class="fg"><label class="fl">Joining Date</label><input class="fi" id="uf-join" type="date"/></div>
+          <div class="fg">
+            <label class="fl">Referred By</label>
+            <div style="position:relative;">
+              <input class="fi" id="uf-ref-search" autocomplete="off" placeholder="🔍 Search member…" oninput="_ufRefSearch()" onfocus="_ufRefSearch()"/>
+              <input type="hidden" id="uf-ref" value=""/>
+              <div id="uf-ref-results" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:180px;overflow-y:auto;background:var(--surface2);border:1px solid var(--gold);border-radius:var(--rsm);z-index:50;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
+            </div>
           </div>
         </div>
         <div class="fg"><label class="fl">Notes</label><input class="fi" id="uf-notes"/></div>
@@ -7445,7 +7619,10 @@ function ufSavePayment(){
           <div class="fg"><label class="fl">Amount Received (₹)</label><input class="fi" id="uf-pay-amt" type="number" placeholder="0" oninput="document.getElementById('uf-pay-btn').disabled=!(parseFloat(this.value)>0);document.getElementById('uf-pay-btn').style.opacity=parseFloat(this.value)>0?'':'0.45'"/></div>
           <div class="fg"><label class="fl">Mode</label><select class="fi" id="uf-pay-mode"></select></div>
         </div>
-        <div class="fg"><label class="fl">Notes</label><input class="fi" id="uf-pay-notes" placeholder="Reference, UPI ID…"/></div>
+        <div class="fr">
+          <div class="fg"><label class="fl">Payment For</label><select class="fi" id="uf-pay-for"><option>New Member</option><option>Renewal</option><option>Plan Change</option><option>Advance</option><option>Other</option></select></div>
+          <div class="fg"><label class="fl">Notes</label><input class="fi" id="uf-pay-notes" placeholder="Reference, UPI ID…"/></div>
+        </div>
         <button class="sb2" id="uf-pay-btn" onclick="ufSavePayment()" disabled style="opacity:0.45;">Save Payment & Issue Receipt</button>
         <div id="uf-pay-history" style="margin-top:12px;"></div>
         <button onclick="printLatestReceipt(document.getElementById('uf-cid').value)" class="uf-act-btn" style="width:100%;margin-top:8px;font-size:11px;">🖨 Print / Save Receipt (latest payment)</button>
