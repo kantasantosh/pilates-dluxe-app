@@ -321,6 +321,7 @@ function _pRerenderActive(){
 }
 /* manual pull — force a fresh fetch from the cloud */
 async function pdlSyncNow(){
+  if(window._ppOfflineMode){toast('Working offline — sync disabled');return;}
   // If this device isn't signed into the cloud, syncing will always fail.
   // Detect that and offer the cloud sign-in instead of blaming the internet.
   let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(e){}
@@ -379,6 +380,7 @@ window.addEventListener('load',()=>{
   try{
     let _authResolved=false;
     firebase.auth().onAuthStateChanged(u=>{
+      if(window._ppOfflineMode)return; /* user chose offline — don't auto-connect */
       clearTimeout(_fallback);
       const g=document.getElementById('pp-cloud');
       if(u){
@@ -413,15 +415,17 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v59</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v60d</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
-    <strong id="top-date"></strong>
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:4px;flex-wrap:wrap;">
-      <span id="top-day"></span>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+      <strong id="top-date"></strong>
+      <span id="top-day" style="font-size:10px;"></span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:3px;">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-mini">🔄 Sync</button>
-      <button onclick="openNotepad()" title="Notepad — jot doubts & ideas" class="tb-mini">📝 Notes</button>
+      <button onclick="openNotepad()" title="Notepad" class="tb-mini">📝 Notes</button>
     </div>
   </div>
 </div>
@@ -435,28 +439,25 @@ window.addEventListener('load',()=>{
 
 <!-- CLIENTS -->
 <div class="tab" id="tab-clients">
-  <div class="sh"><div class="st">Clients<small>Member Directory</small></div>
-    <div style="display:flex;gap:6px;align-items:center;">
-      <button id="btn-manage-plans" onclick="openManagePlans()" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;">⚙️ Plans</button>
-    </div>
-  </div>
-  <div class="search-box">
-    <span style="color:var(--text3);font-size:16px;">🔍</span>
-    <input id="client-search" placeholder="Search by name or phone..." oninput="renderClients()"/>
+  <div class="sh"><div class="st">Clients<small>Member Directory</small></div></div>
+  <div style="margin-bottom:8px;">
+    <select id="client-planfilter" onchange="renderClients()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
+      <option value="">📋 All plans</option>
+    </select>
   </div>
   <div class="ftabs">
     <button class="ftab active" onclick="setClientFilter('all',this)">All</button>
     <button class="ftab" onclick="setClientFilter('active',this)">Active</button>
+    <button class="ftab" onclick="setClientFilter('converted',this)">✓ Converted</button>
     <button class="ftab" onclick="setClientFilter('trial',this)">🎯 Trial</button>
     <button class="ftab" onclick="setClientFilter('expiring',this)">Expiring</button>
     <button class="ftab" onclick="setClientFilter('expired',this)">Expired</button>
     <button class="ftab" onclick="setClientFilter('due',this)">Due</button>
     <button class="ftab" onclick="setClientFilter('inactive',this)">⏸ Inactive</button>
   </div>
-  <div style="margin-bottom:14px;">
-    <select id="client-planfilter" onchange="renderClients()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
-      <option value="">📋 All plans</option>
-    </select>
+  <div class="search-box">
+    <span style="color:var(--text3);font-size:16px;">🔍</span>
+    <input id="client-search" placeholder="Search by name or phone..." oninput="renderClients()"/>
   </div>
   <div id="client-list"></div>
 </div>
@@ -1400,6 +1401,7 @@ function _getFilteredClients(){
     if(c.archived)return false;
     const st=getMembershipStatus(mems[c.id]);
     if(_clientFilter2==='trial'&&!c.isTrial)return false;
+    if(_clientFilter2==='converted'&&c.convertedFrom!=='trial')return false;
     if(_clientFilter2==='active'&&st!=='active')return false;
     if(_clientFilter2==='expiring'&&st!=='expiring')return false;
     if(_clientFilter2==='expired'&&st!=='expired'&&st!=='none')return false;
@@ -1453,13 +1455,34 @@ function renderClients(){
             (c.convertedFrom==='trial'?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+
             (mem&&mem.history&&mem.history.some(h=>h.endReason&&h.endReason.includes('Changed'))?`<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:10px;">🔀 PLAN CHANGED</span> `:'')+
             `<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
-          ${mem&&mem.plan!=='unlimited'&&!c.isTrial?`<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft!=null?mem.sessionsLeft:(mem.sessions||0)} of ${mem.sessions||mem.sessionsTotal||0}</span>`:''}
+          ${mem&&!c.isTrial?(mem.plan==='unlimited'||((mem.sessions||mem.sessionsTotal||0)>=999)?`<span style="font-size:12px;color:var(--teal);">Unlimited</span>`:`<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft!=null?mem.sessionsLeft:(mem.sessions||0)} of ${mem.sessions||mem.sessionsTotal||0}</span>`):''}
           ${(()=>{const due=(mems[c.id]?Math.max(0,(mems[c.id].fee||0)-(mems[c.id].disc||0)):0)-getClientTotalPaid(c.id);return due>0?`<span style="font-size:12px;color:var(--red);font-weight:700;">₹${due.toLocaleString('en-IN')} due</span>`:'';})()} 
         </div>
       </div>
       <button onclick="event.stopPropagation();openWA('${c.id}')" style="background:none;border:none;font-size:20px;cursor:pointer;opacity:0.6;">💬</button>
     </div>`;
   }).join('');
+  
+  /* Update filter chip counts */
+  const _allC=clients.filter(c=>!c.archived);
+  const _counts={
+    all:_allC.length,
+    active:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m)==='active';}).length,
+    converted:_allC.filter(c=>c.convertedFrom==='trial').length,
+    trial:_allC.filter(c=>c.isTrial).length,
+    expiring:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m)==='expiring';}).length,
+    expired:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m)==='expired';}).length,
+    due:_allC.filter(c=>{const m=mems[c.id];if(!m)return false;const f=(m.fee||0)-(m.disc||0);return f>getClientTotalPaid(c.id);}).length,
+    inactive:clients.filter(c=>c.archived).length,
+  };
+  document.querySelectorAll('.ftabs .ftab').forEach(btn=>{
+    const f=btn.getAttribute('onclick')||'';
+    const mt=f.match(/setClientFilter\('(\w+)'/);
+    if(mt&&_counts[mt[1]]!=null){
+      const label=btn.textContent.replace(/\s*\(\d+\)\s*$/,'');
+      btn.textContent=label+' ('+_counts[mt[1]]+')';
+    }
+  });
 }
 
 // ===== CLIENT DETAIL =====
@@ -1523,7 +1546,7 @@ function openDetail(cid){
         <span>Sessions Used</span><span>${usedSess} / ${mem.sessionsTotal}</span>
       </div>
       <div class="prog-bar"><div class="prog-fill" style="width:${progPct}%"></div></div>
-      `:'<div style="font-size:12px;color:var(--teal);">✓ Unlimited sessions this month</div>'}
+      `:'<div style="font-size:12px;color:var(--teal);">✓ Unlimited plan · '+usedSess+' sessions attended</div>'}
       ${((mem.bonus||0)>0||(mem.disc||0)>0)?`<div style="margin-top:8px;padding:6px 10px;background:rgba(201,168,76,0.1);border-radius:8px;font-size:12px;color:var(--gold);">🎁 Complimentary: ${mem.bonus||0} class(es)${(mem.disc||0)>0?' • ₹'+(mem.disc).toLocaleString('en-IN')+' off fee':''}</div>`:''}
       ${mem.history&&mem.history.length>0?`<div style="margin-top:8px;font-size:13px;color:var(--text3);">📋 ${mem.history.length} previous membership(s) on record</div>`:''}
     </div>
@@ -2206,6 +2229,11 @@ function renderSchedule(){
     });
   });
 
+  /* Add bottom navigation */
+  html+=`<div style="display:flex;justify-content:space-between;padding:16px 0 8px;">
+    <button class="btn btn-outline btn-sm" onclick="chDay(-1)">◀ Prev day</button>
+    <button class="btn btn-outline btn-sm" onclick="chDay(1)">Next day ▶</button>
+  </div>`;
   document.getElementById('schedule-content').innerHTML=html;
 }
 function openBookingModal(slotIdx){
@@ -2843,59 +2871,39 @@ function saveStaff(){
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function renderCredits(){
   document.getElementById('credits-content').innerHTML=`
-    <div style="text-align:center;padding:30px 20px 20px;">
-      <div style="width:80px;height:80px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><svg viewBox="0 0 100 100" width="52" height="52" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
-      <div style="font-family:'Playfair Display',serif;font-size:28px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
-      <div style="font-size:13px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;margin-top:4px;font-weight:300;">Studio Admin</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:8px;">Version 1.0 • 2026</div>
-    </div>
-    <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
-      <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;font-weight:500;">What's Inside</div>
-      ${['👥 Client Management & Profiles','📅 Slot Booking & Attendance','💰 Cash Book — Credits & Debits','👨‍🏫 Staff Attendance & Salary','🎁 Complimentary Classes & Cash','📋 Tasks & Bills','📊 Dashboard & Analytics'].map(f=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
-          <div style="font-size:13px;color:var(--text2);">${f}</div>
-        </div>`).join('')}
-    </div>
+    <div id="admin-tools-slot"></div>
     <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
       <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">💾 Data Backup</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6;">Export saves all studio data. Import restores it on any device — use when switching phones or as regular backup.</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5;">Export saves all data. Import restores on any device.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <button onclick="exportPPData()" style="background:linear-gradient(135deg,var(--teal),#4a7a72);color:white;border:none;border-radius:var(--rsm);padding:12px;font-size:13px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;">⬇️ Export</button>
-        <label style="background:linear-gradient(135deg,var(--purple),#6a5a7f);color:white;border-radius:var(--rsm);padding:12px;font-size:13px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;text-align:center;display:block;">⬆️ Import<input type="file" accept=".json" onchange="importPPData(this)" style="display:none;"/></label>
+        <button onclick="exportPPData()" style="background:linear-gradient(135deg,var(--teal),#4a7a72);color:white;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;">⬇️ Export</button>
+        <label style="background:linear-gradient(135deg,var(--purple),#6a5a7f);color:white;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;text-align:center;display:block;">⬆️ Import<input type="file" accept=".json" onchange="importPPData(this)" style="display:none;"/></label>
       </div>
     </div>
-    <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
-      <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">🔒 Fingerprint Unlock</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6;">Enable fingerprint / face unlock on <b>this device</b> for faster sign-in. Your PIN always keeps working as backup. (Per-device; does not sync.)</div>
-      <div id="bio-about-area"></div>
-    </div>
-    <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
-      <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">💬 Feedback & Support</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6;">Found a bug or have a suggestion? Tap below to send us a WhatsApp message.</div>
-      <button onclick="sendFeedback()" style="width:100%;background:#25D366;border:none;border-radius:var(--rsm);padding:12px;font-size:13px;font-family:'Jost',sans-serif;font-weight:700;cursor:pointer;color:white;">
-        💬 Send Feedback on WhatsApp
-      </button>
-    </div>
-    <div style="margin:0 16px 30px;padding:20px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;letter-spacing:1.5px;text-transform:uppercase;">Built with ❤️ by</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px;">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <line x1="14" y1="2" x2="14" y2="26" stroke="#D4694A" stroke-width="2.8" stroke-linecap="round"/>
-          <line x1="2" y1="14" x2="26" y2="14" stroke="#D4694A" stroke-width="2.8" stroke-linecap="round"/>
-          <line x1="5.51" y1="5.51" x2="22.49" y2="22.49" stroke="#D4694A" stroke-width="2.8" stroke-linecap="round"/>
-          <line x1="22.49" y1="5.51" x2="5.51" y2="22.49" stroke="#D4694A" stroke-width="2.8" stroke-linecap="round"/>
-        </svg>
-        <div style="text-align:left;">
-          <div style="font-size:20px;font-family:'Playfair Display',serif;font-style:italic;color:var(--text);letter-spacing:0.5px;">Claude</div>
-          <div style="font-size:9px;color:var(--text3);letter-spacing:2px;font-weight:500;text-transform:uppercase;">by Anthropic</div>
-        </div>
+    <div style="margin:0 16px 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="sendFeedback()" style="background:#25D366;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;color:white;">💬 Feedback</button>
+        <div id="bio-about-area"></div>
       </div>
-      <div style="font-size:13px;color:var(--text3);">Designed together with its user</div>
     </div>
-    <div style="margin:0 16px 30px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
-      <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">⚙️ Danger Zone</div>
-      <button onclick="resetAllData()" style="width:100%;padding:11px;border-radius:var(--rsm);border:1.5px solid var(--red);background:none;color:var(--red);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">🗑 Reset All App Data</button>
-      <div style="font-size:13px;color:var(--text3);margin-top:6px;text-align:center;">Use to clear test data. Irreversible.</div>
+    <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+      <div style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><svg viewBox="0 0 100 100" width="40" height="40" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
+      <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 12px;">Studio Admin</div>
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Built with</div>
+      <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
+        <div style="text-align:center;"><div style="font-size:14px;font-weight:500;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">by Anthropic</div></div>
+        <div style="text-align:center;"><div style="font-size:14px;font-weight:500;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">by Google</div></div>
+        <div style="text-align:center;"><div style="font-size:14px;font-weight:500;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);">Designed together with its user</div>
+    </div>
+    <div style="margin:0 16px 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">What's inside</div>
+      ${['👥 Clients & Profiles','📅 Booking & Attendance','💰 Cash Book','👨‍🏫 Staff & Salary','🎁 Complimentary','📋 Tasks','📊 Dashboard'].map(f=>'<span style="display:inline-block;padding:3px 8px;margin:2px;border:1px solid var(--border);border-radius:12px;font-size:11px;color:var(--text3);">'+f+'</span>').join('')}
+    </div>
+    <div style="margin:0 16px 30px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+      <button onclick="resetAllData()" style="width:100%;padding:10px;border-radius:var(--rsm);border:1px solid var(--red);background:none;color:var(--red);font-family:'Jost',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">🗑 Reset all data (irreversible)</button>
     </div>
   `;
   renderBioAbout();
@@ -4996,19 +5004,23 @@ function deleteUser(){
     const r=_oCred.apply(this,arguments);
     if(ppIsAdmin()){
       const cc=document.getElementById('credits-content');
-      if(cc&&!document.getElementById('admin-tools')){
+      const _slot=document.getElementById('admin-tools-slot');
+      if(_slot&&!document.getElementById('admin-tools')){
         const d=document.createElement('div');d.id='admin-tools';
         d.innerHTML=`<div class="div-section">🔐 Admin Tools</div>
-          <button class="sb2" onclick="openReports()" style="margin-bottom:8px;">📊 Business Reports</button>
-          <button class="sb2" onclick="openStatement()" style="margin-bottom:8px;">📑 Account Statement (passbook)</button>
-          <button class="sb2" onclick="openStudioEdit()" style="margin-bottom:8px;">🏛 Studio Details (receipt header)</button>
-          <button class="sb2" onclick="openAnnounce()" style="margin-bottom:8px;">📢 Booking Page Announcement</button>
-          <button class="sb2" onclick="openUsersModal()" style="margin-bottom:8px;">👥 Users &amp; Access</button>
-          <button class="sb2" onclick="openCompRule()" style="background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);margin-bottom:8px;">🎁 Referral Reward Rule</button>
-          <button class="sb2" onclick="openAuditModal()" style="background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>
-          <div style="font-size:11px;color:var(--text3);margin:10px 0 6px;text-align:center;">☁️ Cloud device: ${(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'not signed in (offline mode)'}</div>
-          <button class="sb2" onclick="cloudSignOut()" style="background:none;border:1.5px solid var(--rose);color:var(--rose);">☁️ Cloud Device Sign-out</button>`;
-        cc.appendChild(d);
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <button class="sb2" onclick="openReports()" style="margin:0;font-size:12px;padding:10px 6px;">📊 Reports</button>
+          <button class="sb2" onclick="openStatement()" style="margin:0;font-size:12px;padding:10px 6px;">📑 Statement</button>
+          <button class="sb2" onclick="openManagePlans()" style="margin:0;font-size:12px;padding:10px 6px;">⚙️ Plans</button>
+          <button class="sb2" onclick="openStudioEdit()" style="margin:0;font-size:12px;padding:10px 6px;">🏛 Studio Details</button>
+          <button class="sb2" onclick="openAnnounce()" style="margin:0;font-size:12px;padding:10px 6px;">📢 Announcements</button>
+          <button class="sb2" onclick="openUsersModal()" style="margin:0;font-size:12px;padding:10px 6px;">👥 Users & Access</button>
+          <button class="sb2" onclick="openCompRule()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);">🎁 Referral Rule</button>
+          <button class="sb2" onclick="openAuditModal()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin:6px 0 4px;text-align:center;">☁️ ${(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'offline mode'}</div>
+          <button class="sb2" onclick="cloudSignOut()" style="background:none;border:1px solid var(--rose);color:var(--rose);font-size:11px;padding:8px;margin:0;">☁️ Sign-out</button>`;
+        _slot.appendChild(d);
       }
     }
     return r;
@@ -5729,8 +5741,8 @@ function injectPrintButtons(){
     <input class="lg-fi" id="cl-pass" type="password" placeholder="Studio cloud password" autocomplete="current-password"/>
     <div class="lg-err" id="cl-err"></div>
     <button class="lg-btn" onclick="doCloudLogin()">Connect This Device</button>
-    <div style="font-size:12px;color:var(--text3);margin-top:14px;line-height:1.5;">This links the device to the studio's secure cloud database.<br>After this, the regular user PIN screen appears.</div>
-    <div style="margin-top:14px;"><a href="#" onclick="event.preventDefault();_cloudOffline();" style="font-size:12px;color:var(--text3);text-decoration:underline;">Continue offline (no cloud sync)</a></div>
+    <button onclick="_cloudOffline()" style="width:100%;padding:12px;border-radius:var(--rsm);border:1.5px solid var(--border2);background:none;color:var(--text2);font-family:'Jost',sans-serif;font-weight:600;font-size:14px;cursor:pointer;margin-top:10px;">⏭ Skip — Work Offline</button>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.5;">Cloud connects this device to the studio database for sync across devices.</div>
   </div>
 </div>
 
@@ -5741,9 +5753,11 @@ function _showCloudGate(){
   if(g)g.style.display='flex';
 }
 function _cloudOffline(){
+  window._ppOfflineMode=true;
   const g=document.getElementById('pp-cloud');
   if(g)g.style.display='none';
-  if(!window._pStarted){window._pStarted=true;_pInit();}
+  /* Skip Firebase entirely — go straight to PIN login */
+  if(typeof init==='function')init();
 }
 async function doCloudLogin(){
   const err=document.getElementById('cl-err');
@@ -6731,10 +6745,41 @@ function openUnified(cid,focusSection){
 }
 
 function closeUnified(){
+  /* 2-step back: if any section is open, collapse all first. If already collapsed, close the form. */
+  const sections=['profile','plan','payment'];
+  const anyOpen=sections.some(s=>{
+    const body=document.getElementById('uf-body-'+s);
+    return body&&body.style.display!=='none';
+  });
+  if(anyOpen){
+    /* Step 1: collapse all sections back to overview */
+    toast('← Back to overview');
+    sections.forEach(s=>{
+      const body=document.getElementById('uf-body-'+s);
+      const arrow=document.getElementById('uf-'+s+'-arrow');
+      if(body)body.style.display='none';
+      if(arrow)arrow.textContent='▶';
+    });
+    return; /* stay on the form — user sees the 3 collapsed bars */
+  }
+  /* Step 2: all collapsed → close the form */
   closeM('m-unified');
-  /* Return to the tab we came from */
   if(_ufReturnTab)showTab(_ufReturnTab.replace('tab-',''));
 }
+/* Also handle Android back button / browser back for unified form */
+window.addEventListener('popstate',function(){
+  const uf=document.getElementById('m-unified');
+  if(uf&&uf.classList.contains('open')){
+    closeUnified();
+    history.pushState(null,'',''); /* prevent actual back navigation */
+  }
+});
+/* Push a history entry when unified form opens so back button works */
+const _origOpenUnified=openUnified;
+openUnified=function(){
+  history.pushState(null,'','');
+  return _origOpenUnified.apply(this,arguments);
+};
 
 function ufToggle(section){
   const body=document.getElementById('uf-body-'+section);
@@ -6876,7 +6921,7 @@ function _ufPopulatePlan(cid){
       <div class="uf-label">Current Plan</div>
       <div style="font-size:16px;font-weight:700;color:var(--gold);margin:4px 0;">${pName}${_isUnlimited?' (Unlimited)':' ('+sessTotal+' sessions)'}</div>
       <div><span class="uf-label">Period:</span> ${fmt(m.startDate)} → ${fmt(m.endDate)}</div>
-      ${_isUnlimited?'':'<div><span class="uf-label">Sessions:</span> <b>'+_sessRemLabel+' sessions remaining</b></div>'}
+      ${_isUnlimited?'<div><span class="uf-label">Attended:</span> <b>'+sessUsed+' sessions attended</b> (Unlimited)</div>':'<div><span class="uf-label">Sessions:</span> <b>'+_sessRemLabel+' sessions remaining</b></div>'}
       <div><span class="uf-label">Days:</span> <b>${daysLeft} days remaining</b> of ${totalDays}</div>
       <div><span class="uf-label">Fee:</span> ₹${(m.fee||0).toLocaleString('en-IN')}${m.disc?' · Discount: ₹'+m.disc:''}</div>
       <div><span class="uf-label">Status:</span> ${statusLabel}</div>
@@ -7459,7 +7504,7 @@ function _ufPopulatePayment(cid){
               ${p.forWhat&&p.forWhat!=='Payment'?'<span style="color:var(--text3);"> · '+p.forWhat+'</span>':''}
             </div>
             <span style="color:var(--green);font-weight:700;margin-left:8px;">₹${(p.amt||0).toLocaleString('en-IN')}</span>
-            ${isCash?'<button onclick="openCashEntry(\''+p.id+'\')" style="background:none;border:none;font-size:10px;cursor:pointer;padding:2px 4px;color:var(--text3);" title="Open voucher">📋</button>':''}
+            ${isCash?'<button onclick="closeM(\'m-unified\');setTimeout(()=>openCashEntry(\''+p.id+'\'),250)" style="background:none;border:none;font-size:10px;cursor:pointer;padding:2px 4px;color:var(--text3);" title="Open voucher">📋</button>':''}
             <button onclick="_ufEditPayDesc('${p.id}')" style="background:none;border:none;font-size:10px;cursor:pointer;padding:2px 4px;color:var(--text3);" title="Change type">✏️</button>
           </div>`;}
         ).join('')+(unique.length>10?'<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px;">…and '+(unique.length-10)+' more</div>':'');
