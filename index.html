@@ -415,7 +415,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v64</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v66</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1200,7 +1200,7 @@ function renderDash(){
     else if(st==='expired')expired++;
     // Check payment dues
     const totalPaid=getClientTotalPaid(c.id);
-    const totalCharged=Object.values(mems).filter(m=>m.cid===c.id).reduce((s,m)=>s+Math.max(0,(m.fee||0)-(m.disc||0)),0);
+    const totalCharged=getClientTotalCharged(c.id);
     if(totalCharged>totalPaid)due++;
   });
 
@@ -1430,7 +1430,7 @@ function _getFilteredClients(){
     if(_clientFilter2==='expired'&&st!=='expired'&&st!=='none')return false;
     if(_clientFilter2==='due'){
       const totalPaid=getClientTotalPaid(c.id);
-      const totalCharged=Object.values(mems).filter(m=>m.cid===c.id).reduce((s,m)=>s+Math.max(0,(m.fee||0)-(m.disc||0)),0);
+      const totalCharged=getClientTotalCharged(c.id);
       if(totalCharged<=totalPaid)return false;
     }
     if(planF){const m=mems[c.id];if(!m||m.plan!==planF)return false;}
@@ -2072,13 +2072,13 @@ function renderPayments(){
     const dueClients=clients.filter(c=>{
       if(c.archived)return false;
       const totalPaid=getClientTotalPaid(c.id);
-      const totalCharged=Object.values(mems).filter(m=>m.cid===c.id).reduce((s,m)=>s+Math.max(0,(m.fee||0)-(m.disc||0)),0);
+      const totalCharged=getClientTotalCharged(c.id);
       return totalCharged>totalPaid;
     });
     if(!dueClients.length){document.getElementById('payment-list').innerHTML=`<div style="text-align:center;padding:40px;color:var(--green);">✓ All payments clear!</div>`;return;}
     document.getElementById('payment-list').innerHTML=dueClients.map(c=>{
       const totalPaid=getClientTotalPaid(c.id);
-      const totalCharged=Object.values(mems).filter(m=>m.cid===c.id).reduce((s,m)=>s+Math.max(0,(m.fee||0)-(m.disc||0)),0);
+      const totalCharged=getClientTotalCharged(c.id);
       const due=totalCharged-totalPaid;
       return `<div class="client-card" onclick="openPaymentModal('${c.id}')">
         <div class="client-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
@@ -6991,7 +6991,7 @@ function _ufPopulatePlan(cid){
     ${typeof ppIsAdmin==='function'&&ppIsAdmin()?'<button onclick="_ufEditDates()" style="width:100%;margin-top:8px;padding:10px;background:none;border:1.5px dashed var(--gold);color:var(--gold);border-radius:var(--rsm);font-size:12px;font-family:\'Jost\',sans-serif;font-weight:600;cursor:pointer;">✏️ Edit this plan — dates, fee, discount, sessions, status</button>':''}
     <div id="uf-edit-dates" style="display:none;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:8px;border:1px solid var(--gold);">
       <div style="font-size:11px;color:var(--amber);margin-bottom:8px;">⚠️ Correcting a wrong entry. This rewrites the current plan record directly — no history entry is created (use "Change Plan" instead if this is a genuine mid-term upgrade/downgrade for the client).</div>
-      <div class="fg"><label class="fl">Plan</label><select class="fi" id="uf-edit-plan"></select></div>
+      <div class="fg"><label class="fl">Plan</label><select class="fi" id="uf-edit-plan" onchange="_ufEditPlanChanged()"></select></div>
       <div class="fr">
         <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-edit-start" type="date"/></div>
         <div class="fg"><label class="fl">End Date</label><input class="fi" id="uf-edit-end" type="date"/></div>
@@ -7126,9 +7126,10 @@ function _ufEditDates(){
   const m=mems[cid];if(!m)return;
   const plans=getPlans();
   const planSel=document.getElementById('uf-edit-plan');
-  planSel.innerHTML=plans.filter(p=>p.id!=='trial').map(p=>
-    `<option value="${p.id}"${p.id===m.plan?' selected':''}>${p.name} (${p.sessions>=999?'Unlimited':p.sessions+' sess'} · ${p.days}d)</option>`
-  ).join('');
+  planSel.innerHTML='<option value="">— No plan / remove —</option>'+
+    plans.filter(p=>p.id!=='trial').map(p=>
+      `<option value="${p.id}"${p.id===m.plan?' selected':''}>${p.name} — ${p.sessions>=999?'Unlimited':p.sessions+' sess'} · ${p.days}d · ₹${p.price.toLocaleString('en-IN')}</option>`
+    ).join('');
   document.getElementById('uf-edit-start').value=m.startDate||'';
   document.getElementById('uf-edit-end').value=m.endDate||'';
   document.getElementById('uf-edit-fee').value=m.fee||'';
@@ -7138,12 +7139,40 @@ function _ufEditDates(){
   document.getElementById('uf-edit-status').value=m.status||'active';
   document.getElementById('uf-edit-dates').style.display='';
 }
+function _ufEditPlanChanged(){
+  const pid=document.getElementById('uf-edit-plan').value;
+  if(!pid)return; /* "No plan / remove" selected — leave fields as-is, handled on save */
+  const plans=getPlans();
+  const p=plans.find(x=>x.id===pid);
+  if(!p)return;
+  /* Auto-populate fee and sessions from the newly selected plan */
+  document.getElementById('uf-edit-fee').value=p.price;
+  document.getElementById('uf-edit-sessions').value=p.sessions;
+}
 function _ufSaveDates(){
   const cid=document.getElementById('uf-cid').value;
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m)return;
   const plans=getPlans();
   const newPid=document.getElementById('uf-edit-plan').value;
+  
+  /* "— No plan / remove —" selected → delete the plan entirely, with confirmation */
+  if(!newPid){
+    showConfirm('🗑','Remove Plan Entirely','This will completely remove the current plan from this member — as if no plan was ever assigned. This cannot be undone. Are you sure?',[
+      {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+      {label:'Remove Plan',color:'var(--red)',action:()=>{
+        delete mems[cid];
+        sv('pp_memberships',mems);
+        AUD('edit_plan','Removed plan entirely for '+cid);
+        toast('✓ Plan removed — member now shows no plan');
+        document.getElementById('uf-edit-dates').style.display='none';
+        _ufPopulatePlan(cid);
+        _ufPopulatePayment(cid);
+      }}
+    ]);
+    return;
+  }
+  
   const newP=plans.find(x=>x.id===newPid);
   const planChanged=newPid&&newPid!==m.plan;
   const ns=document.getElementById('uf-edit-start').value;
@@ -7608,6 +7637,7 @@ function _ufPopulatePayment(cid){
   }
   document.getElementById('uf-pay-amt').value='';
   document.getElementById('uf-pay-notes').value='';
+  document.getElementById('uf-pay-date').value=td(); /* default to today, but staff can change for backdated/part payments */
   
   /* Auto-select Payment For based on context */
   const payForEl=document.getElementById('uf-pay-for');
@@ -7673,17 +7703,18 @@ function ufSavePayment(){
   const amt=parseFloat(document.getElementById('uf-pay-amt').value)||0;
   const mode=document.getElementById('uf-pay-mode').value;
   const notes=document.getElementById('uf-pay-notes').value.trim();
+  const payDate=document.getElementById('uf-pay-date').value||td();
   if(amt<=0){alert('Enter the amount received');return;}
   
   /* Single entry in pp_cash ONLY — no double-counting */
   const payFor=document.getElementById('uf-pay-for').value||'Membership Fee';
   const cash=ld('pp_cash',[]);
   const entryId=Date.now().toString();
-  cash.push({id:entryId,type:'in',desc:payFor,amt,date:td(),mode,cat:'Membership Fee',cid,notes});
+  cash.push({id:entryId,type:'in',desc:payFor,amt,date:payDate,mode,cat:'Membership Fee',cid,notes});
   sv('pp_cash',cash);
   
-  AUD('payment','Payment ₹'+amt+' from '+cid);
-  toast('✓ Payment ₹'+amt.toLocaleString('en-IN')+' recorded');
+  AUD('payment','Payment ₹'+amt+' from '+cid+' dated '+payDate);
+  toast('✓ Payment ₹'+amt.toLocaleString('en-IN')+' recorded for '+fmt(payDate));
   _ufPopulatePayment(cid);
   
   /* Offer to view/print receipt */
@@ -7805,12 +7836,13 @@ function ufSavePayment(){
         <div id="uf-pay-balance" style="text-align:center;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:12px;"></div>
         <div class="fr">
           <div class="fg"><label class="fl">Amount Received (₹)</label><input class="fi" id="uf-pay-amt" type="number" placeholder="0" oninput="document.getElementById('uf-pay-btn').disabled=!(parseFloat(this.value)>0);document.getElementById('uf-pay-btn').style.opacity=parseFloat(this.value)>0?'':'0.45'"/></div>
-          <div class="fg"><label class="fl">Mode</label><select class="fi" id="uf-pay-mode"></select></div>
+          <div class="fg"><label class="fl">Date Received</label><input class="fi" id="uf-pay-date" type="date"/></div>
         </div>
         <div class="fr">
+          <div class="fg"><label class="fl">Mode</label><select class="fi" id="uf-pay-mode"></select></div>
           <div class="fg"><label class="fl">Payment For</label><select class="fi" id="uf-pay-for"><option>New Member</option><option>Renewal</option><option>Plan Change</option><option>Advance</option><option>Other</option></select></div>
-          <div class="fg"><label class="fl">Notes</label><input class="fi" id="uf-pay-notes" placeholder="Reference, UPI ID…"/></div>
         </div>
+        <div class="fg"><label class="fl">Notes</label><input class="fi" id="uf-pay-notes" placeholder="Reference, UPI ID…"/></div>
         <button class="sb2" id="uf-pay-btn" onclick="ufSavePayment()" disabled style="opacity:0.45;">Save Payment & Issue Receipt</button>
         <div id="uf-pay-history" style="margin-top:12px;"></div>
         <button onclick="printLatestReceipt(document.getElementById('uf-cid').value)" class="uf-act-btn" style="width:100%;margin-top:8px;font-size:11px;">🖨 Print / Save Receipt (latest payment)</button>
