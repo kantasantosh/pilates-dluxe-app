@@ -415,7 +415,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v61</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v62</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -2237,15 +2237,11 @@ function renderSchedule(){
   document.getElementById('schedule-content').innerHTML=html;
 }
 function openBookingModal(slotIdx){
-  if(_schedDate<td()&&!ppIsAdmin()){toast('Past slots cannot be booked');return;}
+  /* Staff now has full schedule access (same as admin) — no past-date restriction */
   /* closed-day check UPFRONT — non-admin blocked, admin gets themed override */
   const _closed=ld('pp_closed_days',{});
   if(_closed[_schedDate]){
     const _rsn=_closed[_schedDate].reason?' ('+_closed[_schedDate].reason+')':'';
-    if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){
-      showConfirm('🚫','Studio Closed','The studio is closed on '+fmt(_schedDate)+_rsn+'. Booking is not allowed.',[{label:'OK',color:'var(--gold)',action:null}]);
-      return;
-    }
     showConfirm('🚫','Day Marked Closed',fmt(_schedDate)+' is marked CLOSED'+_rsn+'.<br><br>Do you still want to book on this closed day?',[
       {label:'Cancel',color:'var(--border2)',outline:true,action:null},
       {label:'Book anyway',color:'var(--gold)',action:()=>_openBookingForm(slotIdx)}
@@ -2306,14 +2302,7 @@ async function saveBooking(){
   const slotIdx=parseInt(document.getElementById('bk-slot').value);
   const slot=SLOTS[slotIdx];
   const date=document.getElementById('bk-date').value;
-  // No past bookings for staff; admin may book past slots for historical records
-  if(!ppIsAdmin()){
-    if(date<td()){toast('❌ Cannot book past dates');closeM('m-booking');return;}
-    if(date===td()){
-      const _sh=_slotHour24(slot);
-      if(_sh<new Date().getHours()){toast('❌ That slot time has already passed today');closeM('m-booking');return;}
-    }
-  }
+  /* Staff now has full schedule access (same as admin) — no past-date or time restriction */
   const cid=document.getElementById('bk-client').value;
   if(!cid){alert('Please select a client first');return;}
   /* closed-day already handled upfront at slot-tap (openBookingModal) */
@@ -4500,24 +4489,45 @@ function ppAuthGate(){
        cache clear). Try pulling pp_users from the cloud — retry a few times
        before ever concluding it's a genuine first-time studio. */
     window._gateTries=(window._gateTries||0);
-    if(window._gateTries<5 && typeof _pdb!=='undefined' && navigator.onLine!==false){
+    if(window._gateTries<8 && typeof _pdb!=='undefined' && navigator.onLine!==false){
       window._gateTries++;
-      if(lg){lg.style.display='flex';
-        const sub=document.getElementById('lg-sub');if(sub)sub.textContent='Checking cloud… ('+window._gateTries+')';
+      if(lg){
+        lg.style.display='flex';
         document.getElementById('lg-login-area').style.display='none';
         document.getElementById('lg-setup-area').style.display='none';
+        /* Show a calm, reassuring loading state — never the empty "no users" screen */
+        let loader=document.getElementById('lg-loading-area');
+        if(!loader){
+          loader=document.createElement('div');
+          loader.id='lg-loading-area';
+          loader.style.cssText='text-align:center;padding:20px 0;';
+          lg.querySelector('.lg-box').appendChild(loader);
+        }
+        loader.style.display='block';
+        loader.innerHTML='<div style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;margin:0 auto 14px;animation:spin 0.8s linear infinite;"></div><div style="font-size:13px;color:var(--text2);">Connecting to studio account…</div>';
+        if(!document.getElementById('spin-style')){
+          const st=document.createElement('style');st.id='spin-style';
+          st.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
+          document.head.appendChild(st);
+        }
       }
       _pdb.collection('pilates').doc('pp_users').get().then(d=>{
         if(d.exists&&d.data()&&d.data().value){localStorage.setItem('pp_users',d.data().value);}
       }).catch(()=>{}).then(()=>{
         const found=ppUsers().length>0;
-        if(found){ppAuthGate();}
-        else{setTimeout(()=>ppAuthGate(),1200);} /* wait & retry */
+        if(found){
+          const loader=document.getElementById('lg-loading-area');
+          if(loader)loader.style.display='none';
+          ppAuthGate();
+        }
+        else{setTimeout(()=>ppAuthGate(),900);} /* wait & retry */
       });
       return false;
     }
-    /* After retries, still no users → could be genuine first run, OR the device
-       isn't reaching the cloud. Show setup BUT with a clear recheck option. */
+    /* After all retries exhausted, still no users → genuine first run OR offline.
+       Hide the loader and show setup with a clear recheck option. */
+    const loader=document.getElementById('lg-loading-area');
+    if(loader)loader.style.display='none';
     document.getElementById('lg-login-area').style.display='none';
     document.getElementById('lg-setup-area').style.display='block';
     document.getElementById('lg-sub').textContent='Welcome · First-Time Setup';
@@ -6735,6 +6745,8 @@ function openUnified(cid,focusSection){
   /* Header */
   document.getElementById('uf-name').textContent=(c.fname||'')+' '+(c.lname||'');
   document.getElementById('uf-memno').textContent=c.memNo||'';
+  const _mEdit=document.getElementById('uf-memno-edit');
+  if(_mEdit)_mEdit.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin())?'':'none';
   document.getElementById('uf-profile-summary').textContent=_fmtPhone(c.phone)+(c.email?' · '+c.email:'');
   const phEl=document.getElementById('uf-photo');
   phEl.innerHTML=c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;"/>`:'👤';
@@ -6840,6 +6852,8 @@ function _ufPopulateProfile(c){
   if(c.bday){_bday.type='date';_bday.value=c.bday;}else{_bday.type='text';_bday.value='';}
   if(c.anni){_anni.type='date';_anni.value=c.anni;}else{_anni.type='text';_anni.value='';}
   document.getElementById('uf-join').value=c.join||c.joinDate||'';
+  const _td=document.getElementById('uf-trialdate');
+  if(_td){if(c.trialDate){_td.type='date';_td.value=c.trialDate;}else{_td.type='text';_td.value='';}}
   document.getElementById('uf-notes').value=c.notes||'';
   document.getElementById('uf-photo-data').value=c.photo||'';
   /* Ref search dropdown */
@@ -6871,6 +6885,7 @@ function ufSaveProfile(){
     bday:document.getElementById('uf-bday').value,
     anni:document.getElementById('uf-anni').value,
     join:document.getElementById('uf-join').value||old.join||td(),
+    trialDate:document.getElementById('uf-trialdate').value||old.trialDate||'',
     refId:document.getElementById('uf-ref').value||'',
     notes:document.getElementById('uf-notes').value.trim(),
     photo:document.getElementById('uf-photo-data').value||old.photo||'',
@@ -6935,7 +6950,7 @@ function _ufPopulatePlan(cid){
       <div><span class="uf-label">Period:</span> ${fmt(m.startDate)} → ${fmt(m.endDate)}</div>
       ${_isUnlimited?'<div><span class="uf-label">Attended:</span> <b>'+sessUsed+' sessions attended</b> (Unlimited)</div>':'<div><span class="uf-label">Sessions:</span> <b>'+_sessRemLabel+' sessions remaining</b></div>'}
       <div><span class="uf-label">Days:</span> <b>${daysLeft} days remaining</b> of ${totalDays}</div>
-      <div><span class="uf-label">Fee:</span> ₹${(m.fee||0).toLocaleString('en-IN')}${m.disc?' · Discount: ₹'+m.disc:''}</div>
+      <div><span class="uf-label">Fee:</span> ₹${((m.fee||0)-(m.disc||0)).toLocaleString('en-IN')}${m.disc>0?' <span style="color:var(--gold);">(₹'+m.disc+' comp. discount)</span>':''}${m.disc<0?' <span style="color:var(--gold);">(₹'+Math.abs(m.disc)+' premium added)</span>':''}</div>
       <div><span class="uf-label">Status:</span> ${statusLabel}</div>
       ${m.frozenDays||m.frozenDate||m.status==='frozen'?`<div><span class="uf-label">Freeze Info:</span> ${m.frozenDate?'Froze on '+fmt(m.frozenDate):''}${m.resumeDate?' · Resumed '+fmt(m.resumeDate):''}${m.frozenDays?' · '+m.frozenDays+' days frozen':''}</div>`:''}
       ${typeof ppIsAdmin==='function'&&ppIsAdmin()?'<div style="margin-top:6px;"><a href="#" onclick="event.preventDefault();_ufEditDates()" style="font-size:11px;color:var(--gold);">✏️ Edit dates/fee (admin)</a></div>':''}
@@ -6945,7 +6960,14 @@ function _ufPopulatePlan(cid){
         <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-edit-start" type="date"/></div>
         <div class="fg"><label class="fl">End Date</label><input class="fi" id="uf-edit-end" type="date"/></div>
       </div>
-      <div class="fg"><label class="fl">Fee (₹)</label><input class="fi" id="uf-edit-fee" type="number"/></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Fee (₹)</label><input class="fi" id="uf-edit-fee" type="number"/></div>
+        <div class="fg"><label class="fl">Discount (₹) <span style="font-size:10px;color:var(--text3);">neg. = premium</span></label><input class="fi" id="uf-edit-disc" type="number"/></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Sessions</label><input class="fi" id="uf-edit-sessions" type="number"/></div>
+        <div class="fg"><label class="fl">Status</label><select class="fi" id="uf-edit-status"><option value="active">Active</option><option value="frozen">Frozen</option><option value="expired">Expired</option></select></div>
+      </div>
       <button class="sb2" onclick="_ufSaveDates()" style="margin-top:6px;">Save Changes</button>
     </div>`;
     
@@ -7042,6 +7064,22 @@ function _ufRenderHistory(cid){
 }
 
 /* ---- EDIT DATES (admin only) ---- */
+function _ufEditMemNo(){
+  const cid=document.getElementById('uf-cid').value;
+  const clients=ld('pp_clients',[]);
+  const c=clients.find(x=>x.id===cid);if(!c)return;
+  const newId=prompt('Member ID (e.g. PP082 or T-01):',c.memNo||'');
+  if(newId===null)return; /* cancelled */
+  const trimmed=newId.trim();
+  if(!trimmed){toast('ID cannot be empty');return;}
+  const dup=clients.find(x=>x.id!==cid&&x.memNo===trimmed);
+  if(dup){toast('❌ ID already used by '+dup.fname);return;}
+  c.memNo=trimmed;
+  sv('pp_clients',clients);
+  AUD('edit_memno','Changed member ID for '+cid+' to '+trimmed);
+  toast('✓ Member ID updated to '+trimmed);
+  document.getElementById('uf-memno').textContent=trimmed;
+}
 function _ufEditDates(){
   const cid=document.getElementById('uf-cid').value;
   const mems=ld('pp_memberships',{});
@@ -7049,6 +7087,9 @@ function _ufEditDates(){
   document.getElementById('uf-edit-start').value=m.startDate||'';
   document.getElementById('uf-edit-end').value=m.endDate||'';
   document.getElementById('uf-edit-fee').value=m.fee||'';
+  document.getElementById('uf-edit-disc').value=m.disc||0;
+  document.getElementById('uf-edit-sessions').value=m.sessions||'';
+  document.getElementById('uf-edit-status').value=m.status||'active';
   document.getElementById('uf-edit-dates').style.display='';
 }
 function _ufSaveDates(){
@@ -7058,14 +7099,21 @@ function _ufSaveDates(){
   const ns=document.getElementById('uf-edit-start').value;
   const ne=document.getElementById('uf-edit-end').value;
   const nf=parseFloat(document.getElementById('uf-edit-fee').value)||m.fee||0;
+  const nd=parseFloat(document.getElementById('uf-edit-disc').value)||0;
+  const nsess=parseInt(document.getElementById('uf-edit-sessions').value);
+  const nstatus=document.getElementById('uf-edit-status').value;
   if(ns)m.startDate=ns;
   if(ne)m.endDate=ne;
   m.fee=nf;
+  m.disc=nd;
+  if(!isNaN(nsess))m.sessions=nsess;
+  if(nstatus)m.status=nstatus;
   mems[cid]=m;sv('pp_memberships',mems);
-  AUD('edit_plan','Edited dates for '+cid+': '+ns+' → '+ne+', fee ₹'+nf);
-  toast('✓ Plan dates updated');
+  AUD('edit_plan','Edited plan for '+cid+': '+ns+' → '+ne+', fee ₹'+nf+', disc ₹'+nd+', sessions '+nsess+', status '+nstatus);
+  toast('✓ Plan updated');
   document.getElementById('uf-edit-dates').style.display='none';
   _ufPopulatePlan(cid);
+  _ufPopulatePayment(cid);
 }
 
 /* ---- PLAN ACTIONS ---- */
@@ -7587,7 +7635,10 @@ function ufSavePayment(){
       <div id="uf-photo" style="width:52px;height:52px;border-radius:50%;background:var(--surface3);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:22px;flex-shrink:0;">👤</div>
       <div>
         <div id="uf-name" style="font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);"></div>
-        <div id="uf-memno" style="font-size:12px;color:var(--text2);"></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div id="uf-memno" style="font-size:12px;color:var(--text2);"></div>
+          <a href="#" id="uf-memno-edit" onclick="event.preventDefault();_ufEditMemNo()" style="display:none;font-size:10px;color:var(--gold);">✏️</a>
+        </div>
       </div>
     </div>
 
@@ -7615,6 +7666,9 @@ function ufSavePayment(){
         </div>
         <div class="fr">
           <div class="fg"><label class="fl">Joining Date</label><input class="fi" id="uf-join" type="date"/></div>
+          <div class="fg"><label class="fl">Trial Date <span style="color:var(--text3);font-weight:400;">(if any)</span></label><input class="fi" id="uf-trialdate" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
+        </div>
+        <div class="fr">
           <div class="fg">
             <label class="fl">Referred By</label>
             <div style="position:relative;">
@@ -7658,7 +7712,7 @@ function ufSavePayment(){
           </div>
           <div class="fr">
             <div class="fg"><label class="fl">Comp. Classes</label><input class="fi" id="uf-plan-bonus" type="number" value="0"/></div>
-            <div class="fg"><label class="fl">Comp. Discount (₹)</label><input class="fi" id="uf-plan-disc" type="number" value="0"/></div>
+            <div class="fg"><label class="fl">Discount (₹) <span style="font-weight:400;color:var(--text3);font-size:10px;">negative = premium</span></label><input class="fi" id="uf-plan-disc" type="number" value="0"/></div>
           </div>
           <button class="sb2" id="uf-assign-btn" onclick="ufAssignPlan()">Assign Plan</button>
         </div>
