@@ -415,7 +415,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v62</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v64</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1088,12 +1088,28 @@ function toast(msg){
 }
 
 // ===== MEMBERSHIP STATUS =====
-function getMembershipStatus(mem){
+function getMembershipStatus(mem,cid){
   if(!mem)return 'none';
   const today=new Date();today.setHours(0,0,0,0);
   const exp=new Date(mem.endDate+'T00:00:00');
   const daysLeft=Math.ceil((exp-today)/(1000*60*60*24));
-  const sessLeft=mem.sessionsLeft;
+  /* Recalculate sessions remaining FRESH from actual booking records —
+     never trust mem.sessionsLeft alone, since it can drift out of sync
+     (legacy data, manual edits, multi-device sync gaps). This is the
+     single source of truth used everywhere a "remaining" count is shown. */
+  let sessLeft=mem.sessionsLeft;
+  if(cid&&mem.plan!=='unlimited'){
+    const bookings=ld('pp_bookings',{});
+    let sessUsed=0;
+    Object.values(bookings).forEach(slots=>{
+      Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid)sessUsed++;});});
+    });
+    const sessTotal=(mem.sessions||0)+(mem.bonus||0);
+    const recalculated=Math.max(0,sessTotal-sessUsed);
+    /* Use whichever is HIGHER — protects against a stale stored field
+       showing 0 while real bookings prove sessions remain */
+    sessLeft=Math.max(sessLeft||0,recalculated);
+  }
   if(daysLeft<0||(mem.plan!=='unlimited'&&sessLeft<=0))return 'expired';
   if(daysLeft<=7)return 'expiring';
   return 'active';
@@ -1112,6 +1128,13 @@ let _payFilter='all';
 let _schedDate=td();
 
 function init(){
+  /* Auto-select content of any number input on focus, so the default 0
+     (or any existing value) doesn't need a manual delete-first step */
+  document.addEventListener('focusin',function(e){
+    if(e.target&&e.target.tagName==='INPUT'&&e.target.type==='number'){
+      e.target.select();
+    }
+  });
   const now=new Date();
   document.getElementById('top-date').textContent=now.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
   document.getElementById('top-day').textContent=now.toLocaleDateString('en-IN',{weekday:'long'});
@@ -1171,7 +1194,7 @@ function renderDash(){
   let active=0,expiring=0,expired=0,due=0;
   clients.filter(c=>!c.archived).forEach(c=>{
     const mem=mems[c.id];
-    const st=getMembershipStatus(mem);
+    const st=getMembershipStatus(mem,c.id);
     if(st==='active')active++;
     else if(st==='expiring')expiring++;
     else if(st==='expired')expired++;
@@ -1321,7 +1344,7 @@ function renderDash(){
       allClients.filter(c=>!c.archived&&c.refId).forEach(referred=>{
         // Check if referred client has an active/valid membership
         const mem=mems[referred.id];
-        const status=getMembershipStatus(mem);
+        const status=getMembershipStatus(mem,referred.id);
         if(status==='active'||status==='expiring'){
           const referrer=allClients.find(r=>r.id===referred.refId);
           if(!referrer||referrer.archived)return;
@@ -1399,7 +1422,7 @@ function _getFilteredClients(){
     if(q&&!name.includes(q)&&!phone.includes(q))return false;
     if(_clientFilter2==='inactive')return !!c.archived;
     if(c.archived)return false;
-    const st=getMembershipStatus(mems[c.id]);
+    const st=getMembershipStatus(mems[c.id],c.id);
     if(_clientFilter2==='trial'&&!c.isTrial)return false;
     if(_clientFilter2==='converted'&&c.convertedFrom!=='trial')return false;
     if(_clientFilter2==='active'&&st!=='active')return false;
@@ -1440,7 +1463,7 @@ function renderClients(){
   }
   document.getElementById('client-list').innerHTML=filtered.map(c=>{
     const mem=mems[c.id];
-    const st=getMembershipStatus(mem);
+    const st=getMembershipStatus(mem,c.id);
     const plan=mem?getPlans().find(p=>p.id===mem.plan):null;
     const badgeMap={active:'badge-active',expiring:'badge-expiring',expired:'badge-expired',none:'badge-pending'};
     const labelMap={active:'Active',expiring:'Expiring Soon',expired:'Expired',none:'No Plan'};
@@ -1467,11 +1490,11 @@ function renderClients(){
   const _allC=clients.filter(c=>!c.archived);
   const _counts={
     all:_allC.length,
-    active:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m)==='active';}).length,
+    active:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='active';}).length,
     converted:_allC.filter(c=>c.convertedFrom==='trial').length,
     trial:_allC.filter(c=>c.isTrial).length,
-    expiring:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m)==='expiring';}).length,
-    expired:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m)==='expired';}).length,
+    expiring:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expiring';}).length,
+    expired:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expired';}).length,
     due:_allC.filter(c=>{const m=mems[c.id];if(!m)return false;return getClientTotalCharged(c.id)>getClientTotalPaid(c.id);}).length,
     inactive:clients.filter(c=>c.archived).length,
   };
@@ -1495,7 +1518,7 @@ function openDetail(cid){
   const c=clients.find(cl=>cl.id===cid);
   if(!c)return;
   const mem=mems[cid];
-  const st=getMembershipStatus(mem);
+  const st=getMembershipStatus(mem,cid);
   const plan=mem?getPlans().find(p=>p.id===mem.plan):null;
   // Merge pp_payments + pp_cash entries for this client
   const cashForClient=cashEntries
@@ -1983,7 +2006,7 @@ function openPaymentModal(cid){
   cSel.innerHTML=clients.filter(c=>{
     if(c.archived)return false;
     const m=ld('pp_memberships',{})[c.id];
-    const st=getMembershipStatus(m);
+    const st=getMembershipStatus(m,c.id);
     return st!=='expired'&&st!=='none';
   }).map(c=>`<option value="${c.id}"${c.id===cid?' selected':''}>${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname}${c.isTrial?' 🎯':''}</option>`).join('');
   document.getElementById('p-amt').value='';
@@ -2261,7 +2284,7 @@ function _openBookingForm(slotIdx){
   // Show ALL clients (not just active — drop-ins and expired can also book)
   _bookClientList=clients.filter(c=>!c.archived).map(c=>{
     const mems=ld('pp_memberships',{});
-    const st=getMembershipStatus(mems[c.id]);
+    const st=getMembershipStatus(mems[c.id],c.id);
     const stLabel=st==='active'?'✓':st==='expiring'?'⚠':st==='expired'?'✗':'—';
     const mn=c.memNo?c.memNo+' — ':'';
     return {id:c.id,label:`${mn}${c.fname} ${c.lname||''} ${stLabel}`,search:`${mn}${c.fname} ${c.lname||''}`.toLowerCase()};
@@ -2392,9 +2415,9 @@ function openWA(cid){
   const plan=mem?getPlans().find(p=>p.id===mem.plan):null;
   const daysLeft=mem?getDaysLeft(mem):0;
   let msg=`Hi ${c.fname}! 👋\n\n`;
-  if(mem&&getMembershipStatus(mem)==='expiring'){
+  if(mem&&getMembershipStatus(mem,cid)==='expiring'){
     msg+=`This is a reminder that your *${plan?.name||''}* membership at our Pilates Studio expires in *${daysLeft} day${daysLeft!==1?'s':''}* (on ${fmt(mem.endDate)}).\n\nWould you like to renew? Please contact us to continue your fitness journey! 💪\n\n`;
-  } else if(mem&&getMembershipStatus(mem)==='active'){
+  } else if(mem&&getMembershipStatus(mem,cid)==='active'){
     msg+=`Your *${plan?.name||''}* membership is active until *${fmt(mem.endDate)}*.\n`;
     if(mem.plan!=='unlimited')msg+=`Sessions remaining: *${mem.sessionsLeft}*\n`;
     msg+=`\nSee you at the studio! 🏋️\n\n`;
@@ -2464,6 +2487,17 @@ function showTab(n,btn){
   }
   if(btn&&btn.classList)btn.classList.add('active');
   _activeTab=n;
+  /* Reset filters to default when freshly entering a tab from elsewhere
+     (not when returning from a deeper screen within the same tab, e.g.
+     closing the unified form) */
+  if(n==='clients'&&!window._ufReturnTab){
+    _clientFilter2='all';
+    const _search=document.getElementById('client-search');if(_search)_search.value='';
+    const _planF=document.getElementById('client-planfilter');if(_planF)_planF.value='';
+    document.querySelectorAll('#tab-clients .ftab').forEach(t=>t.classList.remove('active'));
+    const _allChip=document.querySelector('#tab-clients .ftab');
+    if(_allChip)_allChip.classList.add('active');
+  }
   /* Update fab button: purple "Trial" on dashboard, gold "+" elsewhere */
   const _fab=document.getElementById('fab-btn');
   if(_fab){
@@ -3031,7 +3065,7 @@ function shareClientList(){
   let txt=`*Pilates D'Luxe — Member Directory*\n${new Date().toLocaleDateString('en-IN')}\n\n`;
   let active=0,expiring=0;
   clients.forEach(c=>{
-    const st=getMembershipStatus(mems[c.id]);
+    const st=getMembershipStatus(mems[c.id],c.id);
     const plan=mems[c.id]?getPlans().find(p=>p.id===mems[c.id].plan):null;
     if(st==='active')active++;
     if(st==='expiring')expiring++;
@@ -5443,7 +5477,7 @@ function renderReports(){
     </div>`;
 
   /* ===== D4: Average Revenue Per Member ===== */
-  const activeMembers=clients.filter(c=>!c.archived&&mems[c.id]&&getMembershipStatus(mems[c.id])!=='expired'&&mems[c.id].plan!=='trial');
+  const activeMembers=clients.filter(c=>!c.archived&&mems[c.id]&&getMembershipStatus(mems[c.id],c.id)!=='expired'&&mems[c.id].plan!=='trial');
   const arpm=activeMembers.length?Math.round(revTotal/activeMembers.length):0;
   html+=`<div class="div-section">👤 Average Revenue / Member</div>
     <div class="card" style="margin-bottom:6px;">
@@ -5525,7 +5559,7 @@ function printMembers(){
     const m=mems[c.id];
     const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:'—';
     const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
-    const st=getMembershipStatus(m);
+    const st=getMembershipStatus(m,c.id);
     return `<tr><td>${_esc(c.memNo)}</td><td>${_esc(c.fname+' '+(c.lname||''))}</td><td>${_esc(c.phone)}</td><td>${_esc(c.email||'—')}</td><td>${_esc(plan)}</td>
       <td>${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}</td><td>${m?fmt(m.startDate):'—'}</td><td>${m?fmt(m.endDate):'—'}</td>
       <td>${m&&m.plan!=='unlimited'?(m.sessionsLeft||0)+'/'+(m.sessionsTotal||0):'—'}</td>
@@ -5561,7 +5595,7 @@ function printProfile(cid){
   if(m){
     html+=`<h2>🎟 Current Membership</h2>
     <table><tr><th style="width:28%">Plan</th><td>${_esc(plan)}</td></tr>
-    <tr><th>Period</th><td>${fmt(m.startDate)} → ${fmt(m.endDate)} (${getMembershipStatus(m)})</td></tr>
+    <tr><th>Period</th><td>${fmt(m.startDate)} → ${fmt(m.endDate)} (${getMembershipStatus(m,cid)})</td></tr>
     <tr><th>Sessions</th><td>${m.plan==='unlimited'?'Unlimited':(m.sessionsLeft!=null?m.sessionsLeft:(m.sessions||0))+' left of '+(m.sessions||m.sessionsTotal||0)}</td></tr>
     <tr><th>Fee</th><td>₹${(m.fee||0).toLocaleString('en-IN')}${(m.disc||0)>0?' − ₹'+(m.disc||0).toLocaleString('en-IN')+' complimentary = ₹'+Math.max(0,(m.fee||0)-(m.disc||0)).toLocaleString('en-IN'):''}</td></tr>
     <tr><th>Paid / Due</th><td>₹${totalPaid.toLocaleString('en-IN')} paid${due>0?' • <b>₹'+due.toLocaleString('en-IN')+' DUE</b>':' • Fully paid'}</td></tr>
@@ -6915,7 +6949,7 @@ function _ufPopulatePlan(cid){
   if(m&&m.plan){
     const p=plans.find(x=>x.id===m.plan);
     const pName=p?p.name:'Unknown';
-    const st=getMembershipStatus(m);
+    const st=getMembershipStatus(m,cid);
     const isActive=st==='active'||st==='expiring';
     const isFrozen=m.status==='frozen';
     /* Count sessions used */
@@ -6953,9 +6987,11 @@ function _ufPopulatePlan(cid){
       <div><span class="uf-label">Fee:</span> ₹${((m.fee||0)-(m.disc||0)).toLocaleString('en-IN')}${m.disc>0?' <span style="color:var(--gold);">(₹'+m.disc+' comp. discount)</span>':''}${m.disc<0?' <span style="color:var(--gold);">(₹'+Math.abs(m.disc)+' premium added)</span>':''}</div>
       <div><span class="uf-label">Status:</span> ${statusLabel}</div>
       ${m.frozenDays||m.frozenDate||m.status==='frozen'?`<div><span class="uf-label">Freeze Info:</span> ${m.frozenDate?'Froze on '+fmt(m.frozenDate):''}${m.resumeDate?' · Resumed '+fmt(m.resumeDate):''}${m.frozenDays?' · '+m.frozenDays+' days frozen':''}</div>`:''}
-      ${typeof ppIsAdmin==='function'&&ppIsAdmin()?'<div style="margin-top:6px;"><a href="#" onclick="event.preventDefault();_ufEditDates()" style="font-size:11px;color:var(--gold);">✏️ Edit dates/fee (admin)</a></div>':''}
     </div>
-    <div id="uf-edit-dates" style="display:none;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:8px;">
+    ${typeof ppIsAdmin==='function'&&ppIsAdmin()?'<button onclick="_ufEditDates()" style="width:100%;margin-top:8px;padding:10px;background:none;border:1.5px dashed var(--gold);color:var(--gold);border-radius:var(--rsm);font-size:12px;font-family:\'Jost\',sans-serif;font-weight:600;cursor:pointer;">✏️ Edit this plan — dates, fee, discount, sessions, status</button>':''}
+    <div id="uf-edit-dates" style="display:none;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:8px;border:1px solid var(--gold);">
+      <div style="font-size:11px;color:var(--amber);margin-bottom:8px;">⚠️ Correcting a wrong entry. This rewrites the current plan record directly — no history entry is created (use "Change Plan" instead if this is a genuine mid-term upgrade/downgrade for the client).</div>
+      <div class="fg"><label class="fl">Plan</label><select class="fi" id="uf-edit-plan"></select></div>
       <div class="fr">
         <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-edit-start" type="date"/></div>
         <div class="fg"><label class="fl">End Date</label><input class="fi" id="uf-edit-end" type="date"/></div>
@@ -6966,9 +7002,13 @@ function _ufPopulatePlan(cid){
       </div>
       <div class="fr">
         <div class="fg"><label class="fl">Sessions</label><input class="fi" id="uf-edit-sessions" type="number"/></div>
-        <div class="fg"><label class="fl">Status</label><select class="fi" id="uf-edit-status"><option value="active">Active</option><option value="frozen">Frozen</option><option value="expired">Expired</option></select></div>
+        <div class="fg"><label class="fl">Bonus/Complimentary</label><input class="fi" id="uf-edit-bonus" type="number"/></div>
       </div>
-      <button class="sb2" onclick="_ufSaveDates()" style="margin-top:6px;">Save Changes</button>
+      <div class="fg"><label class="fl">Status</label><select class="fi" id="uf-edit-status"><option value="active">Active</option><option value="frozen">Frozen</option><option value="expired">Expired</option></select></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="sb2" onclick="_ufSaveDates()" style="flex:1;">Save Corrected Plan</button>
+        <button onclick="document.getElementById('uf-edit-dates').style.display='none';" style="flex:0 0 auto;padding:0 16px;background:none;border:1px solid var(--border2);color:var(--text2);border-radius:var(--rsm);font-family:'Jost',sans-serif;cursor:pointer;">Cancel</button>
+      </div>
     </div>`;
     
     /* Trial plan = show "Assign First Plan" form, not action buttons */
@@ -7084,11 +7124,17 @@ function _ufEditDates(){
   const cid=document.getElementById('uf-cid').value;
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m)return;
+  const plans=getPlans();
+  const planSel=document.getElementById('uf-edit-plan');
+  planSel.innerHTML=plans.filter(p=>p.id!=='trial').map(p=>
+    `<option value="${p.id}"${p.id===m.plan?' selected':''}>${p.name} (${p.sessions>=999?'Unlimited':p.sessions+' sess'} · ${p.days}d)</option>`
+  ).join('');
   document.getElementById('uf-edit-start').value=m.startDate||'';
   document.getElementById('uf-edit-end').value=m.endDate||'';
   document.getElementById('uf-edit-fee').value=m.fee||'';
   document.getElementById('uf-edit-disc').value=m.disc||0;
   document.getElementById('uf-edit-sessions').value=m.sessions||'';
+  document.getElementById('uf-edit-bonus').value=m.bonus||0;
   document.getElementById('uf-edit-status').value=m.status||'active';
   document.getElementById('uf-edit-dates').style.display='';
 }
@@ -7096,21 +7142,48 @@ function _ufSaveDates(){
   const cid=document.getElementById('uf-cid').value;
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m)return;
+  const plans=getPlans();
+  const newPid=document.getElementById('uf-edit-plan').value;
+  const newP=plans.find(x=>x.id===newPid);
+  const planChanged=newPid&&newPid!==m.plan;
   const ns=document.getElementById('uf-edit-start').value;
-  const ne=document.getElementById('uf-edit-end').value;
+  let ne=document.getElementById('uf-edit-end').value;
   const nf=parseFloat(document.getElementById('uf-edit-fee').value)||m.fee||0;
   const nd=parseFloat(document.getElementById('uf-edit-disc').value)||0;
   const nsess=parseInt(document.getElementById('uf-edit-sessions').value);
+  const nbonus=parseInt(document.getElementById('uf-edit-bonus').value)||0;
   const nstatus=document.getElementById('uf-edit-status').value;
+  
+  if(planChanged&&newP){
+    m.plan=newPid;
+    /* Recalculate end date from the new plan's duration, using the (possibly edited) start date */
+    const sDt=new Date((ns||m.startDate)+'T00:00:00');
+    let endDt;
+    if(newP.days%30===0){
+      const months=newP.days/30;
+      endDt=new Date(sDt);endDt.setMonth(endDt.getMonth()+months);endDt.setDate(endDt.getDate()-1);
+    }else{
+      endDt=new Date(sDt);endDt.setDate(endDt.getDate()+newP.days-1);
+    }
+    ne=_localDate(endDt); /* override the end-date field with the recalculated one */
+  }
   if(ns)m.startDate=ns;
   if(ne)m.endDate=ne;
   m.fee=nf;
   m.disc=nd;
+  m.bonus=nbonus;
   if(!isNaN(nsess))m.sessions=nsess;
+  /* Recompute sessionsLeft against the (possibly new) sessions+bonus total,
+     preserving sessions already attended so far */
+  const bookings=ld('pp_bookings',{});
+  let sessUsed=0;
+  Object.values(bookings).forEach(slots=>{Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid)sessUsed++;});});});
+  const newTotal=(isNaN(nsess)?m.sessions:nsess)+nbonus;
+  m.sessionsLeft=Math.max(0,newTotal-sessUsed);
   if(nstatus)m.status=nstatus;
   mems[cid]=m;sv('pp_memberships',mems);
-  AUD('edit_plan','Edited plan for '+cid+': '+ns+' → '+ne+', fee ₹'+nf+', disc ₹'+nd+', sessions '+nsess+', status '+nstatus);
-  toast('✓ Plan updated');
+  AUD('edit_plan','Corrected plan for '+cid+(planChanged?' → plan changed to '+newP.name:'')+': '+ns+' → '+ne+', fee ₹'+nf+', disc ₹'+nd+', sessions '+nsess+'+'+nbonus+' bonus, status '+nstatus);
+  toast('✓ Plan corrected'+(planChanged?' — plan, dates & sessions all updated':''));
   document.getElementById('uf-edit-dates').style.display='none';
   _ufPopulatePlan(cid);
   _ufPopulatePayment(cid);
@@ -7487,7 +7560,7 @@ function ufDoChange(){
     status:'active',
     history:m.history,
     events:[...(m.events||[]),{type:'change',date:td(),details:{
-      from:m.plan,to:newPid,consumed,unused,netCharge,isUpgrade,sessCarried:sessLeft
+      from:m.plan,to:newPid,consumed,carryForward,netCharge,isUpgrade,sessCarried:sessLeft
     }}],
   };
   mems[cid]=newMem;
@@ -7497,7 +7570,7 @@ function ufDoChange(){
      Actual payment is entered separately via the Payment section.
      This prevents phantom credits when plans change multiple times. */
   
-  AUD('plan_change',(isUpgrade?'Upgrade':'Downgrade')+' to '+newP.name+'. Net charge ₹'+netCharge+'. Consumed ₹'+consumed+', unused ₹'+unused);
+  AUD('plan_change',(isUpgrade?'Upgrade':'Downgrade')+' to '+newP.name+'. Net charge ₹'+netCharge+'. Consumed ₹'+consumed+', carried forward ₹'+carryForward);
   toast('✓ Plan changed to '+newP.name+(isUpgrade?' (upgrade)':' (downgrade)')+'\nNet charge: ₹'+netCharge.toLocaleString('en-IN'));
   _ufPopulatePlan(cid);
   _ufPopulatePayment(cid);
@@ -7520,13 +7593,13 @@ function _ufPopulatePayment(cid){
     <div style="font-size:12px;color:var(--text3);">
       ${prevBalance>0?'Current Plan: ₹'+currentFee.toLocaleString('en-IN')+' + Previous: ₹'+prevBalance.toLocaleString('en-IN')+' = ':''}Total: ₹${fee.toLocaleString('en-IN')} · Paid: ₹${totalPaid.toLocaleString('en-IN')}
     </div>
-    <div style="font-size:16px;font-weight:700;margin-top:4px;color:${balance>0?'var(--amber)':balance<0?'var(--green)':'var(--green)'};">
-      ${balance>0?'Due: ₹'+balance.toLocaleString('en-IN'):balance<0?'Advance: ₹'+Math.abs(balance).toLocaleString('en-IN'):'✓ Settled'}
+    <div style="font-size:16px;font-weight:700;margin-top:4px;color:${balance>0?'var(--amber)':balance<0?'var(--green)':fee>0?'var(--green)':'var(--text3)'};">
+      ${balance>0?'Due: ₹'+balance.toLocaleString('en-IN'):balance<0?'Advance: ₹'+Math.abs(balance).toLocaleString('en-IN'):fee>0?'✓ Fully Paid':'No payment recorded yet'}
     </div>`;
   
   sumEl.innerHTML=balance>0?`<span style="color:var(--amber);">₹${balance.toLocaleString('en-IN')} due</span>`:
     balance<0?`<span style="color:var(--green);">₹${Math.abs(balance).toLocaleString('en-IN')} advance</span>`:
-    '<span style="color:var(--green);">✓ Settled</span>';
+    fee>0?'<span style="color:var(--green);">✓ Fully Paid</span>':'<span style="color:var(--text3);">No payment yet</span>';
   
   /* Payment mode dropdown */
   const modeEl=document.getElementById('uf-pay-mode');
