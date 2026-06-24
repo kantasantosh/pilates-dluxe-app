@@ -415,7 +415,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v60d</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v61</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1456,7 +1456,7 @@ function renderClients(){
             (mem&&mem.history&&mem.history.some(h=>h.endReason&&h.endReason.includes('Changed'))?`<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:10px;">🔀 PLAN CHANGED</span> `:'')+
             `<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
           ${mem&&!c.isTrial?(mem.plan==='unlimited'||((mem.sessions||mem.sessionsTotal||0)>=999)?`<span style="font-size:12px;color:var(--teal);">Unlimited</span>`:`<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft!=null?mem.sessionsLeft:(mem.sessions||0)} of ${mem.sessions||mem.sessionsTotal||0}</span>`):''}
-          ${(()=>{const due=(mems[c.id]?Math.max(0,(mems[c.id].fee||0)-(mems[c.id].disc||0)):0)-getClientTotalPaid(c.id);return due>0?`<span style="font-size:12px;color:var(--red);font-weight:700;">₹${due.toLocaleString('en-IN')} due</span>`:'';})()} 
+          ${(()=>{const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);return due>0?`<span style="font-size:12px;color:var(--red);font-weight:700;">₹${due.toLocaleString('en-IN')} due</span>`:'';})()} 
         </div>
       </div>
       <button onclick="event.stopPropagation();openWA('${c.id}')" style="background:none;border:none;font-size:20px;cursor:pointer;opacity:0.6;">💬</button>
@@ -1472,7 +1472,7 @@ function renderClients(){
     trial:_allC.filter(c=>c.isTrial).length,
     expiring:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m)==='expiring';}).length,
     expired:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m)==='expired';}).length,
-    due:_allC.filter(c=>{const m=mems[c.id];if(!m)return false;const f=(m.fee||0)-(m.disc||0);return f>getClientTotalPaid(c.id);}).length,
+    due:_allC.filter(c=>{const m=mems[c.id];if(!m)return false;return getClientTotalCharged(c.id)>getClientTotalPaid(c.id);}).length,
     inactive:clients.filter(c=>c.archived).length,
   };
   document.querySelectorAll('.ftabs .ftab').forEach(btn=>{
@@ -2428,7 +2428,7 @@ function applyWATemplate(){
   const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||'':'';
   const s=getStudio();
   const nm=c.fname||'there';
-  const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-getClientTotalPaid(cid):0;
+  const due=getClientTotalCharged(cid)-getClientTotalPaid(cid);
   const daysLeft=m?getDaysLeft(m):0;
   let msg='';
   switch(t){
@@ -2785,6 +2785,21 @@ function getClientTotalPaid(cid){
   const pays=ld('pp_payments',[]).filter(p=>p.cid===cid).reduce((s,p)=>s+p.amt,0);
   const cash=ld('pp_cash',[]).filter(e=>e.cid===cid&&e.type==='in').reduce((s,e)=>s+e.amt,0);
   return pays+cash;
+}
+function getClientTotalCharged(cid){
+  /* Sum ALL plan fees ever: current plan + all history entries */
+  const mems=ld('pp_memberships',{});
+  const m=mems[cid];
+  if(!m)return 0;
+  let total=(m.fee||0)-(m.disc||0);
+  if(m.history&&m.history.length){
+    m.history.forEach(h=>{
+      if(h.plan&&h.plan!=='trial'){
+        total+=(h.fee||0)-(h.disc||0);
+      }
+    });
+  }
+  return total;
 }
 
 // ===== MEMBERSHIP STATUS FIX =====
@@ -3853,7 +3868,7 @@ function openCashEntry(id,prefillCid){
     _cePick(prefillCid);
     const c=clients.find(x=>x.id===prefillCid)||{};
     const m=ld('pp_memberships',{})[prefillCid];
-    const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-getClientTotalPaid(prefillCid):0;
+    const due=getClientTotalCharged(prefillCid)-getClientTotalPaid(prefillCid);
     const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||'':'';
     document.getElementById('ce-desc').value=(plan?plan+' fee':'Membership fee')+' — '+(c.fname||'');
     document.getElementById('ce-amt').value=due>0?due:'';
@@ -3989,7 +4004,7 @@ function renderCash(){
         <div style="flex:1;">
           <div style="font-weight:600;font-size:13px;color:var(--text);">${e.desc||e.cat}</div>
           <div style="font-size:13px;color:var(--text2);">${e.type==='contra'?(e.mode||'')+' → '+(e.mode2||''):(e.mode||'')+' • '+(e.cat||'')} • ${fmt(e.date)}</div>
-          ${c?`<div style="font-size:13px;color:var(--gold);">👤 ${c.memNo||''} ${c.fname} ${c.lname}${(()=>{const _m=ld('pp_memberships',{})[e.cid];if(!_m)return '';const _f=(_m.fee||0)-(_m.disc||0);const _p=getClientTotalPaid(e.cid);const _b=_f-_p;return _b>0?' · <span style="color:var(--red);">₹'+_b.toLocaleString('en-IN')+' due</span>':_b<0?' · <span style="color:var(--green);">₹'+Math.abs(_b).toLocaleString('en-IN')+' advance</span>':' · <span style="color:var(--green);">✓ settled</span>';})()}</div>`:''}
+          ${c?`<div style="font-size:13px;color:var(--gold);">👤 ${c.memNo||''} ${c.fname} ${c.lname}${(()=>{const _b=getClientTotalCharged(e.cid)-getClientTotalPaid(e.cid);return _b>0?' · <span style="color:var(--red);">₹'+_b.toLocaleString('en-IN')+' due</span>':_b<0?' · <span style="color:var(--green);">₹'+Math.abs(_b).toLocaleString('en-IN')+' advance</span>':' · <span style="color:var(--green);">✓ settled</span>';})()}</div>`:''}
           ${e.notes?`<div style="font-size:13px;color:var(--text3);">${e.notes}</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -5499,7 +5514,7 @@ function printMembers(){
   const rows=clients.map(c=>{
     const m=mems[c.id];
     const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:'—';
-    const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-getClientTotalPaid(c.id):0;
+    const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
     const st=getMembershipStatus(m);
     return `<tr><td>${_esc(c.memNo)}</td><td>${_esc(c.fname+' '+(c.lname||''))}</td><td>${_esc(c.phone)}</td><td>${_esc(c.email||'—')}</td><td>${_esc(plan)}</td>
       <td>${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}</td><td>${m?fmt(m.startDate):'—'}</td><td>${m?fmt(m.endDate):'—'}</td>
@@ -5946,9 +5961,7 @@ function _updateModeBalance(){
     const cid=document.getElementById('ce-cid').value;
     if(cid){
       const _m=ld('pp_memberships',{})[cid];
-      const _fee=_m?((_m.fee||0)-(_m.disc||0)):0;
-      const _paid=getClientTotalPaid(cid);
-      const _due=_fee-_paid;
+      const _due=getClientTotalCharged(cid)-getClientTotalPaid(cid);
       cd.innerHTML=_due>0?'<span style="color:var(--amber);">Balance due: <b>₹'+_due.toLocaleString('en-IN')+'</b></span>':_due<0?'<span style="color:var(--green);">Advance: <b>₹'+Math.abs(_due).toLocaleString('en-IN')+'</b></span>':'<span style="color:var(--green);">✓ Settled</span>';
     }
   }
@@ -6753,7 +6766,6 @@ function closeUnified(){
   });
   if(anyOpen){
     /* Step 1: collapse all sections back to overview */
-    toast('← Back to overview');
     sections.forEach(s=>{
       const body=document.getElementById('uf-body-'+s);
       const arrow=document.getElementById('uf-'+s+'-arrow');
@@ -7296,7 +7308,7 @@ function ufAssignPlan(){
   if(!startDate){alert('Please enter the Start Date');return;}
   
   const plans=getPlans();
-  const p=plans.find(x=>x.id===pid);if(!p)return;
+  const p=plans.find(x=>x.id===pid);if(!p){toast('Plan not found');return;}
   const mems=ld('pp_memberships',{});
   const existing=mems[cid];
   
@@ -7311,6 +7323,12 @@ function ufAssignPlan(){
   }
   const endDate=_localDate(endDt);
   
+  /* Determine event type — must be BEFORE history push which references these */
+  const clients=ld('pp_clients',[]);
+  const c=clients.find(x=>x.id===cid);
+  const isTrialConvert=c&&c.memNo&&c.memNo.startsWith('T-');
+  const eventType=(!existing||!existing.plan||isTrialConvert)?'assign':'renew';
+  
   /* Push current plan to history if it exists */
   if(existing&&existing.plan){
     if(!existing.history)existing.history=[];
@@ -7319,13 +7337,6 @@ function ufAssignPlan(){
     else if(eventType==='renew')_endReason='Renewed to '+p.name;
     existing.history.push({...existing,endReason:_endReason,history:undefined,events:undefined});
   }
-  
-  /* Determine event type */
-  const clients=ld('pp_clients',[]);
-  const c=clients.find(x=>x.id===cid);
-  /* Trial conversion: check memNo (T-xx) — this is foolproof regardless of flags */
-  const isTrialConvert=c&&c.memNo&&c.memNo.startsWith('T-');
-  const eventType=(!existing||!existing.plan||isTrialConvert)?'assign':'renew';
   
   /* Create new membership */
   const _totalSess=p.sessions+(bonus||0);
@@ -7449,13 +7460,18 @@ function _ufPopulatePayment(cid){
   const mems=ld('pp_memberships',{});
   const m=mems[cid];
   const totalPaid=getClientTotalPaid(cid);
-  const fee=m?(m.fee||0)-(m.disc||0):0;
+  const fee=getClientTotalCharged(cid);
   const balance=fee-totalPaid;
   const balEl=document.getElementById('uf-pay-balance');
   const sumEl=document.getElementById('uf-pay-summary');
   
+  const currentFee=m?((m.fee||0)-(m.disc||0)):0;
+  const prevBalance=fee-currentFee; /* carried from previous plans */
+  
   balEl.innerHTML=`
-    <div style="font-size:12px;color:var(--text3);">Total Fee: ₹${fee.toLocaleString('en-IN')} · Paid: ₹${totalPaid.toLocaleString('en-IN')}</div>
+    <div style="font-size:12px;color:var(--text3);">
+      ${prevBalance>0?'Current Plan: ₹'+currentFee.toLocaleString('en-IN')+' + Previous: ₹'+prevBalance.toLocaleString('en-IN')+' = ':''}Total: ₹${fee.toLocaleString('en-IN')} · Paid: ₹${totalPaid.toLocaleString('en-IN')}
+    </div>
     <div style="font-size:16px;font-weight:700;margin-top:4px;color:${balance>0?'var(--amber)':balance<0?'var(--green)':'var(--green)'};">
       ${balance>0?'Due: ₹'+balance.toLocaleString('en-IN'):balance<0?'Advance: ₹'+Math.abs(balance).toLocaleString('en-IN'):'✓ Settled'}
     </div>`;
@@ -7638,7 +7654,7 @@ function ufSavePayment(){
           </div>
           <div class="fr">
             <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-plan-start" type="date"/></div>
-            <div class="fg"><label class="fl">Plan Fee (₹)</label><input class="fi" id="uf-plan-fee" type="number" readonly style="opacity:0.7;"/></div>
+            <div class="fg"><label class="fl">Plan Fee (₹)</label><input class="fi" id="uf-plan-fee" type="number"/></div>
           </div>
           <div class="fr">
             <div class="fg"><label class="fl">Comp. Classes</label><input class="fi" id="uf-plan-bonus" type="number" value="0"/></div>
