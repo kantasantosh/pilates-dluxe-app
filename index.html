@@ -415,7 +415,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v66</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v67</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1471,14 +1471,14 @@ function renderClients(){
       <div class="client-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
       <div class="client-info">
         <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}</div>
-        <div class="client-sub">${_fmtPhone(c.phone)}${plan?' • <b style="color:var(--gold);">'+plan.name+'</b>'+(plan.sessions&&plan.sessions!==999?' ('+plan.sessions+' sess)':''):''}</div>
+        <div class="client-sub">${_fmtPhone(c.phone)}${plan?(()=>{const _baseS=mem.sessions||plan.sessions||0;const _bonus=mem.bonus||0;const _tot=_baseS+_bonus;return ' • <b style="color:var(--gold);">'+plan.name+'</b>'+(_tot&&_tot!==999?' ('+(_bonus>0?_baseS+'+'+_bonus:_tot)+' sess)':'');})():''}</div>
         <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial '+fmt(c.trialDate):''} • 📅 ${c.isTrial?'':'Joined '}${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem&&!c.isTrial?' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
             (c.convertedFrom==='trial'?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+
             (mem&&mem.history&&mem.history.some(h=>h.endReason&&h.endReason.includes('Changed'))?`<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:10px;">🔀 PLAN CHANGED</span> `:'')+
             `<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
-          ${mem&&!c.isTrial?(mem.plan==='unlimited'||((mem.sessions||mem.sessionsTotal||0)>=999)?`<span style="font-size:12px;color:var(--teal);">Unlimited</span>`:`<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft!=null?mem.sessionsLeft:(mem.sessions||0)} of ${mem.sessions||mem.sessionsTotal||0}</span>`):''}
+          ${mem&&!c.isTrial?(mem.plan==='unlimited'||((mem.sessions||mem.sessionsTotal||0)>=999)?`<span style="font-size:12px;color:var(--teal);">Unlimited</span>`:(()=>{const _tot=(mem.sessions||mem.sessionsTotal||0)+(mem.bonus||0);return `<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft!=null?mem.sessionsLeft:_tot} of ${_tot}</span>`;})()):''}
           ${(()=>{const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);return due>0?`<span style="font-size:12px;color:var(--red);font-weight:700;">₹${due.toLocaleString('en-IN')} due</span>`:'';})()} 
         </div>
       </div>
@@ -5579,7 +5579,10 @@ function printProfile(cid){
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
   const mems=ld('pp_memberships',{});const m=mems[cid];
   const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:null;
-  const pays=ld('pp_payments',[]).filter(p=>p.cid===cid).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const _legPays=ld('pp_payments',[]).filter(p=>p.cid===cid).map(p=>({date:p.date,amt:p.amt,mode:p.mode,desc:p.forWhat||'Payment'}));
+  const _cashPays=ld('pp_cash',[]).filter(e=>e.cid===cid&&e.type==='in').map(e=>({date:e.date,amt:e.amt,mode:e.mode,desc:e.desc||'Payment'}));
+  const _seenP=new Set();
+  const pays=[..._legPays,..._cashPays].filter(p=>{const k=p.date+'_'+p.amt;if(_seenP.has(k))return false;_seenP.add(k);return true;}).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const totalPaid=getClientTotalPaid(cid);
   const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-totalPaid:0;
   const refBy=c.refId?(ld('pp_clients',[]).find(x=>x.id===c.refId)||{}).fname||'':'';
@@ -5596,14 +5599,23 @@ function printProfile(cid){
     html+=`<h2>🎟 Current Membership</h2>
     <table><tr><th style="width:28%">Plan</th><td>${_esc(plan)}</td></tr>
     <tr><th>Period</th><td>${fmt(m.startDate)} → ${fmt(m.endDate)} (${getMembershipStatus(m,cid)})</td></tr>
-    <tr><th>Sessions</th><td>${m.plan==='unlimited'?'Unlimited':(m.sessionsLeft!=null?m.sessionsLeft:(m.sessions||0))+' left of '+(m.sessions||m.sessionsTotal||0)}</td></tr>
-    <tr><th>Fee</th><td>₹${(m.fee||0).toLocaleString('en-IN')}${(m.disc||0)>0?' − ₹'+(m.disc||0).toLocaleString('en-IN')+' complimentary = ₹'+Math.max(0,(m.fee||0)-(m.disc||0)).toLocaleString('en-IN'):''}</td></tr>
+    <tr><th>Sessions</th><td>${m.plan==='unlimited'?'Unlimited':(m.sessionsLeft!=null?m.sessionsLeft:(m.sessions||0))+' left of '+((m.sessions||m.sessionsTotal||0)+(m.bonus||0))}</td></tr>
+    <tr><th>Fee</th><td>₹${(m.fee||0).toLocaleString('en-IN')}${(m.disc||0)>0?' − ₹'+(m.disc||0).toLocaleString('en-IN')+' complimentary = ₹'+Math.max(0,(m.fee||0)-(m.disc||0)).toLocaleString('en-IN'):''}${(m.disc||0)<0?' + ₹'+Math.abs(m.disc||0).toLocaleString('en-IN')+' premium = ₹'+((m.fee||0)+Math.abs(m.disc||0)).toLocaleString('en-IN'):''}</td></tr>
     <tr><th>Paid / Due</th><td>₹${totalPaid.toLocaleString('en-IN')} paid${due>0?' • <b>₹'+due.toLocaleString('en-IN')+' DUE</b>':' • Fully paid'}</td></tr>
     ${(m.bonus||0)>0?`<tr><th>Complimentary</th><td>${m.bonus} class(es)</td></tr>`:''}</table>`;
   }
+  /* ALL plan history — past plans the member has held, not just the current one */
+  if(m&&m.history&&m.history.length){
+    const allPlans=getPlans();
+    html+=`<h2>📋 Previous Plans (${m.history.length})</h2><table><tr><th>Plan</th><th>Period</th><th>Fee</th><th>Outcome</th></tr>`+
+      m.history.map(h=>{
+        const hp=allPlans.find(x=>x.id===h.plan);
+        return `<tr><td>${_esc(hp?hp.name:h.plan)}</td><td>${fmt(h.startDate)} → ${fmt(h.endDate)}</td><td>₹${(h.fee||0).toLocaleString('en-IN')}</td><td>${_esc(h.endReason||'—')}</td></tr>`;
+      }).join('')+'</table>';
+  }
   if(pays.length){
     html+=`<h2>💳 Payments (${pays.length})</h2><table><tr><th>Date</th><th>Amount</th><th>Mode</th><th>For</th></tr>`+
-      pays.map(p=>`<tr><td>${fmt(p.date)}</td><td>₹${(p.amt||0).toLocaleString('en-IN')}</td><td>${_esc(p.mode)}</td><td>${_esc(p.forWhat)}</td></tr>`).join('')+'</table>';
+      pays.map(p=>`<tr><td>${fmt(p.date)}</td><td>₹${(p.amt||0).toLocaleString('en-IN')}</td><td>${_esc(p.mode)}</td><td>${_esc(p.desc)}</td></tr>`).join('')+'</table>';
   }
   /* attendance from bookings */
   const bookings=ld('pp_bookings',{});const att=[];
@@ -7311,11 +7323,15 @@ function ufCalcChange(){
   const calcDiv=document.getElementById('uf-change-calc');
   if(!newP){calcDiv.style.display='none';return;}
   
-  const today=new Date();
+  /* The "switch moment" is the Start Date the staff enters for the new plan —
+     NOT the device's real-world clock. This is what makes backdated/future-dated
+     corrections compute correctly. */
+  const changeStart=document.getElementById('uf-change-start').value;
+  const switchDt=changeStart?new Date(changeStart+'T00:00:00'):new Date();
   const startDt=new Date(m.startDate+'T00:00:00');
   const endDt=new Date(m.endDate+'T00:00:00');
   const totalDays=Math.round((endDt-startDt)/(86400000))+1;
-  const calendarDays=Math.max(0,Math.min(totalDays,Math.round((today-startDt)/(86400000))));
+  const calendarDays=Math.max(0,Math.min(totalDays,Math.round((switchDt-startDt)/(86400000))));
   /* Subtract ACTUAL frozen days from consumption (freeze is accounting-neutral) */
   const frozenDays=m.frozenDays||0;
   const activeDays=Math.max(0,calendarDays-frozenDays);
@@ -7538,8 +7554,10 @@ function ufDoChange(){
   const m=mems[cid];if(!m)return;
   const oldP=plans.find(x=>x.id===m.plan);
   
-  /* Consumption calculation — subtract frozen days, use PAID amount for carry-forward */
-  const today=new Date();
+  /* Consumption calculation — subtract frozen days, use PAID amount for carry-forward.
+     Uses the entered Start Date (the real switch moment), NOT the device clock —
+     this must match ufCalcChange exactly so the preview and the saved result agree. */
+  const today=new Date(startDate+'T00:00:00');
   const startDt=new Date(m.startDate+'T00:00:00');
   const endDt=new Date(m.endDate+'T00:00:00');
   const totalDays=Math.round((endDt-startDt)/(86400000))+1;
