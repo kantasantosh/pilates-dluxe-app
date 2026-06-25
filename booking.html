@@ -547,7 +547,19 @@ function verifyAndConfirm(){
   if(!client){verifyGoogleUser();return;}
   const mem=_mems[client.id];
   if(!mem){showMemberError('No active membership found. Please contact the studio.');return;}
-  if(mem.plan!=='unlimited'&&mem.sessionsLeft<=0){showMemberError('You have no sessions available to book. (Any classes already booked are still confirmed.) Please renew to book more.');return;}
+  if(mem.plan!=='unlimited'&&(function(){
+    /* Never trust mem.sessionsLeft alone — a sync gap or legacy data can leave
+       it stuck at 0 while real attendance proves sessions remain. Recalculate
+       fresh, same safe pattern used on the studio admin app. */
+    let sessUsed=0;
+    Object.values(_bookings||{}).forEach(day=>Object.values(day||{}).forEach(arr=>(arr||[]).forEach(b=>{
+      if(b.cid===_memberId)sessUsed++;
+    })));
+    const sessTotal=mem.sessionsTotal||0;
+    const recalculated=Math.max(0,sessTotal-sessUsed);
+    const trustworthy=Math.max(mem.sessionsLeft||0,recalculated);
+    return trustworthy<=0;
+  })()){showMemberError('You have no sessions available to book. (Any classes already booked are still confirmed.) Please renew to book more.');return;}
   if(mem.endDate&&mem.endDate<td()){showMemberError('Your membership expired on '+formatDate(mem.endDate)+'. Please contact the studio to renew.');return;}
   if(mem.endDate&&_selDate>mem.endDate){showMemberError('Your membership is valid till '+formatDate(mem.endDate)+'. The selected date is beyond your plan validity.');return;}
   if(mem.startDate&&_selDate<mem.startDate){showMemberError('Your plan starts on '+formatDate(mem.startDate)+'. You can book classes from that date onward.');return;}
@@ -717,12 +729,27 @@ async function _doConfirmBooking(){
       pdlAlert('You already have a class booked that day. Only one class per day is allowed.');_selSlot='';renderStep1();return;
     }
     // Add booking
+    /* Count sessions used from FRESH data, BEFORE adding this new booking —
+       otherwise the booking-in-progress would be counted as already-used. */
+    let _sessUsedFresh=0;
+    Object.values(freshBk||{}).forEach(day=>Object.values(day||{}).forEach(arr=>(arr||[]).forEach(b=>{
+      if(b.cid===_memberId)_sessUsedFresh++;
+    })));
     freshBk[_selDate][_selSlot].push({cid:_memberId,notes:'Online booking',attended:false,bookedAt:new Date().toISOString()});
     // Deduct session — re-verify plan limits with fresh data (B2 enforcement)
     const mSnap=await db.collection(COL).doc('pp_memberships').get();
     const freshMems=mSnap.exists?JSON.parse(mSnap.data().value):{};
     const fm=freshMems[_memberId];
-    if(fm&&fm.plan!=='unlimited'&&(fm.sessionsLeft||0)<=0){
+    if(fm&&fm.plan!=='unlimited'&&(function(){
+      /* Never trust fm.sessionsLeft alone — recalculate fresh from real
+         attendance (counted above, before this booking was added), same safe
+         pattern used elsewhere. Protects against a stale stored field
+         wrongly blocking a member who genuinely still has sessions left. */
+      const sessTotal=fm.sessionsTotal||0;
+      const recalculated=Math.max(0,sessTotal-_sessUsedFresh);
+      const trustworthy=Math.max(fm.sessionsLeft||0,recalculated);
+      return trustworthy<=0;
+    })()){
       pdlAlert('No sessions remaining on your plan. Please renew your membership.');
       renderStep1();return;
     }

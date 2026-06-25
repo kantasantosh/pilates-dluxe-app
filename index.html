@@ -228,6 +228,7 @@ input[type="date"],input[type="date"].fi{color-scheme:dark;}
 .uf-act-btn{padding:10px 8px;border:2px solid var(--border2);border-radius:var(--rsm);background:none;color:var(--text);font-family:'Jost',sans-serif;font-weight:700;font-size:12px;cursor:pointer;text-align:center;min-width:80px;}
 .uf-act-btn:active{background:var(--surface3);border-color:var(--gold);}
 .uf-plan-info{background:var(--surface2);border-radius:var(--rsm);padding:12px;margin-bottom:8px;font-size:13px;line-height:1.8;}
+.uf-plan-info.uf-active-action{border:1.5px solid var(--gold);}
 .uf-plan-info b{color:var(--gold);}
 .uf-plan-info .uf-label{color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
 .uf-history-item{padding:8px 10px;border-left:3px solid var(--border2);margin:6px 0;font-size:12px;color:var(--text2);}
@@ -415,7 +416,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v67</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v76</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -457,7 +458,7 @@ window.addEventListener('load',()=>{
   </div>
   <div class="search-box">
     <span style="color:var(--text3);font-size:16px;">🔍</span>
-    <input id="client-search" placeholder="Search by name or phone..." oninput="renderClients()"/>
+    <input id="client-search" placeholder="🔍 Search by name, ID, phone, email, plan..." oninput="renderClients()"/>
   </div>
   <div id="client-list"></div>
 </div>
@@ -581,7 +582,7 @@ window.addEventListener('load',()=>{
     <div class="fg"><label class="fl">Notes</label>
       <input class="fi" id="rb-notes" placeholder="Any notes..."/>
     </div>
-    <button class="sb2" onclick="saveReferralBonus()" style="position:relative;z-index:1;">Save Reward</button>
+    <button class="sb2" id="rb-save-btn" onclick="saveReferralBonus()" disabled style="position:relative;z-index:1;opacity:0.45;">Save Reward</button>
   </div>
 </div>
 
@@ -608,7 +609,7 @@ window.addEventListener('load',()=>{
       <div class="fg"><label class="fl">Date</label><input class="fi" id="sadv-date" type="date"/></div>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="sadv-notes" placeholder="Reason, reference..."/></div>
-    <button class="sb2" onclick="saveStaffAdv()">Record Advance</button>
+    <button class="sb2" id="sadv-save-btn" onclick="saveStaffAdv()" disabled style="opacity:0.45;">Record Advance</button>
   </div>
 </div>
 
@@ -650,7 +651,7 @@ window.addEventListener('load',()=>{
     </div>
     <div class="fg"><label class="fl">Join Date</label><input class="fi" id="sf-join" type="date"/></div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="sf-notes" placeholder="Specialization, notes..."/></div>
-    <button class="sb2" onclick="saveStaff()">Save Staff</button>
+    <button class="sb2" id="sf-save-btn" onclick="saveStaff()" disabled style="opacity:0.45;">Save Staff</button>
   </div>
 </div>
 <!-- Add Bill/Task Combined -->
@@ -701,7 +702,7 @@ window.addEventListener('load',()=>{
       </div>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="bt-notes" placeholder="Details, vendor, reference..."/></div>
-    <button class="sb2" onclick="saveBillTask()">Save</button>
+    <button class="sb2" id="bt-save-btn" onclick="saveBillTask()" disabled style="opacity:0.45;">Save</button>
   </div>
 </div>
 
@@ -711,7 +712,7 @@ window.addEventListener('load',()=>{
     <button class="mc2" onclick="closeM('m-plans')">✕</button>
     <h2>Plan Types</h2>
     <div id="plans-list"></div>
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+    <div id="np-section" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
       <div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:10px;">+ Add New Plan</div>
       <div class="fg"><label class="fl">Plan Name</label><input class="fi" id="np-name" placeholder="e.g. Premium, Student..."/></div>
       <div class="fr">
@@ -722,7 +723,7 @@ window.addEventListener('load',()=>{
         </div>
       </div>
       <div class="fg"><label class="fl">Price (₹)</label><input class="fi" id="np-price" type="number" placeholder="0"/></div>
-      <button class="sb2" onclick="saveNewPlan()">Add Plan</button>
+      <button class="sb2" id="np-save-btn" onclick="saveNewPlan()" disabled style="opacity:0.45;">Add Plan</button>
     </div>
   </div>
 </div>
@@ -981,7 +982,7 @@ window.addEventListener('load',()=>{
       <select class="fi" id="p-for"></select>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="p-notes" placeholder="Reference, UPI ID, note..."/></div>
-    <button class="sb2" id="pay-save-btn" onclick="savePayment()">Save Receipt</button>
+    <button class="sb2" id="pay-save-btn" onclick="savePayment()" disabled style="opacity:0.45;">Save Receipt</button>
   </div>
 </div>
 
@@ -1020,13 +1021,6 @@ window.addEventListener('load',()=>{
 </div>
 
 <!-- Client Detail View -->
-<div class="mo" id="m-detail" style="align-items:flex-start;z-index:150;">
-  <div class="md" style="border-radius:0;max-height:100vh;padding-top:50px;">
-    <button class="mc2" onclick="closeM('m-detail')" style="top:14px;">✕</button>
-    <div id="detail-content"></div>
-  </div>
-</div>
-
 <!-- Send WhatsApp Reminder -->
 <div class="mo" id="m-whatsapp">
   <div class="md">
@@ -1088,28 +1082,30 @@ function toast(msg){
 }
 
 // ===== MEMBERSHIP STATUS =====
+/* ===== THE single source of truth for "sessions remaining" =====
+   mem.sessionsLeft is a STORED field that has repeatedly been proven
+   unreliable — it's only adjusted at specific moments (new booking created,
+   complimentary added) and can silently drift from reality whenever a
+   booking/attendance entry is created any other way (e.g. backfilled
+   historical attendance). It must NEVER be trusted for display or for
+   blocking a booking. Real attendance records are recounted fresh, every
+   time, everywhere this is needed. */
+function getSessionsLeft(mem,cid){
+  if(!mem||mem.plan==='unlimited')return Infinity;
+  const bookings=ld('pp_bookings',{});
+  let sessUsed=0;
+  Object.values(bookings).forEach(slots=>{
+    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
+  });
+  const sessTotal=(mem.sessions||0)+(mem.bonus||0);
+  return Math.max(0,sessTotal-sessUsed);
+}
 function getMembershipStatus(mem,cid){
   if(!mem)return 'none';
   const today=new Date();today.setHours(0,0,0,0);
   const exp=new Date(mem.endDate+'T00:00:00');
   const daysLeft=Math.ceil((exp-today)/(1000*60*60*24));
-  /* Recalculate sessions remaining FRESH from actual booking records —
-     never trust mem.sessionsLeft alone, since it can drift out of sync
-     (legacy data, manual edits, multi-device sync gaps). This is the
-     single source of truth used everywhere a "remaining" count is shown. */
-  let sessLeft=mem.sessionsLeft;
-  if(cid&&mem.plan!=='unlimited'){
-    const bookings=ld('pp_bookings',{});
-    let sessUsed=0;
-    Object.values(bookings).forEach(slots=>{
-      Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid)sessUsed++;});});
-    });
-    const sessTotal=(mem.sessions||0)+(mem.bonus||0);
-    const recalculated=Math.max(0,sessTotal-sessUsed);
-    /* Use whichever is HIGHER — protects against a stale stored field
-       showing 0 while real bookings prove sessions remain */
-    sessLeft=Math.max(sessLeft||0,recalculated);
-  }
+  const sessLeft=cid?getSessionsLeft(mem,cid):(mem.sessionsLeft!=null?mem.sessionsLeft:0);
   if(daysLeft<0||(mem.plan!=='unlimited'&&sessLeft<=0))return 'expired';
   if(daysLeft<=7)return 'expiring';
   return 'active';
@@ -1191,7 +1187,8 @@ function renderDash(){
   const mems=ld('pp_memberships',{});
   const bookings=ld('pp_bookings',{});
 
-  let active=0,expiring=0,expired=0,due=0;
+  let active=0,expiring=0,expired=0,due=0,overdueLeave=0;
+  const overdueNames=[];
   clients.filter(c=>!c.archived).forEach(c=>{
     const mem=mems[c.id];
     const st=getMembershipStatus(mem,c.id);
@@ -1202,6 +1199,11 @@ function renderDash(){
     const totalPaid=getClientTotalPaid(c.id);
     const totalCharged=getClientTotalCharged(c.id);
     if(totalCharged>totalPaid)due++;
+    // Check overdue from leave: frozen + expected return date already passed
+    if(mem&&mem.status==='frozen'&&mem.expectedReturn&&mem.expectedReturn<td()){
+      overdueLeave++;
+      overdueNames.push(c.fname+(c.lname?' '+c.lname:''));
+    }
   });
 
   // Trial conversion (all-time): trials taken vs converted to paid
@@ -1278,6 +1280,11 @@ function renderDash(){
         <div class="dash-label">Payment Due</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
       </div>
+      ${overdueLeave>0?`<div class="dash-card" style="cursor:pointer;background:rgba(231,76,60,0.12);border-color:rgba(231,76,60,0.4);" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'))" title="${overdueNames.join(', ')}">
+        <div class="dash-num" style="color:#e74c3c;">${overdueLeave}</div>
+        <div class="dash-label">Overdue from Leave</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:4px;">${overdueNames.slice(0,2).join(', ')}${overdueLeave>2?' +'+(overdueLeave-2)+' more':''}</div>
+      </div>`:''}
       <div class="dash-card teal" style="cursor:pointer;" onclick="openReports&&ppIsAdmin&&ppIsAdmin()?openReports():showTab('clients',document.querySelector('.nb:nth-child(2)'))">
         <div class="dash-num">${convPct}%</div>
         <div class="dash-label">Trial Conversion</div>
@@ -1414,12 +1421,17 @@ function goExpiring(){
 function _getFilteredClients(){
   const clients=ld('pp_clients',[]);
   const mems=ld('pp_memberships',{});
-  const q=((document.getElementById('client-search')||{}).value||'').toLowerCase();
+  const q=((document.getElementById('client-search')||{}).value||'').trim().toLowerCase();
   const planF=(document.getElementById('client-planfilter')||{}).value||'';
   return clients.filter(c=>{
-    const name=(c.fname+' '+(c.lname||'')).toLowerCase();
-    const phone=(c.phone||'').toLowerCase();
-    if(q&&!name.includes(q)&&!phone.includes(q))return false;
+    if(q){
+      /* Dynamic search — same pattern as Cash Book: one combined haystack
+         across everything that could identify a member, not just name/phone. */
+      const m=mems[c.id];
+      const planName=m?(getPlans().find(p=>p.id===m.plan)||{}).name||'':'';
+      const hay=[c.fname,c.lname,c.memNo,c.phone,c.email,planName].filter(Boolean).join(' ').toLowerCase();
+      if(!hay.includes(q))return false;
+    }
     if(_clientFilter2==='inactive')return !!c.archived;
     if(c.archived)return false;
     const st=getMembershipStatus(mems[c.id],c.id);
@@ -1477,8 +1489,24 @@ function renderClients(){
           ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
             (c.convertedFrom==='trial'?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+
             (mem&&mem.history&&mem.history.some(h=>h.endReason&&h.endReason.includes('Changed'))?`<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:10px;">🔀 PLAN CHANGED</span> `:'')+
+            (mem&&mem.status==='frozen'?(()=>{
+              /* On Leave X/Y, same calculation as the unified form's Plan section —
+                 overdue (past expected return) shown in red so it surfaces at a glance
+                 while scrolling the client list, not only after opening the member. */
+              if(!mem.frozenDate)return '<span class="badge" style="background:rgba(52,152,219,0.15);color:#3498db;border:1px solid rgba(52,152,219,0.4);">🏖 On Leave</span>';
+              const fzDt=new Date(mem.frozenDate+'T00:00:00');
+              const today=new Date();today.setHours(0,0,0,0);
+              const elapsed=Math.max(0,Math.round((today-fzDt)/86400000));
+              if(mem.expectedReturn){
+                const retDt=new Date(mem.expectedReturn+'T00:00:00');
+                const allotted=Math.max(0,Math.round((retDt-fzDt)/86400000));
+                const overdue=mem.expectedReturn<td();
+                return '<span class="badge" style="background:'+(overdue?'rgba(231,76,60,0.18)':'rgba(52,152,219,0.15)')+';color:'+(overdue?'#e74c3c':'#3498db')+';border:1px solid '+(overdue?'rgba(231,76,60,0.4)':'rgba(52,152,219,0.4)')+';">🏖 On Leave '+elapsed+'/'+allotted+(overdue?' ⚠️':'')+'</span>';
+              }
+              return '<span class="badge" style="background:rgba(52,152,219,0.15);color:#3498db;border:1px solid rgba(52,152,219,0.4);">🏖 On Leave (day '+elapsed+')</span>';
+            })()+' ':'')+
             `<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`}
-          ${mem&&!c.isTrial?(mem.plan==='unlimited'||((mem.sessions||mem.sessionsTotal||0)>=999)?`<span style="font-size:12px;color:var(--teal);">Unlimited</span>`:(()=>{const _tot=(mem.sessions||mem.sessionsTotal||0)+(mem.bonus||0);return `<span style="font-size:12px;color:var(--text2);">Left ${mem.sessionsLeft!=null?mem.sessionsLeft:_tot} of ${_tot}</span>`;})()):''}
+          ${mem&&!c.isTrial?(mem.plan==='unlimited'||((mem.sessions||mem.sessionsTotal||0)>=999)?`<span style="font-size:12px;color:var(--teal);">Unlimited</span>`:(()=>{const _tot=(mem.sessions||mem.sessionsTotal||0)+(mem.bonus||0);const _left=getSessionsLeft(mem,c.id);return `<span style="font-size:12px;color:var(--text2);">Left ${_left} of ${_tot}</span>`;})()):''}
           ${(()=>{const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);return due>0?`<span style="font-size:12px;color:var(--red);font-weight:700;">₹${due.toLocaleString('en-IN')} due</span>`:'';})()} 
         </div>
       </div>
@@ -1509,157 +1537,6 @@ function renderClients(){
 }
 
 // ===== CLIENT DETAIL =====
-function openDetail(cid){
-  const clients=ld('pp_clients',[]);
-  const mems=ld('pp_memberships',{});
-  const payments=ld('pp_payments',[]);
-  const cashEntries=ld('pp_cash',[]);
-  const bookings=ld('pp_bookings',{});
-  const c=clients.find(cl=>cl.id===cid);
-  if(!c)return;
-  const mem=mems[cid];
-  const st=getMembershipStatus(mem,cid);
-  const plan=mem?getPlans().find(p=>p.id===mem.plan):null;
-  // Merge pp_payments + pp_cash entries for this client
-  const cashForClient=cashEntries
-    .filter(e=>e.cid===cid&&e.type==='in'&&!e._legacy)
-    .map(e=>({id:e.id,cid:e.cid,amt:e.amt,date:e.date,mode:e.mode,forWhat:e.cat||e.desc,notes:e.notes,_fromCash:true}));
-  const payIds=new Set(payments.map(p=>p.id));
-  const allPays=[...payments.filter(p=>p.cid===cid),...cashForClient.filter(e=>!payIds.has(e.id))];
-  const cPays=allPays.sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const totalPaid=cPays.reduce((s,p)=>s+p.amt,0);
-  const totalDue=mem?Math.max(0,(mem.fee||0)-(mem.disc||0))-totalPaid:0;
-
-  // Count attended sessions
-  let attended=0;
-  Object.values(bookings).forEach(daySlots=>{
-    Object.values(daySlots).forEach(slotClients=>{
-      (slotClients||[]).forEach(bk=>{if(bk.cid===cid&&bk.attended)attended++;});
-    });
-  });
-
-  // Sessions progress
-  const totalSess=plan?plan.sessions:0;
-  const usedSess=mem?((mem.sessionsTotal||totalSess)-(mem.sessionsLeft||0)):0;
-  const progPct=totalSess>0?Math.min(100,Math.round(usedSess/totalSess*100)):0;
-
-  const badgeMap={active:'badge-active',expiring:'badge-expiring',expired:'badge-expired',none:'badge-pending'};
-  const labelMap={active:'Active',expiring:'Expiring Soon',expired:'Expired',none:'No Plan'};
-
-  document.getElementById('detail-content').innerHTML=`
-    <div class="detail-hero">
-      <div class="detail-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};width:64px;height:64px;overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
-      <div class="detail-meta">
-        <div style="font-size:13px;color:var(--gold);letter-spacing:1px;font-weight:700;margin-bottom:2px;">${c.memNo||''}</div>
-        <div class="detail-name">${c.fname} ${c.lname}</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">${_fmtPhone(c.phone)} ${c.email?'• '+c.email:''}</div>
-        <span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>
-      </div>
-    </div>
-
-    ${mem?`
-    <div class="card card-gold" style="margin-bottom:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-size:13px;font-weight:700;color:var(--gold)">${plan?.name||'Unknown Plan'}</div>
-
-      </div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">${fmt(mem.startDate)} → ${fmt(mem.endDate)}</div>
-      ${plan?.id!=='unlimited'?`
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:4px;">
-        <span>Sessions Used</span><span>${usedSess} / ${mem.sessionsTotal}</span>
-      </div>
-      <div class="prog-bar"><div class="prog-fill" style="width:${progPct}%"></div></div>
-      `:'<div style="font-size:12px;color:var(--teal);">✓ Unlimited plan · '+usedSess+' sessions attended</div>'}
-      ${((mem.bonus||0)>0||(mem.disc||0)>0)?`<div style="margin-top:8px;padding:6px 10px;background:rgba(201,168,76,0.1);border-radius:8px;font-size:12px;color:var(--gold);">🎁 Complimentary: ${mem.bonus||0} class(es)${(mem.disc||0)>0?' • ₹'+(mem.disc).toLocaleString('en-IN')+' off fee':''}</div>`:''}
-      ${mem.history&&mem.history.length>0?`<div style="margin-top:8px;font-size:13px;color:var(--text3);">📋 ${mem.history.length} previous membership(s) on record</div>`:''}
-    </div>
-    `:`
-    <div style="text-align:center;padding:20px;background:var(--surface2);border-radius:var(--radius);margin-bottom:12px;">
-      <div style="color:var(--text2);font-size:13px;margin-bottom:10px;">No active membership</div>
-      <button class="btn btn-gold btn-sm" onclick="closeM('m-detail');setTimeout(()=>openUnified('${cid}','plan'),150);">Assign Plan</button>
-    </div>`}
-
-    <div class="stat-row">
-      <div class="stat-box">
-        <div class="stat-num">${attended}</div>
-        <div class="stat-lbl">Attended</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num" style="color:${totalDue>0?'var(--red)':'var(--green)'};">₹${Math.abs(totalDue).toLocaleString('en-IN')}</div>
-        <div class="stat-lbl">${totalDue>0?'Due':'Advance'}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num" style="color:var(--teal);">₹${totalPaid.toLocaleString('en-IN')}</div>
-        <div class="stat-lbl">Paid Total</div>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-      <button class="btn btn-gold" onclick="closeM('m-detail');openCashEntry(null,'${cid}')" style="font-size:12px;">🧾 New Receipt</button>
-      <button class="btn btn-outline" onclick="closeM('m-detail');setTimeout(()=>openUnified('${cid}'),150)" style="font-size:12px;">✏️ Edit Profile</button>
-      <button class="btn btn-outline" onclick="openWA('${cid}');closeM('m-detail')" style="font-size:12px;">💬 WhatsApp</button>
-      <button class="btn btn-outline" onclick="closeM('m-detail');setTimeout(()=>openUnified('${cid}','plan'),150)" style="font-size:12px;">🎯 Manage Plan</button>
-    </div>
-    ${mem?`<button onclick="extendMembership('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--teal,#14b8a6);background:none;color:var(--teal,#14b8a6);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">⏸ Pause / Extend Plan (add days)</button>`:''}
-    <button onclick="printLatestReceipt('${cid}')" style="width:100%;padding:11px;border-radius:30px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">🖨 Print / Save Receipt (latest payment)</button>
-    <button onclick="showMemberQR('${cid}')" style="width:100%;padding:11px;border-radius:30px;border:1.5px solid var(--gold);background:none;color:var(--gold);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">🪪 Show / Print QR ID Card</button>
-    <button onclick="resetBookingPin('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--border2);background:none;color:var(--text2);font-family:'Jost',sans-serif;font-weight:700;font-size:12px;cursor:pointer;margin-bottom:14px;">🔓 Reset member's Booking PIN</button>
-    <button onclick="archiveClient('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--border2);background:none;color:var(--text2);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:8px;">${(ld('pp_clients',[]).find(c=>c.id===cid)||{}).archived?'✅ Reactivate Client':'⏸ Deactivate Client'}</button>
-    <button onclick="deleteClient('${cid}')" style="width:100%;padding:10px;border-radius:30px;border:1.5px solid var(--red);background:none;color:var(--red);font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:14px;">🗑 Delete (wrong entry)</button>
-
-    ${c.bday?`<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">🎂 Birthday: ${fmt(c.bday)}</div>`:''}
-    ${c.anni?`<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">💍 Anniversary: ${fmt(c.anni)}</div>`:''}
-    ${c.refId||c.ref?`
-    <div style="padding:10px 12px;background:rgba(155,114,207,0.1);border:1px solid rgba(155,114,207,0.3);border-radius:var(--rsm);margin-bottom:8px;">
-      <div style="font-size:13px;color:var(--purple);font-weight:700;margin-bottom:2px;">👥 Referred By</div>
-      <div style="font-size:13px;color:var(--text);">${(()=>{if(c.refId){const r=clients.find(cl=>cl.id===c.refId);return r?(r.memNo?r.memNo+' — ':'')+r.fname+' '+r.lname:'Unknown';}return c.ref||'';})()}</div>
-    </div>`:''}
-    <!-- Complimentary Section - always visible -->
-    <div style="padding:12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:var(--rsm);margin-bottom:10px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-size:12px;color:var(--gold);font-weight:700;">🎁 Complimentary (Classes &amp; Cash)</div>
-        <button onclick="openAddComp('${cid}',true)" style="background:var(--gold);border:none;border-radius:16px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;color:#1a1a2e;font-family:'Jost',sans-serif;">+ Add</button>
-      </div>
-      ${(()=>{
-        const referred=clients.filter(cl=>cl.refId===cid);
-        const log=(mem&&mem.compLog)||[];
-        const legacy=ld('pp_ref_bonuses',[]).filter(b=>b.refId===cid&&b.type!=='comp');
-        const pendC=ld('pp_ref_bonuses',[]).filter(b=>b.refId===cid&&b.type==='comp'&&!b.fulfilled);
-        return (referred.length?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">👥 Referred: ${referred.map(r=>r.fname).join(', ')} (${referred.length} client${referred.length>1?'s':''})</div>`:'<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">No referrals yet</div>')+
-        (log.length?log.map(e=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:var(--surface2);border-radius:8px;margin-bottom:4px;border:1px solid var(--border);">
-            <div style="font-size:16px;">🎁</div>
-            <div style="flex:1;">
-              <div style="font-size:12px;font-weight:600;color:var(--text);">${e.classes?e.classes+' complimentary class(es)':''}${e.classes&&e.cash?' + ':''}${e.cash?'₹'+e.cash.toLocaleString('en-IN')+' complimentary cash':''}</div>
-              <div style="font-size:12px;color:var(--text3);">${e.forName?'For referring '+e.forName+' • ':''}${fmt(e.date)}${e.note?' • '+e.note:''}</div>
-            </div>
-            <div style="font-size:11px;color:var(--green);font-weight:700;">✓ Applied</div>
-          </div>`).join(''):'<div style="font-size:12px;color:var(--text3);">No complimentary on current plan — tap + Add to apply instantly</div>')+
-        (pendC.length?`<div style="font-size:13px;color:var(--amber);margin-top:4px;">⏳ ${pendC.length} complimentary credit(s) pending — auto-applies when their plan is assigned</div>`:'')+
-        (legacy.length?`<div style="font-size:11px;color:var(--text3);margin-top:6px;">📜 ${legacy.length} older reward record(s) on file</div>`:'');
-      })()}
-    </div>
-    ${c.join?`<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">📅 Joined: ${fmt(c.join)}</div>`:''}
-    ${c.addr?`<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">📍 ${c.addr}</div>`:''}
-    ${c.notes?`<div style="font-size:12px;color:var(--text2);margin-bottom:14px;">📝 ${c.notes}</div>`:''}
-
-    ${cPays.length>0?`
-    <div class="div-section">Payment History</div>
-    ${cPays.map(p=>`<div class="card" style="padding:10px 12px;margin-bottom:6px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-size:12px;font-weight:600;color:var(--text);">${p.mode||''} • ${p.forWhat||''}</div>
-          <div style="font-size:13px;color:var(--text2);">${fmt(p.date)}${p.notes?' • '+p.notes:''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="color:var(--green);font-weight:700;">₹${p.amt.toLocaleString('en-IN')}</div>
-          <button onclick="closeM('m-detail');${p._fromCash?`openCashEntry('${p.id}')`:`openEditPayment('${p.id}')`}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 7px;color:var(--text2);cursor:pointer;font-size:13px;">✏️</button>
-        </div>
-      </div>
-    </div>`).join('')}`:''}
-  `;
-  openM('m-detail');
-}
 
 // ===== ADD/EDIT CLIENT =====
 function generateMemNo(){
@@ -1818,7 +1695,6 @@ function updateMemPayable(){
     mb.innerHTML=`${mode} balance: <b style="color:${b>=0?'var(--green)':'var(--red)'};">₹${b.toLocaleString('en-IN')}</b>`;
   }
 }
-function openRenewMembership(cid){openAssignMembership(cid);}
 function renderPlanChips(selected){
   const plans=getPlans().filter(p=>p.id!=='trial');
   document.getElementById('plan-chips').innerHTML=plans.map(p=>`
@@ -2014,6 +1890,7 @@ function openPaymentModal(cid){
   document.getElementById('p-notes').value='';
   refreshPaySelects();
   openM('m-payment');
+  setTimeout(()=>armDirty('m-payment','pay-save-btn'),50);
 }
 function openEditPayment(pid){
   const payments=ld('pp_payments',[]);
@@ -2028,6 +1905,7 @@ function openEditPayment(pid){
   document.getElementById('p-notes').value=p.notes||'';
   refreshPaySelects(p.mode,p.forWhat);
   openM('m-payment');
+  setTimeout(()=>armDirty('m-payment','pay-save-btn'),50);
 }
 function savePayment(){
   const cid=document.getElementById('p-cid').value;
@@ -2419,7 +2297,7 @@ function openWA(cid){
     msg+=`This is a reminder that your *${plan?.name||''}* membership at our Pilates Studio expires in *${daysLeft} day${daysLeft!==1?'s':''}* (on ${fmt(mem.endDate)}).\n\nWould you like to renew? Please contact us to continue your fitness journey! 💪\n\n`;
   } else if(mem&&getMembershipStatus(mem,cid)==='active'){
     msg+=`Your *${plan?.name||''}* membership is active until *${fmt(mem.endDate)}*.\n`;
-    if(mem.plan!=='unlimited')msg+=`Sessions remaining: *${mem.sessionsLeft}*\n`;
+    if(mem.plan!=='unlimited')msg+=`Sessions remaining: *${getSessionsLeft(mem,cid)}*\n`;
     msg+=`\nSee you at the studio! 🏋️\n\n`;
   } else {
     msg+=`We miss you at the Pilates Studio! Your membership has expired. Please contact us to renew and get back on track. 💪\n\n`;
@@ -2619,37 +2497,13 @@ function archiveClient(cid){
         sv('pp_clients',clients);
         toast(isArchived?'✅ Client reactivated':'⏸ Client deactivated — data preserved');
         renderClients();renderDash();
-        // Refresh the detail view in place
-        openDetail(cid);
+        // Refresh whichever member view is currently open
+        if(document.getElementById('m-unified').classList.contains('open'))openUnified(cid);
       }},
     ]
   );
 }
 
-function extendMembership(cid){
-  const mems=ld('pp_memberships',{});
-  const m=mems[cid];
-  if(!m){toast('No active membership to extend');return;}
-  const cur=m.endDate?fmt(m.endDate):'—';
-  themedPrompt('⏸ Pause / Extend Plan',
-    'Current expiry: '+cur+'. Enter days to ADD (e.g. 14 for a two-week pause). The end date moves forward by that many days.',
-    '',function(val){
-    if(val===null||val==='')return;
-    const days=parseInt(val);
-    if(!days||days<1){toast('Enter a valid number of days');return;}
-    const end=new Date((m.endDate||td())+'T00:00:00');
-    end.setDate(end.getDate()+days);
-    const newEnd=`${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;
-    m.endDate=newEnd;
-    m.pauseLog=m.pauseLog||[];
-    m.pauseLog.push({days,on:td(),newEnd});
-    sv('pp_memberships',mems);
-    const c=ld('pp_clients',[]).find(x=>x.id===cid);
-    if(typeof AUD==='function')AUD('⏸ Plan extended',((c?c.fname:'')+' +'+days+' days → '+fmt(newEnd)));
-    toast('✓ Plan extended by '+days+' days — now valid till '+fmt(newEnd));
-    openDetail(cid);
-  });
-}
 function deleteClient(cid){
   if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Only an admin can delete a client');return;}
   const clients=ld('pp_clients',[]);
@@ -2679,7 +2533,6 @@ function deleteClient(cid){
         const mems=ld('pp_memberships',{});if(mems[cid]){delete mems[cid];sv('pp_memberships',mems);}
         if(typeof AUD==='function')AUD('🗑 Client deleted (mistaken entry, no records)',nm);
         toast('🗑 Client deleted');
-        closeM('m-detail');
         renderClients();renderDash();
       }},
     ]
@@ -2722,6 +2575,7 @@ function openAddReferralBonus(refId){
     '<option value="">— General reward —</option>'+
     referred.map(c=>`<option value="${c.id}">${c.fname} ${c.lname}</option>`).join('');
   openM('m-refbonus');
+  setTimeout(()=>armDirty('m-refbonus','rb-save-btn'),50);
 }
 function saveReferralBonus(){
   const refId=document.getElementById('rb-refid').value;
@@ -2742,7 +2596,7 @@ function saveReferralBonus(){
   sv('pp_ref_bonuses',bonuses);
   closeM('m-refbonus');
   toast('✓ Referral reward recorded!');
-  openDetail(refId); // Refresh detail in place
+  if(document.getElementById('m-unified').classList.contains('open'))openUnified(refId); // Refresh in place
 }
 function resetAllData(){
   if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Only an admin can reset data');return;}
@@ -2801,7 +2655,7 @@ function toggleReferralBonus(refId,idx){
       toast(b.fulfilled?'✅ Reward marked as given!':'↩ Reward marked as pending');
     }
     sv('pp_ref_bonuses',bonuses);
-    openDetail(refId);
+    if(document.getElementById('m-unified').classList.contains('open'))openUnified(refId);
   }
 }
 function getClientTotalPaid(cid){
@@ -2854,6 +2708,7 @@ function openAddStaff(id){
     document.getElementById('sf-join').value=td();
   }
   openM('m-addstaff');
+  setTimeout(()=>armDirty('m-addstaff','sf-save-btn'),50);
 }
 function sendFeedback(){
   document.getElementById('fb-name').value='';
@@ -3020,63 +2875,6 @@ function copyToClipboard(text){
     document.body.removeChild(ta);toast('✓ Copied!');
   });
 }
-function shareCashReport(){
-  const cash=[...ld('pp_cash',[]),...ld('pp_payments',[]).map(p=>({type:'in',amt:p.amt,desc:p.forWhat||'Payment',date:p.date}))];
-  const now=new Date();const m=now.getMonth();const y=now.getFullYear();
-  const mCash=cash.filter(e=>{const d=new Date(e.date);return d.getMonth()===m&&d.getFullYear()===y;});
-  const totalIn=mCash.filter(e=>e.type==='in').reduce((s,e)=>s+e.amt,0);
-  const totalOut=mCash.filter(e=>e.type==='out').reduce((s,e)=>s+e.amt,0);
-  const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  let txt=`*Pilates D'Luxe — Cash Book*\n${MN[m]} ${y}\n\n`;
-  txt+=`💚 Total Credits: ₹${totalIn.toLocaleString('en-IN')}\n`;
-  txt+=`🔴 Total Debits: ₹${totalOut.toLocaleString('en-IN')}\n`;
-  txt+=`📊 Net Balance: ₹${(totalIn-totalOut).toLocaleString('en-IN')}\n\n`;
-  txt+=`*Recent Entries:*\n`;
-  mCash.sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,10).forEach(e=>{
-    txt+=(e.type==='in'?'✅':'❌')+` ${e.desc||e.cat||''} ₹${e.amt.toLocaleString('en-IN')} (${fmt(e.date)})\n`;
-  });
-  txt+=`\n_Exported from Pilates D'Luxe Studio App_`;
-  shareText(txt);
-}
-function shareSchedule(){
-  const bookings=ld('pp_bookings',{});
-  const clients=ld('pp_clients',[]);
-  const daySlots=bookings[_schedDate]||{};
-  const dt=new Date(_schedDate+'T00:00:00');
-  let txt=`*Pilates D'Luxe — Schedule*\n${dt.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}\n\n`;
-  let total=0;
-  SLOTS.forEach(s=>{
-    const bks=daySlots[s]||[];
-    if(bks.length){
-      txt+=`⏰ *${s}* (${bks.length}/${MACHINES})\n`;
-      bks.forEach(bk=>{
-        const c=clients.find(cl=>cl.id===bk.cid)||{};
-        txt+=`  ${bk.attended?'✅':'▫️'} ${c.fname||'?'} ${c.lname||''}\n`;
-      });
-      total+=bks.length;
-    }
-  });
-  txt+=`\n📊 Total: ${total} bookings\n_Pilates D'Luxe Studio App_`;
-  shareText(txt);
-}
-function shareClientList(){
-  const clients=ld('pp_clients',[]).filter(c=>!c.archived);
-  const mems=ld('pp_memberships',{});
-  let txt=`*Pilates D'Luxe — Member Directory*\n${new Date().toLocaleDateString('en-IN')}\n\n`;
-  let active=0,expiring=0;
-  clients.forEach(c=>{
-    const st=getMembershipStatus(mems[c.id],c.id);
-    const plan=mems[c.id]?getPlans().find(p=>p.id===mems[c.id].plan):null;
-    if(st==='active')active++;
-    if(st==='expiring')expiring++;
-    txt+=`${st==='active'?'✅':st==='expiring'?'⚠️':st==='expired'?'❌':'○'} ${c.fname} ${c.lname}`;
-    if(plan)txt+=` (${plan.name})`;
-    if(c.phone)txt+=` — ${c.phone}`;
-    txt+='\n';
-  });
-  txt+=`\n📊 Active: ${active} | Expiring: ${expiring}\n_Pilates D'Luxe Studio App_`;
-  shareText(txt);
-}
 
 // ===== PWA STATE FIX =====
 // Prevent app reload when returning from another app
@@ -3139,23 +2937,6 @@ function _salaryEarned(s,y,m){
     }
   }
   return {present:P,absent:A,holiday:HD,half:HALF,dim,startDay,earned:Math.round(earnedExact)};
-}
-function shareStaffSummary(){
-  const staff=ld('pp_staff',[]);
-  if(!staff.length){toast('No staff to share');return;}
-  const now=new Date();
-  const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const y=_staffM?_staffM.y:now.getFullYear();
-  const m=_staffM?_staffM.m:now.getMonth();
-  let txt="*Pilates D'Luxe — Staff Summary*\n"+MN[m]+' '+y+'\n\n';
-  staff.forEach(s=>{
-    const _r=_salaryEarned(s,y,m);
-    const present=_r.present,half=_r.half,absent=_r.absent,holiday=_r.holiday,earned=_r.earned;
-    txt+='*'+s.fname+' '+s.lname+'* ('+s.role+')\n';
-    txt+='   P:'+present+' H:'+half+' A:'+absent+' H:'+holiday+' | Payable: Rs'+earned.toLocaleString('en-IN')+'\n\n';
-  });
-  txt+='_Pilates D\'Luxe Studio App_';
-  shareText(txt);
 }
 function clearStaffSalaryHistory(sid){
   showConfirm('🗑','Clear History?','Remove all salary history for this staff member?',[
@@ -3453,6 +3234,7 @@ function openStaffAdv(sid,name){
   document.getElementById('sadv-date').value=td();
   document.getElementById('sadv-notes').value='';
   openM('m-staffadv');
+  setTimeout(()=>armDirty('m-staffadv','sadv-save-btn'),50);
 }
 function saveStaffAdv(){
   const sid=document.getElementById('sadv-sid').value;
@@ -3509,6 +3291,7 @@ function openAddBillTodo(id,type){
     }
   } else { setBTType(_btFilter==='bills'?'bill':'task'); }
   openM('m-addtodo');
+  setTimeout(()=>armDirty('m-addtodo','bt-save-btn'),50);
 }
 function setBTType(t){
   document.getElementById('bt-type').value=t;
@@ -3612,14 +3395,13 @@ function renderTodoSection(container){
 function toggleBillStatus(id){const bills=ld('pp_bills',[]);const b=bills.find(x=>x.id===id);if(b){b.status=b.status==='paid'?'due':'paid';sv('pp_bills',bills);renderBillsTasks();}}
 function toggleTodo(id){const todos=ld('pp_todos',[]);const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;sv('pp_todos',todos);renderBillsTasks();}}
 function delTodo(id){confirmDelete('🗑','Delete this task?',()=>{sv('pp_todos',ld('pp_todos',[]).filter(t=>t.id!==id));renderBillsTasks();});}
-function renderBills(){renderBillsTasks();}
-function renderTodo(){renderBillsTasks();}
 
 // ===== PLAN MANAGEMENT =====
 function getPlans(){return ld('pp_plans',PLANS);}
 function openManagePlans(){
   renderPlansList();
   openM('m-plans');
+  setTimeout(()=>armDirty('np-section','np-save-btn'),50);
 }
 function _fmtPhone(p){
   if(!p)return '';
@@ -3730,6 +3512,7 @@ function saveNewPlan(){
   renderPlansList();
   try{renderPlanChips(document.getElementById('m-plan').value);}catch(e){}
   toast('✓ Plan added!');
+  setTimeout(()=>armDirty('np-section','np-save-btn'),50);
 }
 function delPlan(idx){
   const plans=getPlans();
@@ -4411,7 +4194,7 @@ if('serviceWorker' in navigator){
     </div>
     <div class="fg"><label class="fl">Linked Staff Record (for own attendance &amp; tasks)</label><select class="fi" id="ue-staff"><option value="">— Not linked —</option></select></div>
     <div class="fg"><label class="fl">PIN (4–6 digits)</label><input class="fi" id="ue-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Leave blank to keep current PIN" autocomplete="off" name="pdl-uepin" data-1p-ignore data-lpignore="true" data-form-type="other"/></div>
-    <button class="sb2" onclick="saveUser()">Save User</button>
+    <button class="sb2" id="ue-save-btn" onclick="saveUser()" disabled style="opacity:0.45;">Save User</button>
     <button id="ue-del" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteUser()">Delete User</button>
   </div>
 </div>
@@ -4646,16 +4429,6 @@ function doLogout(){
   localStorage.removeItem('pp_session');
   setTimeout(()=>location.reload(),400);
 }
-function switchStudioAccount(){
-  showConfirm('↪','Sign out of cloud account?','This signs this device out of the studio cloud account (Firebase). You will need to sign in again with a studio email + password. Use this to switch devices or test a different account.',[
-    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
-    {label:'Sign out',color:'var(--gold)',action:()=>{
-      localStorage.removeItem('pp_session');
-      try{firebase.auth().signOut().then(()=>location.reload()).catch(()=>location.reload());}
-      catch(e){location.reload();}
-    }}
-  ]);
-}
 document.getElementById('lg-pin').addEventListener('keyup',e=>{if(e.key==='Enter')doLogin();});
 
 /* ================= ROLE APPLICATION ================= */
@@ -4814,6 +4587,7 @@ function openUserEdit(id){
     ld('pp_staff',[]).map(s=>`<option value="${s.id}"${u&&u.staffId===s.id?' selected':''}>${(s.fname+' '+(s.lname||'')).trim()} (${s.role||''})</option>`).join('');
   document.getElementById('ue-del').style.display=u?'block':'none';
   openM('m-useredit');
+  setTimeout(()=>armDirty('m-useredit','ue-save-btn'),50);
 }
 async function saveUser(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
@@ -4905,25 +4679,11 @@ function deleteUser(){
     return r;
   };
 
-  /* client detail: strip money & edit controls for staff */
-  const _oDetail=window.openDetail;
-  window.openDetail=function(){
-    const r=_oDetail.apply(this,arguments);
-    if(ppIsStaff()){
-      const dc=document.getElementById('detail-content');
-      if(dc){
-        /* staff handles registration & fee collection — payments, dues and New Receipt stay visible */
-        dc.querySelectorAll('button').forEach(b=>{
-          if(/Edit Profile|Deactivate|Reactivate|Add Reward/i.test(b.textContent))b.style.display='none';
-        });
-        /* referral cash rewards remain admin-managed */
-        Array.from(dc.children).forEach(ch=>{
-          if(((ch.textContent||'').indexOf('Referral Rewards')>-1||(ch.textContent||'').indexOf('Complimentary (Classes')>-1)&&ch.querySelector)ch.remove();
-        });
-      }
-    }
-    return r;
-  };
+  /* NOTE: a staff-restriction wrapper for the old detail page used to live here.
+     It hid Edit Profile / Deactivate / Reactivate / Add Reward buttons from staff.
+     That page no longer exists; the equivalent restriction has NOT been ported to
+     the unified member form. FLAGGED for Santosh — staff currently has unrestricted
+     access to those actions there until this is explicitly decided. */
 
   /* staff tab: limited attendance-only view for staff role */
   const _oStaff=window.renderStaff;
@@ -5158,9 +4918,8 @@ function saveComp(){
   if(typeof AUD==='function')AUD('🎁 Complimentary applied',((clients.find(x=>x.id===cid)||{}).fname||'')+': '+(classes?classes+' class(es) ':'')+(cash?'₹'+cash+' cash':'')+(forName?' (for referring '+forName+')':''));
   closeM('m-comp');
   toast('✓ Complimentary applied instantly!');
-  const fromDetail=document.getElementById('cp-fromdetail').value==='1';
   renderDash();renderClients();
-  if(fromDetail)openDetail(cid);
+  if(document.getElementById('m-unified').classList.contains('open'))openUnified(cid); // Refresh in place
 }
 
 /* ===== B2: booking limit enforcement (admin app) ===== */
@@ -5180,7 +4939,7 @@ function saveComp(){
         let problem='';
         if(!mem)problem='has no membership plan';
         else if(mem.endDate&&date>mem.endDate)problem='has a plan valid only till '+fmt(mem.endDate);
-        else if(mem.plan!=='unlimited'&&(mem.sessionsLeft||0)<=0)problem='has no sessions left on the plan';
+        else if(mem.plan!=='unlimited'&&getSessionsLeft(mem,cid)<=0)problem='has no sessions left on the plan';
         if(problem){
           if(ppIsAdmin()){
             showConfirm('⚠️','Plan Limit',nm+' '+problem+'. Book anyway?',[
@@ -5240,7 +4999,7 @@ function saveComp(){
       <div class="fg"><label class="fl">Complimentary Classes</label><input class="fi" id="cr-classes" type="number" min="0" value="1"/></div>
       <div class="fg"><label class="fl">Complimentary Cash (₹)</label><input class="fi" id="cr-cash" type="number" min="0" value="0"/></div>
     </div>
-    <button class="sb2" onclick="saveCompRule()">Save Rule</button>
+    <button class="sb2" id="cr-save-btn" onclick="saveCompRule()" disabled style="opacity:0.45;">Save Rule</button>
   </div>
 </div>
 
@@ -5254,6 +5013,7 @@ function openCompRule(){
   document.getElementById('cr-classes').value=r.classes||0;
   document.getElementById('cr-cash').value=r.cash||0;
   openM('m-comprule');
+  setTimeout(()=>armDirty('m-comprule','cr-save-btn'),50);
 }
 function saveCompRule(){
   const r={auto:document.getElementById('cr-auto').value==='1',
@@ -5562,7 +5322,7 @@ function printMembers(){
     const st=getMembershipStatus(m,c.id);
     return `<tr><td>${_esc(c.memNo)}</td><td>${_esc(c.fname+' '+(c.lname||''))}</td><td>${_esc(c.phone)}</td><td>${_esc(c.email||'—')}</td><td>${_esc(plan)}</td>
       <td>${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}</td><td>${m?fmt(m.startDate):'—'}</td><td>${m?fmt(m.endDate):'—'}</td>
-      <td>${m&&m.plan!=='unlimited'?(m.sessionsLeft||0)+'/'+(m.sessionsTotal||0):'—'}</td>
+      <td>${m&&m.plan!=='unlimited'?getSessionsLeft(m,c.id)+'/'+((m.sessions||m.sessionsTotal||0)+(m.bonus||0)):'—'}</td>
       <td>${due>0?'₹'+due.toLocaleString('en-IN'):'—'}</td><td>${st==='none'?'No Plan':st.charAt(0).toUpperCase()+st.slice(1)}</td></tr>`;
   }).join('');
   // build a readable title describing the filter
@@ -5599,7 +5359,7 @@ function printProfile(cid){
     html+=`<h2>🎟 Current Membership</h2>
     <table><tr><th style="width:28%">Plan</th><td>${_esc(plan)}</td></tr>
     <tr><th>Period</th><td>${fmt(m.startDate)} → ${fmt(m.endDate)} (${getMembershipStatus(m,cid)})</td></tr>
-    <tr><th>Sessions</th><td>${m.plan==='unlimited'?'Unlimited':(m.sessionsLeft!=null?m.sessionsLeft:(m.sessions||0))+' left of '+((m.sessions||m.sessionsTotal||0)+(m.bonus||0))}</td></tr>
+    <tr><th>Sessions</th><td>${m.plan==='unlimited'?'Unlimited':getSessionsLeft(m,cid)+' left of '+((m.sessions||m.sessionsTotal||0)+(m.bonus||0))}</td></tr>
     <tr><th>Fee</th><td>₹${(m.fee||0).toLocaleString('en-IN')}${(m.disc||0)>0?' − ₹'+(m.disc||0).toLocaleString('en-IN')+' complimentary = ₹'+Math.max(0,(m.fee||0)-(m.disc||0)).toLocaleString('en-IN'):''}${(m.disc||0)<0?' + ₹'+Math.abs(m.disc||0).toLocaleString('en-IN')+' premium = ₹'+((m.fee||0)+Math.abs(m.disc||0)).toLocaleString('en-IN'):''}</td></tr>
     <tr><th>Paid / Due</th><td>₹${totalPaid.toLocaleString('en-IN')} paid${due>0?' • <b>₹'+due.toLocaleString('en-IN')+' DUE</b>':' • Fully paid'}</td></tr>
     ${(m.bonus||0)>0?`<tr><th>Complimentary</th><td>${m.bonus} class(es)</td></tr>`:''}</table>`;
@@ -5714,24 +5474,10 @@ function injectPrintButtons(){
   const _oAR=window.applyRole;
   window.applyRole=function(){const r=_oAR.apply(this,arguments);try{injectPrintButtons();}catch(e){}return r;};
   /* profile print button inside client detail */
-  const _oOD=window.openDetail;
-  window.openDetail=function(cid){
-    const r=_oOD.apply(this,arguments);
-    try{
-      if(ppIsAdmin()){
-        const dc=document.getElementById('detail-content');
-        if(dc&&!dc.querySelector('.pp-print-prof')){
-          const b=document.createElement('button');
-          b.className='sb2 pp-print-prof';
-          b.style.cssText='background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:10px;';
-          b.textContent='🖨 Print / Save PDF — Profile & Attendance';
-          b.onclick=()=>printProfile(cid);
-          dc.appendChild(b);
-        }
-      }
-    }catch(e){}
-    return r;
-  };
+  /* NOTE: a wrapper used to inject a Print-Profile button into the old detail
+     page here. That page is gone, and the unified member form already has its
+     own working "Print Profile & Attendance" button — so removing this is pure
+     dead-code cleanup, no functionality lost. */
 })();
 </script>
 
@@ -5942,7 +5688,6 @@ function printLatestReceipt(cid){
   const payPays=ld('pp_payments',[]).filter(p=>p.cid===cid).map(p=>({src:'pay',id:p.id,date:p.date,amt:p.amt}));
   const all=[...cashPays,...payPays].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(!all.length){toast('No payment found for this member yet');return;}
-  closeM('m-detail');
   const latest=all[0];
   if(latest.src==='cash')showReceiptCash(latest.id);else showReceipt(latest.id);
 }
@@ -6215,7 +5960,7 @@ document.addEventListener('keydown',function(e){
       <div class="fg"><label class="fl">Instagram</label><input class="fi" id="st-insta"/></div>
     </div>
     <div class="fg"><label class="fl">GSTIN (optional)</label><input class="fi" id="st-gst"/></div>
-    <button class="sb2" onclick="saveStudio()">Save Studio Details</button>
+    <button class="sb2" id="st-save-btn" onclick="saveStudio()" disabled style="opacity:0.45;">Save Studio Details</button>
   </div>
 </div>
 
@@ -6231,6 +5976,7 @@ function openStudioEdit(){
   document.getElementById('st-insta').value=s.insta;
   document.getElementById('st-gst').value=s.gst||'';
   openM('m-studio');
+  setTimeout(()=>armDirty('m-studio','st-save-btn'),50);
 }
 function saveStudio(){
   const s={
@@ -6350,35 +6096,50 @@ function saveStudio(){
   <div class="md" style="max-height:90vh;overflow-y:auto;">
     <button class="mc2" onclick="closeM('m-statement')">✕</button>
     <h2>📑 Account Statement</h2>
-    <div class="fg"><label class="fl">Account / Mode(s)</label>
+    <div class="fg"><label class="fl">Account</label>
       <div id="stmt-modes" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label class="fl">From Date</label><input class="fi" id="stmt-from" type="date"/></div>
-      <div class="fg"><label class="fl">To Date</label><input class="fi" id="stmt-to" type="date"/></div>
+      <div class="fg"><label class="fl">From Date</label><input class="fi" id="stmt-from" type="date" onchange="genStatement()"/></div>
+      <div class="fg"><label class="fl">To Date</label><input class="fi" id="stmt-to" type="date" onchange="genStatement()"/></div>
     </div>
-    <button class="sb2" onclick="genStatement()">View Statement</button>
     <div id="stmt-result" style="margin-top:14px;"></div>
   </div>
 </div>
 
 <script>
-let _stmtSel=[];
+let _stmtSel='cash'; /* 'cash' or 'bank' — exactly one real account showing at a time */
 function openStatement(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
-  const modes=getPayModes();
-  _stmtSel=modes.slice();
-  document.getElementById('stmt-modes').innerHTML=modes.map(m=>`<button type="button" class="stmt-chip" data-m="${m}" onclick="toggleStmtMode('${m.replace(/'/g,"\\'")}',this)" style="background:var(--gold);border:1px solid var(--gold);color:#1a1a2e;border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;">${m}</button>`).join('');
+  _stmtSel=''; /* nothing selected by default — gold means "currently showing", not "on by default" */
+  document.getElementById('stmt-modes').innerHTML=[
+    {key:'cash',label:'💵 Cash'},
+    {key:'bank',label:'🏦 Bank (UPI/Card/Transfer/PhonePe)'}
+  ].map(a=>`<button type="button" class="stmt-chip" data-a="${a.key}" onclick="toggleStmtAccount('${a.key}',this)" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;">${a.label}</button>`).join('');
   const now=new Date();
   document.getElementById('stmt-from').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
   document.getElementById('stmt-to').value=td();
-  document.getElementById('stmt-result').innerHTML='';
+  document.getElementById('stmt-result').innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Tap Cash or Bank above to view the statement.</div>';
   openM('m-statement');
 }
-function toggleStmtMode(m,btn){
-  const i=_stmtSel.indexOf(m);
-  if(i>-1){_stmtSel.splice(i,1);btn.style.background='none';btn.style.color='var(--text2)';}
-  else{_stmtSel.push(m);btn.style.background='var(--gold)';btn.style.color='#1a1a2e';}
+function toggleStmtAccount(key,btn){
+  /* exactly one account shown at a time — tapping it shows results instantly */
+  _stmtSel=key;
+  document.querySelectorAll('#stmt-modes .stmt-chip').forEach(b=>{
+    const on=b.dataset.a===key;
+    b.style.background=on?'var(--gold)':'none';
+    b.style.borderColor=on?'var(--gold)':'var(--border2)';
+    b.style.color=on?'#1a1a2e':'var(--text2)';
+  });
+  genStatement();
+}
+/* A mode belongs to Cash only if its label literally contains "Cash" (case-insensitive).
+   Every other configured mode (UPI, Card, Bank Transfer, PhonePe, or anything Shreya
+   renames/adds) settles into the bank in real life, so it all groups under Bank. */
+function _modesForAccount(acct){
+  const all=getPayModes();
+  if(acct==='cash')return all.filter(m=>/cash/i.test(m));
+  return all.filter(m=>!/cash/i.test(m));
 }
 function _allCashEntries(){
   const cashRaw=ld('pp_cash',[]);
@@ -6389,19 +6150,23 @@ function _allCashEntries(){
 function genStatement(){
   const from=document.getElementById('stmt-from').value;
   const to=document.getElementById('stmt-to').value;
-  if(!from||!to){toast('Pick both dates');return;}
-  if(!_stmtSel.length){toast('Select at least one account');return;}
+  if(!from||!to)return; /* dates default on open; nothing to alert about here */
+  if(!_stmtSel){
+    document.getElementById('stmt-result').innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Tap Cash or Bank above to view the statement.</div>';
+    return;
+  }
+  const sel=_modesForAccount(_stmtSel); /* the real mode strings belonging to this account */
   const clients=ld('pp_clients',[]);
-  const cname=cid=>{const c=clients.find(x=>x.id===cid);return c?(c.fname+' '+(c.lname||'')).trim():'';};
-  /* opening balance: all entries for selected modes strictly before "from" */
+  const cname=cid=>{const c=clients.find(x=>x.id===cid);return c?((c.memNo?c.memNo+' — ':'')+c.fname+' '+(c.lname||'')).trim():'';};
+  /* opening balance: all entries for this account strictly before "from" */
   let opening=0;
   const all=_allCashEntries();
   all.forEach(e=>{
     if(e.date>=from)return;
     if(e.type==='contra'){
-      if(_stmtSel.includes(e.mode))opening-=e.amt;
-      if(_stmtSel.includes(e.mode2))opening+=e.amt;
-    }else if(_stmtSel.includes(e.mode)){
+      if(sel.includes(e.mode))opening-=e.amt;
+      if(sel.includes(e.mode2))opening+=e.amt;
+    }else if(sel.includes(e.mode)){
       opening+=(e.type==='in'?e.amt:-e.amt);
     }
   });
@@ -6409,10 +6174,12 @@ function genStatement(){
   const rows=[];
   all.filter(e=>e.date>=from&&e.date<=to).sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(e=>{
     if(e.type==='contra'){
-      if(_stmtSel.includes(e.mode))rows.push({date:e.date,desc:(e.desc||'Transfer')+' → '+e.mode2,out:e.amt,in:0,who:''});
-      if(_stmtSel.includes(e.mode2))rows.push({date:e.date,desc:(e.desc||'Transfer')+' ← '+e.mode,out:0,in:e.amt,who:''});
-    }else if(_stmtSel.includes(e.mode)){
-      rows.push({date:e.date,desc:(e.desc||e.cat||'')+(e.mode&&_stmtSel.length>1?' ['+e.mode+']':''),in:e.type==='in'?e.amt:0,out:e.type==='out'?e.amt:0,who:e.cid?cname(e.cid):''});
+      if(sel.includes(e.mode))rows.push({date:e.date,desc:(e.desc||'Transfer')+' → '+e.mode2,out:e.amt,in:0,who:''});
+      if(sel.includes(e.mode2))rows.push({date:e.date,desc:(e.desc||'Transfer')+' ← '+e.mode,out:0,in:e.amt,who:''});
+    }else if(sel.includes(e.mode)){
+      /* mode is ALWAYS shown — never conditional on how many modes happen to be grouped,
+         which was the bug: entries only showed their mode when 2+ modes were selected together */
+      rows.push({date:e.date,desc:(e.desc||e.cat||'')+(e.mode?' ['+e.mode+']':''),in:e.type==='in'?e.amt:0,out:e.type==='out'?e.amt:0,who:e.cid?cname(e.cid):''});
     }
   });
   let bal=opening;
@@ -6421,11 +6188,12 @@ function genStatement(){
     bal+=r.in-r.out;totIn+=r.in;totOut+=r.out;
     return `<tr><td>${fmt(r.date)}</td><td>${r.desc}${r.who?'<br><span style="font-size:11px;color:#777;">'+r.who+'</span>':''}</td><td style="text-align:right;color:#2e7d32;">${r.in?'₹'+r.in.toLocaleString('en-IN'):''}</td><td style="text-align:right;color:#b00;">${r.out?'₹'+r.out.toLocaleString('en-IN'):''}</td><td style="text-align:right;font-weight:700;">₹${bal.toLocaleString('en-IN')}</td></tr>`;
   }).join('');
+  const acctLabel=_stmtSel==='cash'?'Cash':'Bank (UPI/Card/Transfer/PhonePe)';
   const html=`<div style="background:#fff;color:#111;border-radius:10px;padding:16px;font-family:'Jost',Arial,sans-serif;" id="stmt-print-body">
     <div style="text-align:center;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:10px;">
       <div style="font-family:'Playfair Display',Georgia,serif;font-size:18px;letter-spacing:3px;">${getStudio().name}</div>
       <div style="font-size:12px;color:#555;">Account Statement</div>
-      <div style="font-size:11px;color:#777;margin-top:3px;">${_stmtSel.join(', ')} &nbsp;•&nbsp; ${fmt(from)} to ${fmt(to)}</div>
+      <div style="font-size:11px;color:#777;margin-top:3px;">${acctLabel} &nbsp;•&nbsp; ${fmt(from)} to ${fmt(to)}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px;">
       <tr style="background:#f3edd9;"><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Date</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Particulars</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:right;">Credit</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:right;">Debit</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:right;">Balance</th></tr>
@@ -6478,7 +6246,7 @@ function printStatement(){
       </div>
       <div class="fg"><label class="fl">Show until (optional)</label><input class="fi" id="an-until" type="date"/></div>
     </div>
-    <button class="sb2" onclick="saveAnnounce()">Save Announcement</button>
+    <button class="sb2" id="an-save-btn" onclick="saveAnnounce()" disabled style="opacity:0.45;">Save Announcement</button>
     <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:8px;" onclick="clearAnnounce()">Clear / Hide</button>
   </div>
 </div>
@@ -6492,6 +6260,7 @@ function openAnnounce(){
   document.getElementById('an-type').value=a.type||'info';
   document.getElementById('an-until').value=a.until||'';
   openM('m-announce');
+  setTimeout(()=>armDirty('m-announce','an-save-btn'),50);
 }
 function saveAnnounce(){
   const a={msg:document.getElementById('an-msg').value.trim(),type:document.getElementById('an-type').value,until:document.getElementById('an-until').value};
@@ -6969,7 +6738,7 @@ function _ufPopulatePlan(cid){
     let sessUsed=0;
     Object.entries(bookings).forEach(([dt,slots])=>{
       Object.values(slots).forEach(arr=>{
-        (arr||[]).forEach(b=>{if(b.cid===cid&&b.status==='present')sessUsed++;});
+        (arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});
       });
     });
     const sessTotal=(m.sessions||p?.sessions||0)+(m.bonus||0);
@@ -6982,7 +6751,21 @@ function _ufPopulatePlan(cid){
     const daysUsed=Math.max(0,Math.round((today-startDt)/(86400000)));
     const daysLeft=Math.max(0,totalDays-daysUsed);
     
-    const statusLabel=isFrozen?'<span style="color:#3498db;">❄️ Frozen</span>':
+    /* "On Leave X/Y" — X days elapsed since freezing, Y days allotted until expected return */
+    let _leaveLabel='';
+    if(isFrozen&&m.frozenDate){
+      const _fzDt=new Date(m.frozenDate+'T00:00:00');
+      const _elapsed=Math.max(0,Math.round((today-_fzDt)/(86400000)));
+      if(m.expectedReturn){
+        const _retDt=new Date(m.expectedReturn+'T00:00:00');
+        const _allotted=Math.max(0,Math.round((_retDt-_fzDt)/(86400000)));
+        const _overdue=m.expectedReturn<td();
+        _leaveLabel=`<span style="color:${_overdue?'#e74c3c':'#3498db'};">🏖 On Leave ${_elapsed}/${_allotted}${_overdue?' ⚠️ overdue':''}</span>`;
+      }else{
+        _leaveLabel=`<span style="color:#3498db;">🏖 On Leave (day ${_elapsed})</span>`;
+      }
+    }
+    const statusLabel=isFrozen?_leaveLabel:
       isActive?'<span style="color:var(--green);">● Active</span>':
       '<span style="color:var(--red);">✗ Expired</span>';
     
@@ -7002,7 +6785,7 @@ function _ufPopulatePlan(cid){
     </div>
     ${typeof ppIsAdmin==='function'&&ppIsAdmin()?'<button onclick="_ufEditDates()" style="width:100%;margin-top:8px;padding:10px;background:none;border:1.5px dashed var(--gold);color:var(--gold);border-radius:var(--rsm);font-size:12px;font-family:\'Jost\',sans-serif;font-weight:600;cursor:pointer;">✏️ Edit this plan — dates, fee, discount, sessions, status</button>':''}
     <div id="uf-edit-dates" style="display:none;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:8px;border:1px solid var(--gold);">
-      <div style="font-size:11px;color:var(--amber);margin-bottom:8px;">⚠️ Correcting a wrong entry. This rewrites the current plan record directly — no history entry is created (use "Change Plan" instead if this is a genuine mid-term upgrade/downgrade for the client).</div>
+      <div id="uf-edit-banner" style="font-size:11px;color:var(--amber);margin-bottom:8px;">⚠️ Correcting a wrong entry. This rewrites the current plan record directly — no history entry is created (use "Change Plan" instead if this is a genuine mid-term upgrade/downgrade for the client).</div>
       <div class="fg"><label class="fl">Plan</label><select class="fi" id="uf-edit-plan" onchange="_ufEditPlanChanged()"></select></div>
       <div class="fr">
         <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-edit-start" type="date"/></div>
@@ -7018,8 +6801,8 @@ function _ufPopulatePlan(cid){
       </div>
       <div class="fg"><label class="fl">Status</label><select class="fi" id="uf-edit-status"><option value="active">Active</option><option value="frozen">Frozen</option><option value="expired">Expired</option></select></div>
       <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="sb2" onclick="_ufSaveDates()" style="flex:1;">Save Corrected Plan</button>
-        <button onclick="document.getElementById('uf-edit-dates').style.display='none';" style="flex:0 0 auto;padding:0 16px;background:none;border:1px solid var(--border2);color:var(--text2);border-radius:var(--rsm);font-family:'Jost',sans-serif;cursor:pointer;">Cancel</button>
+        <button class="sb2" id="uf-edit-save-btn" onclick="_ufSaveDates()" disabled style="flex:1;opacity:0.45;">Save Corrected Plan</button>
+        <button onclick="document.getElementById('uf-edit-dates').style.display='none';window._ufEditTarget=null;" style="flex:0 0 auto;padding:0 16px;background:none;border:1px solid var(--border2);color:var(--text2);border-radius:var(--rsm);font-family:'Jost',sans-serif;cursor:pointer;">Cancel</button>
       </div>
     </div>`;
     
@@ -7033,16 +6816,18 @@ function _ufPopulatePlan(cid){
       summary.innerHTML='<span style="color:#9b59b6;">Trial · convert to regular</span>';
     }else if(isActive||isFrozen){
       actions.style.display='flex';
+      actions.style.flexWrap='wrap';
       assignDiv.style.display='none';
       if(isFrozen){
         actions.innerHTML=`
-          <button onclick="ufPlanAction('resume')" class="uf-act-btn" style="flex:1;border-color:var(--green);">▶️ Resume</button>
-          <button onclick="ufPlanAction('change')" class="uf-act-btn" style="flex:1;">🔀 Change Plan</button>`;
+          <button data-action="resume" onclick="ufPlanAction('resume')" class="uf-act-btn" style="flex:1;border-color:var(--green);">▶️ Resume</button>
+          <button data-action="change" onclick="ufPlanAction('change')" class="uf-act-btn" style="flex:1;">🔀 Change Plan</button>`;
       }else{
         actions.innerHTML=`
-          <button onclick="ufPlanAction('freeze')" class="uf-act-btn" style="flex:1;">❄️ Freeze</button>
-          <button onclick="ufPlanAction('change')" class="uf-act-btn" style="flex:1;">🔀 Change Plan</button>
-          <button onclick="ufPlanAction('extend')" class="uf-act-btn" style="flex:1;">➕ Extend</button>`;
+          <button data-action="renew" onclick="ufPlanAction('renew')" class="uf-act-btn" style="flex:1;">🔄 Renew</button>
+          <button data-action="change" onclick="ufPlanAction('change')" class="uf-act-btn" style="flex:1;">🔀 Change</button>
+          <button data-action="freeze" onclick="ufPlanAction('freeze')" class="uf-act-btn" style="flex:1;">❄️ Freeze</button>
+          <button data-action="extend" onclick="ufPlanAction('extend')" class="uf-act-btn" style="flex:1;">➕ Extend</button>`;
       }
       summary.textContent=pName+(isFrozen?' · ❄️ Frozen':' · expires '+fmt(m.endDate));
     }else{
@@ -7077,6 +6862,12 @@ function _ufPopulatePlan(cid){
   
   /* Plan history */
   _ufRenderHistory(cid);
+  /* Arm dirty-tracking scoped to JUST the assign/renew fields (not the whole
+     unified form) — Assign Plan stays disabled until something is actually
+     picked/typed, even when a date was pre-filled as a default (e.g. Renew's
+     "day after expiry" suggestion). Re-armed fresh on every render since the
+     div's fields get re-hooked safely (armDirty skips already-hooked fields). */
+  setTimeout(()=>armDirty('uf-plan-assign','uf-assign-btn'),50);
 }
 
 function ufPlanSelected(){
@@ -7095,24 +6886,92 @@ function _ufRenderHistory(cid){
   if(!hist.length&&!events.length){el.innerHTML='';return;}
   let html='';
   if(hist.length){
-    html+=hist.map(h=>{
+    html+=hist.map((h,idx)=>{
       const plans=getPlans();
       const p=plans.find(x=>x.id===h.plan);
-      return '<div class="uf-history-item"><b>'+(p?p.name:h.plan)+'</b> · '+fmt(h.startDate)+' → '+fmt(h.endDate)+'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN')+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'</div>';
+      return '<div class="uf-history-item" style="cursor:pointer;" onclick="_ufEditHistoryEntry(\''+cid+'\','+idx+')"><b>'+(p?p.name:h.plan)+'</b> · '+fmt(h.startDate)+' → '+fmt(h.endDate)+'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN')+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">✏️ tap to correct</div></div>';
     }).join('');
   }
   const evtItems=events.filter(e=>['freeze','resume','extend'].includes(e.type));
   if(evtItems.length){
-    html+=evtItems.map(e=>{
+    html+=evtItems.map((e,idx)=>{
       const d=e.details||{};
-      if(e.type==='freeze')return '<div class="uf-history-item" style="border-left-color:#3498db;">❄️ <b>Frozen</b> on '+fmt(e.date)+(d.unusedDays?' · '+d.unusedDays+' days remaining':'')+'</div>';
-      if(e.type==='resume')return '<div class="uf-history-item" style="border-left-color:#2ecc71;">▶️ <b>Resumed</b> on '+fmt(e.date)+(d.actualFrozen?' · was frozen '+d.actualFrozen+' days':'')+(d.newExpiry?' · new expiry '+fmt(d.newExpiry):'')+'</div>';
-      if(e.type==='extend')return '<div class="uf-history-item" style="border-left-color:var(--gold);">➕ <b>Extended</b> on '+fmt(e.date)+(d.days?' by '+d.days+' days':'')+(d.reason?' · '+d.reason:'')+'</div>';
+      const isLatest=idx===evtItems.length-1;
+      const clickAttr=isLatest?' style="cursor:pointer;border-left-color:'+(e.type==='freeze'?'#3498db':e.type==='resume'?'#2ecc71':'var(--gold)')+';" onclick="_ufEditLatestEvent(\''+cid+'\',\''+e.type+'\')"':' style="border-left-color:'+(e.type==='freeze'?'#3498db':e.type==='resume'?'#2ecc71':'var(--gold)')+';opacity:0.7;"';
+      const tapHint=isLatest?'<div style="font-size:10px;color:var(--text3);margin-top:3px;">✏️ tap to correct</div>':'';
+      if(e.type==='freeze')return '<div class="uf-history-item"'+clickAttr+'>❄️ <b>Frozen</b> on '+fmt(e.date)+(d.unusedDays?' · '+d.unusedDays+' days remaining':'')+tapHint+'</div>';
+      if(e.type==='resume')return '<div class="uf-history-item"'+clickAttr+'>▶️ <b>Resumed</b> on '+fmt(e.date)+(d.actualFrozen?' · was frozen '+d.actualFrozen+' days':'')+(d.newExpiry?' · new expiry '+fmt(d.newExpiry):'')+tapHint+'</div>';
+      if(e.type==='extend')return '<div class="uf-history-item"'+clickAttr+'>➕ <b>Extended</b> on '+fmt(e.date)+(d.days?' by '+d.days+' days':'')+(d.reason?' · '+d.reason:'')+tapHint+'</div>';
       return '';
     }).join('');
   }
   const total=hist.length+evtItems.length;
   el.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;">📋 History ('+total+')</div><div>'+html+'</div>';
+}
+
+/* Tapping a PAST plan entry opens the same Edit-plan panel, pre-filled with
+   that historical entry's own values. Saving writes back into history[idx]
+   only — it never touches the live/current plan. If the client has ANY
+   payment records, we can't tell which historical period they belong to
+   (payments aren't linked per-plan-period today), so we warn clearly rather
+   than silently imply the correction also fixed any related money. */
+function _ufEditHistoryEntry(cid,idx){
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const mems=ld('pp_memberships',{});
+  const m=mems[cid];if(!m||!m.history||!m.history[idx])return;
+  const cash=ld('pp_cash',[]).filter(e=>e.cid===cid).length;
+  const pays=ld('pp_payments',[]).filter(p=>p.cid===cid).length;
+  const proceed=()=>{
+    window._ufEditTarget={cid,kind:'history',idx};
+    const h=m.history[idx];
+    const plans=getPlans();
+    const planSel=document.getElementById('uf-edit-plan');
+    planSel.innerHTML=plans.filter(p=>p.id!=='trial').map(p=>
+      `<option value="${p.id}"${p.id===h.plan?' selected':''}>${p.name} — ${p.sessions>=999?'Unlimited':p.sessions+' sess'} · ${p.days}d · ₹${p.price.toLocaleString('en-IN')}</option>`
+    ).join('');
+    document.getElementById('uf-edit-start').value=h.startDate||'';
+    document.getElementById('uf-edit-end').value=h.endDate||'';
+    document.getElementById('uf-edit-fee').value=h.fee||'';
+    document.getElementById('uf-edit-disc').value=h.disc||0;
+    document.getElementById('uf-edit-sessions').value=h.sessions||'';
+    document.getElementById('uf-edit-bonus').value=h.bonus||0;
+    document.getElementById('uf-edit-status').value='active';
+    document.getElementById('uf-edit-banner').innerHTML='⚠️ Correcting a PAST plan entry (history). This does NOT affect the member\'s current plan.';
+    document.getElementById('uf-edit-dates').style.display='';
+    document.getElementById('uf-edit-dates').scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(()=>armDirty('uf-edit-dates','uf-edit-save-btn'),50);
+  };
+  if(cash||pays){
+    showConfirm('🔒','Has Payment Records',
+      'This client has '+(cash+pays)+' payment record'+((cash+pays)===1?'':'s')+'. Payments are not linked to a specific past plan period, so correcting this history entry will NOT move, adjust, or fix any payment. Only this entry\'s own dates/fee/sessions will change.<br><br>If a PAYMENT amount or date is wrong, fix it from the Cash Book instead.',
+      [{label:'Cancel',color:'var(--border2)',outline:true,action:null},
+       {label:'Continue Anyway',color:'var(--amber)',action:proceed}]);
+  }else{
+    proceed();
+  }
+}
+
+/* Tapping the MOST RECENT freeze/resume/extend event opens a small correction
+   form for just the fields that event represents, writing back into the
+   CURRENT membership's freeze fields (there is no separate stored record per
+   freeze — only the latest one is still reflected in the live plan's dates).
+   Older freeze/resume/extend lines are NOT clickable: their effect has
+   already been absorbed into dates that have since moved on, so there is
+   nothing live left to correct. */
+function _ufEditLatestEvent(cid,type){
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const mems=ld('pp_memberships',{});
+  const m=mems[cid];if(!m)return;
+  if(type==='freeze'||type==='resume'){
+    ufPlanAction('freeze');
+    document.getElementById('uf-freeze-from').value=m.frozenDate||'';
+    document.getElementById('uf-freeze-return').value=m.expectedReturn||'';
+    toast('Correcting the freeze dates — re-confirm to save changes');
+  }else if(type==='extend'){
+    ufPlanAction('extend');
+    toast('Re-enter the corrected number of days and reason, then confirm');
+  }
+  document.getElementById('uf-plan-subform').scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 /* ---- EDIT DATES (admin only) ---- */
@@ -7134,6 +6993,7 @@ function _ufEditMemNo(){
 }
 function _ufEditDates(){
   const cid=document.getElementById('uf-cid').value;
+  window._ufEditTarget={cid,kind:'live'};
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m)return;
   const plans=getPlans();
@@ -7149,7 +7009,9 @@ function _ufEditDates(){
   document.getElementById('uf-edit-sessions').value=m.sessions||'';
   document.getElementById('uf-edit-bonus').value=m.bonus||0;
   document.getElementById('uf-edit-status').value=m.status||'active';
+  document.getElementById('uf-edit-banner').innerHTML='⚠️ Correcting a wrong entry. This rewrites the current plan record directly — no history entry is created (use "Change Plan" instead if this is a genuine mid-term upgrade/downgrade for the client).';
   document.getElementById('uf-edit-dates').style.display='';
+  setTimeout(()=>armDirty('uf-edit-dates','uf-edit-save-btn'),50);
 }
 function _ufEditPlanChanged(){
   const pid=document.getElementById('uf-edit-plan').value;
@@ -7162,12 +7024,40 @@ function _ufEditPlanChanged(){
   document.getElementById('uf-edit-sessions').value=p.sessions;
 }
 function _ufSaveDates(){
-  const cid=document.getElementById('uf-cid').value;
+  const target=window._ufEditTarget||{kind:'live'};
+  const cid=target.cid||document.getElementById('uf-cid').value;
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m)return;
   const plans=getPlans();
   const newPid=document.getElementById('uf-edit-plan').value;
   
+  /* ===== Correcting a PAST plan entry (history) — simple, isolated write.
+     Never touches the live plan, never recomputes sessionsLeft/attendance
+     (that's only meaningful for the plan currently governing bookings),
+     and "remove entirely" doesn't apply here — a history row is just
+     deleted via its own action if ever needed, not via this form. ===== */
+  if(target.kind==='history'){
+    if(!newPid){toast('Select a plan');return;}
+    const h=m.history[target.idx];if(!h)return;
+    const newP=plans.find(x=>x.id===newPid);
+    h.plan=newPid;
+    h.startDate=document.getElementById('uf-edit-start').value||h.startDate;
+    h.endDate=document.getElementById('uf-edit-end').value||h.endDate;
+    h.fee=parseFloat(document.getElementById('uf-edit-fee').value)||0;
+    h.disc=parseFloat(document.getElementById('uf-edit-disc').value)||0;
+    h.sessions=parseInt(document.getElementById('uf-edit-sessions').value)||0;
+    h.bonus=parseInt(document.getElementById('uf-edit-bonus').value)||0;
+    mems[cid]=m;sv('pp_memberships',mems);
+    AUD('edit_history','Corrected a past plan entry for '+cid+' (entry #'+(target.idx+1)+'): '+(newP?newP.name:newPid)+', ₹'+h.fee);
+    toast('✓ Past entry corrected — current plan unaffected');
+    document.getElementById('uf-edit-dates').style.display='none';
+    window._ufEditTarget=null;
+    _ufPopulatePlan(cid);
+    _ufPopulatePayment(cid);
+    return;
+  }
+  
+  /* ===== Correcting the LIVE/current plan — unchanged from before ===== */
   /* "— No plan / remove —" selected → delete the plan entirely, with confirmation */
   if(!newPid){
     showConfirm('🗑','Remove Plan Entirely','This will completely remove the current plan from this member — as if no plan was ever assigned. This cannot be undone. Are you sure?',[
@@ -7178,6 +7068,7 @@ function _ufSaveDates(){
         AUD('edit_plan','Removed plan entirely for '+cid);
         toast('✓ Plan removed — member now shows no plan');
         document.getElementById('uf-edit-dates').style.display='none';
+        window._ufEditTarget=null;
         _ufPopulatePlan(cid);
         _ufPopulatePayment(cid);
       }}
@@ -7226,6 +7117,7 @@ function _ufSaveDates(){
   AUD('edit_plan','Corrected plan for '+cid+(planChanged?' → plan changed to '+newP.name:'')+': '+ns+' → '+ne+', fee ₹'+nf+', disc ₹'+nd+', sessions '+nsess+'+'+nbonus+' bonus, status '+nstatus);
   toast('✓ Plan corrected'+(planChanged?' — plan, dates & sessions all updated':''));
   document.getElementById('uf-edit-dates').style.display='none';
+  window._ufEditTarget=null;
   _ufPopulatePlan(cid);
   _ufPopulatePayment(cid);
 }
@@ -7239,6 +7131,28 @@ function ufPlanAction(action){
   const plans=getPlans();
   const p=plans.find(x=>x.id===m.plan);
   
+  /* Chip-style highlighting: gold = currently open. Tapping the SAME chip
+     again closes the form (toggle), matching how the rest of the app's
+     chip selectors behave. Tapping a DIFFERENT chip swaps the form and
+     moves the highlight — only one sub-form is ever open at a time. */
+  const actionsBar=document.getElementById('uf-plan-actions');
+  const alreadyOpen=subform.style.display!=='none'&&subform.dataset.action===action;
+  if(actionsBar){
+    actionsBar.querySelectorAll('.uf-act-btn').forEach(b=>{
+      const on=!alreadyOpen&&b.dataset.action===action;
+      b.style.background=on?'var(--gold)':'none';
+      b.style.color=on?'#1a1a2e':'var(--text)';
+      b.style.borderColor=on?'var(--gold)':(b.dataset.action==='resume'?'var(--green)':'var(--border2)');
+    });
+  }
+  if(alreadyOpen){
+    subform.style.display='none';
+    subform.innerHTML='';
+    subform.dataset.action='';
+    return;
+  }
+  subform.dataset.action=action;
+  
   /* Calculate days/sessions used */
   const today=new Date();
   const startDt=new Date(m.startDate+'T00:00:00');
@@ -7249,49 +7163,63 @@ function ufPlanAction(action){
   const bookings=ld('pp_bookings',{});
   let sessUsed=0;
   Object.entries(bookings).forEach(([dt,slots])=>{
-    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.status==='present')sessUsed++;});});
+    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
   });
   const sessTotal=(m.sessions||p?.sessions||0)+(m.bonus||0);
   const sessLeft=Math.max(0,sessTotal-sessUsed);
 
-  if(action==='freeze'){
-    subform.innerHTML=`<div class="uf-plan-info">
-      <div class="uf-label">❄️ Freeze Plan</div>
-      <div style="margin:8px 0;">Days remaining: <b>${daysLeft}</b> · Sessions remaining: <b>${sessLeft}</b></div>
-      <div class="fg"><label class="fl">Freeze from</label><input class="fi" id="uf-freeze-from" type="date" value="${td()}"/></div>
-      <div class="fg"><label class="fl">Expected return date</label><input class="fi" id="uf-freeze-return" type="date"/></div>
-      <div id="uf-freeze-preview" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
-      <button class="sb2" onclick="ufDoFreeze()" style="margin-top:10px;">Confirm Freeze</button>
+  if(action==='renew'){
+    const exp=new Date(m.endDate+'T00:00:00');exp.setDate(exp.getDate()+1);
+    subform.innerHTML=`<div class="uf-plan-info uf-active-action">
+      <div class="uf-label">🔄 Renew Plan</div>
+      <div style="margin:6px 0;">Current plan ends: <b>${fmt(m.endDate)}</b></div>
+      <div class="fg"><label class="fl">Plan</label><select class="fi" id="uf-renew-plan"><option value="">— Same plan (${p?p.name:'?'}) —</option>${plans.filter(pp=>pp.id!=='trial').map(pp=>`<option value="${pp.id}">${pp.name} — ${pp.sessions>=999?'Unlimited':pp.sessions+' sess'} · ${pp.days}d · ₹${pp.price.toLocaleString('en-IN')}</option>`).join('')}</select></div>
+      <div class="fg"><label class="fl">New Plan Starts</label><input class="fi" id="uf-renew-start" type="date" value="${_localDate(exp)}"/></div>
+      <button class="sb2" id="uf-renew-btn" onclick="ufDoRenew()" disabled style="margin-top:10px;opacity:0.45;">Confirm Renewal</button>
     </div>`;
     subform.style.display='';
+    setTimeout(()=>armDirty('uf-plan-subform','uf-renew-btn'),50);
+  }else if(action==='freeze'){
+    subform.innerHTML=`<div class="uf-plan-info uf-active-action">
+      <div class="uf-label">❄️ Freeze Plan (On Leave)</div>
+      <div style="margin:8px 0;">Days remaining: <b>${daysLeft}</b> · Sessions remaining: <b>${sessLeft}</b></div>
+      <div class="fg"><label class="fl">Start Date <span style="font-size:10px;color:var(--text3);">(leave begins)</span></label><input class="fi" id="uf-freeze-from" type="date" value="${td()}"/></div>
+      <div class="fg"><label class="fl">End Date <span style="font-size:10px;color:var(--text3);">(expected return)</span></label><input class="fi" id="uf-freeze-return" type="date"/></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--text3);">If she returns earlier or later than this date, use "Resume" with the real return date — the plan adjusts automatically. If she hasn't returned by this date, she'll show on the Dashboard as overdue from leave.</div>
+      <button class="sb2" id="uf-freeze-btn" onclick="ufDoFreeze()" disabled style="margin-top:10px;opacity:0.45;">Confirm Freeze</button>
+    </div>`;
+    subform.style.display='';
+    setTimeout(()=>armDirty('uf-plan-subform','uf-freeze-btn'),50);
   }else if(action==='change'){
     /* Build plan-change form with adjustment calculation */
     const opts=plans.filter(pp=>pp.id!=='trial'&&pp.id!==m.plan).map(pp=>
       `<option value="${pp.id}">${pp.name} — ${pp.sessions} sess · ${pp.days} days · ₹${pp.price.toLocaleString('en-IN')}</option>`
     ).join('');
-    subform.innerHTML=`<div class="uf-plan-info">
+    subform.innerHTML=`<div class="uf-plan-info uf-active-action">
       <div class="uf-label">🔀 Change Plan</div>
       <div style="margin:6px 0;">Current: <b>${p?p.name:'?'}</b> · ${daysUsed}/${totalDays} days · ${sessUsed}/${sessTotal} sessions used</div>
       <div class="fg"><label class="fl">New Plan</label>
         <select class="fi" id="uf-change-plan" onchange="ufCalcChange()"><option value="">— Select new plan —</option>${opts}</select>
       </div>
-      <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-change-start" type="date" value=""/></div>
+      <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-change-start" type="date" value="${td()}" onchange="ufCalcChange()"/></div>
       <div id="uf-change-calc" style="margin:10px 0;padding:10px;background:rgba(201,168,76,0.08);border-radius:8px;font-size:13px;display:none;"></div>
-      <button class="sb2" onclick="ufDoChange()" style="margin-top:8px;">Confirm Plan Change</button>
+      <button class="sb2" id="uf-change-btn" onclick="ufDoChange()" disabled style="margin-top:8px;opacity:0.45;">Confirm Plan Change</button>
     </div>`;
     subform.style.display='';
+    setTimeout(()=>armDirty('uf-plan-subform','uf-change-btn'),50);
   }else if(action==='extend'){
-    subform.innerHTML=`<div class="uf-plan-info">
+    subform.innerHTML=`<div class="uf-plan-info uf-active-action">
       <div class="uf-label">➕ Extend Plan</div>
       <div style="margin:6px 0;">Current expiry: <b>${fmt(m.endDate)}</b></div>
       <div class="fg"><label class="fl">Extend by (days)</label><input class="fi" id="uf-extend-days" type="number" placeholder="0" min="1"/></div>
       <div class="fg"><label class="fl">Reason</label><input class="fi" id="uf-extend-reason" placeholder="Goodwill, compensation…"/></div>
-      <button class="sb2" onclick="ufDoExtend()" style="margin-top:10px;">Confirm Extension</button>
+      <button class="sb2" id="uf-extend-btn" onclick="ufDoExtend()" disabled style="margin-top:10px;opacity:0.45;">Confirm Extension</button>
     </div>`;
     subform.style.display='';
+    setTimeout(()=>armDirty('uf-plan-subform','uf-extend-btn'),50);
   }else if(action==='resume'){
     const frozenDays=m.frozenDays||0;
-    subform.innerHTML=`<div class="uf-plan-info">
+    subform.innerHTML=`<div class="uf-plan-info uf-active-action">
       <div class="uf-label">▶️ Resume from Freeze</div>
       <div style="margin:6px 0;">Frozen days to restore: <b>${frozenDays}</b></div>
       <div style="margin:6px 0;">Sessions remaining: <b>${sessLeft}</b> (unchanged)</div>
@@ -7300,9 +7228,10 @@ function ufPlanAction(action){
         New expiry will be: return date + ${frozenDays} days<br/>
         Sessions and money: unchanged
       </div>
-      <button class="sb2" onclick="ufDoResume()" style="margin-top:10px;">Confirm Resume</button>
+      <button class="sb2" id="uf-resume-btn" onclick="ufDoResume()" disabled style="margin-top:10px;opacity:0.45;">Confirm Resume</button>
     </div>`;
     subform.style.display='';
+    setTimeout(()=>armDirty('uf-plan-subform','uf-resume-btn'),50);
   }
 }/* The MAX consumption formula */
 function _ufConsumed(fee,totalDays,daysUsed,totalSess,sessUsed){
@@ -7338,7 +7267,7 @@ function ufCalcChange(){
   const bookings=ld('pp_bookings',{});
   let sessUsed=0;
   Object.entries(bookings).forEach(([dt,slots])=>{
-    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.status==='present')sessUsed++;});});
+    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
   });
   const sessTotal=(m.sessions||oldP?.sessions||0)+(m.bonus||0);
   const sessLeft=Math.max(0,sessTotal-sessUsed);
@@ -7461,6 +7390,26 @@ function ufDoExtend(){
   _ufPopulatePlan(cid);
 }
 
+/* ---- RENEW (reuses ufAssignPlan entirely — no separate calculation) ---- */
+function ufDoRenew(){
+  const cid=document.getElementById('uf-cid').value;
+  const mems=ld('pp_memberships',{});
+  const m=mems[cid];if(!m)return;
+  const renewPid=document.getElementById('uf-renew-plan').value||m.plan; /* same plan if left blank */
+  const startDate=document.getElementById('uf-renew-start').value;
+  const plans=getPlans();
+  const p=plans.find(x=>x.id===renewPid);if(!p)return;
+  
+  /* Feed the same fields ufAssignPlan reads, then call it directly —
+     this is the SAME calculation used for first-time assignment, no duplicate logic. */
+  document.getElementById('uf-plan-select').value=renewPid;
+  document.getElementById('uf-plan-start').value=startDate;
+  document.getElementById('uf-plan-fee').value=p.price;
+  document.getElementById('uf-plan-bonus').value=0;
+  document.getElementById('uf-plan-disc').value=0;
+  ufAssignPlan();
+}
+
 /* ---- ASSIGN / RENEW ---- */
 function ufAssignPlan(){
   const cid=document.getElementById('uf-cid').value;
@@ -7567,7 +7516,7 @@ function ufDoChange(){
   const bookings=ld('pp_bookings',{});
   let sessUsed=0;
   Object.entries(bookings).forEach(([dt,slots])=>{
-    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.status==='present')sessUsed++;});});
+    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
   });
   const sessTotal=(m.sessions||oldP?.sessions||0)+(m.bonus||0);
   const sessLeft=Math.max(0,sessTotal-sessUsed);
@@ -7836,7 +7785,7 @@ function ufSavePayment(){
             <div class="fg"><label class="fl">Comp. Classes</label><input class="fi" id="uf-plan-bonus" type="number" value="0"/></div>
             <div class="fg"><label class="fl">Discount (₹) <span style="font-weight:400;color:var(--text3);font-size:10px;">negative = premium</span></label><input class="fi" id="uf-plan-disc" type="number" value="0"/></div>
           </div>
-          <button class="sb2" id="uf-assign-btn" onclick="ufAssignPlan()">Assign Plan</button>
+          <button class="sb2" id="uf-assign-btn" onclick="ufAssignPlan()" disabled style="opacity:0.45;">Assign Plan</button>
         </div>
         <!-- Plan history -->
         <div id="uf-plan-history" style="margin-top:12px;"></div>
