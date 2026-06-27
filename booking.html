@@ -100,6 +100,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;right:16px;top:50%;transform:translateY(-50%);">b17</div>
 </div>
 
 <div class="container">
@@ -417,7 +418,19 @@ loadData();
 </script>
 <script>
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('booking-sw.js').catch(()=>{}));
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('booking-sw.js',{updateViaCache:'none'}).then(reg=>{
+      reg.update().catch(()=>{});
+      if(reg.waiting)reg.waiting.postMessage('skipWaiting');
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        if(nw)nw.addEventListener('statechange',()=>{
+          if(nw.state==='activated')location.reload();
+        });
+      });
+    }).catch(()=>{});
+    navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
+  });
 }
 </script>
 </body>
