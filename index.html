@@ -280,7 +280,30 @@ async function _pInit(){
   el.textContent='⟳ Syncing...';document.body.appendChild(el);
   try{
     const snap=await _pdb.collection('pilates').get();
-    snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined)localStorage.setItem(d.id,dd.value);});
+    let _gotRealData=false;
+    snap.forEach(d=>{
+      const dd=d.data();
+      if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){
+        localStorage.setItem(d.id,dd.value);
+        /* Track whether anything REAL actually came back — pp_clients or
+           pp_users with genuine content, not just an empty array/object.
+           A read can succeed with ZERO documents if the device isn't truly
+           authenticated but security rules still allow an empty/anonymous
+           read — this was silently treated as success before, proceeding
+           into a genuinely blank app with no prompt at all, exactly the
+           reported symptom: hard reset, empty dashboard, no cloud gate. */
+        if((d.id==='pp_clients'||d.id==='pp_users')&&dd.value&&dd.value!=='[]'&&dd.value!=='{}')_gotRealData=true;
+      }
+    });
+    let signedInNow=null;try{signedInNow=firebase.auth().currentUser;}catch(_e){}
+    if(!_gotRealData&&!signedInNow){
+      /* The read "succeeded" but came back empty, AND we're not actually
+         signed in — this is exactly the silent-empty-app case. Show the
+         cloud gate instead of proceeding, rather than letting init() run
+         on data that was never really there. */
+      el.remove();
+      if(typeof _showCloudGate==='function'){_showCloudGate();return;}
+    }
     _pSync=true;el.textContent='✓ Synced';el.style.color='#2ecc71';
     setTimeout(()=>el.remove(),2000);
     if(typeof init==='function')init();
@@ -456,7 +479,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v95</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v97</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -4580,6 +4603,18 @@ function ppIsAdmin(){
   if(PPS&&PPS.id){
     const _lg=document.getElementById('pp-login');
     if(_lg&&_lg.style.display!=='none')_lg.style.display='none';
+    /* Same weakness, same fix, for the topbar name/logout chip: it was
+       only ever created ONCE by applyRole(), with a "don't recreate if
+       one already exists" guard. If that one chance was ever missed or
+       the chip disappeared for any reason, nothing ever rebuilt it —
+       confirmed as the actual cause of the logout button going missing.
+       Recreate it here too, every time, if it's not currently present. */
+    const _tb=document.querySelector('.topbar');
+    if(_tb&&!document.getElementById('tb-user')){
+      const _d=document.createElement('div');_d.className='tb-user';_d.id='tb-user';
+      _d.innerHTML=`<div class="tb-uname">${PPS.role==='admin'?'👑':'👤'} ${PPS.name}</div><button class="tb-lout" onclick="doLogout()" title="Logout">⎋</button>`;
+      _tb.appendChild(_d);
+    }
   }
   return !!(PPS&&PPS.role==='admin');
 }
