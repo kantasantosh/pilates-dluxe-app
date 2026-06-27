@@ -240,17 +240,39 @@ input[type="date"],input[type="date"].fi{color-scheme:dark;}
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 // ===== FIREBASE SYNC =====
-const _fbConfig={apiKey:"AIzaSyDq5AjTUCxZ85CBffYFh_MmKhibN7Pjnl8",authDomain:"ss-indent-pro-3b7ea.firebaseapp.com",projectId:"ss-indent-pro-3b7ea",storageBucket:"ss-indent-pro-3b7ea.firebasestorage.app",messagingSenderId:"221934576188",appId:"1:221934576188:web:9c6ae243ea05b701bc5939"};
-if(!firebase.apps.length)firebase.initializeApp(_fbConfig);
-/* keep the studio cloud sign-in across app restarts (esp. installed PWA) */
-try{firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);}catch(e){}
-const _pdb=firebase.firestore();
+/* CRITICAL: declare the fallback sync-state variable FIRST, completely
+   unconditionally, before touching the global `firebase` object at all.
+   Confirmed as the actual root cause of a whole cluster of symptoms
+   reported together (member cards not opening, Admin Tools section
+   missing from About, PIN gate misbehaving, sign-out reopening the
+   dashboard without asking for a PIN): if Firebase's own script tags ever
+   fail to load (flaky mobile network, blocked CDN, momentary hiccup), the
+   very next line below — `firebase.initializeApp(...)` — throws
+   immediately, since `firebase` itself doesn't exist. That uncaught error
+   used to happen BEFORE `let _pSync=false` ever ran, so every later
+   script block that checks `typeof _pSync` got a real ReferenceError
+   instead of a safe `undefined` — and a ReferenceError, unlike a value
+   check, can halt the rest of THAT block too. This single missing guard
+   was capable of cascading into nearly every feature in the app. */
+let _pSync=false,_pLast={};
+let _pdb=null;
+try{
+  const _fbConfig={apiKey:"AIzaSyDq5AjTUCxZ85CBffYFh_MmKhibN7Pjnl8",authDomain:"ss-indent-pro-3b7ea.firebaseapp.com",projectId:"ss-indent-pro-3b7ea",storageBucket:"ss-indent-pro-3b7ea.firebasestorage.app",messagingSenderId:"221934576188",appId:"1:221934576188:web:9c6ae243ea05b701bc5939"};
+  if(!firebase.apps.length)firebase.initializeApp(_fbConfig);
+  /* keep the studio cloud sign-in across app restarts (esp. installed PWA) */
+  try{firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);}catch(e){}
+  _pdb=firebase.firestore();
+}catch(_fbErr){
+  /* Firebase truly unavailable on this load — the app must still start in
+     offline/local-only mode rather than silently breaking everything that
+     comes after this point in the file. */
+  console.warn('Firebase unavailable, continuing in offline mode:',_fbErr&&_fbErr.message);
+}
 const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad'];
 function _pSyncable(k){return _pSYNC.includes(k)||/^pp_(satt|sadv)_/.test(k);}
-let _pSync=false,_pLast={};
 
-async function _pfsSave(k,v){try{await _pdb.collection('pilates').doc(k).set({value:JSON.stringify(v),updated:Date.now()});}catch(e){}}
-async function _pfsLoad(k){try{const s=await _pdb.collection('pilates').doc(k).get();if(s.exists)return JSON.parse(s.data().value);}catch(e){}return null;}
+async function _pfsSave(k,v){if(!_pdb)return;try{await _pdb.collection('pilates').doc(k).set({value:JSON.stringify(v),updated:Date.now()});}catch(e){}}
+async function _pfsLoad(k){if(!_pdb)return null;try{const s=await _pdb.collection('pilates').doc(k).get();if(s.exists)return JSON.parse(s.data().value);}catch(e){}return null;}
 
 async function _pInit(){
   const el=document.createElement('div');el.id='p-sync';
@@ -290,6 +312,7 @@ async function _pInit(){
       if(typeof init==='function')init();
     }
   }
+  if(!_pdb)return; /* Firebase truly unavailable — already started in offline mode above, nothing more to do here */
   _pdb.collection('pilates').onSnapshot({includeMetadataChanges:false},qs=>{
     let changed=false;
     qs.docChanges().forEach(ch=>{
@@ -351,7 +374,7 @@ async function pdlSyncNow(){
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden||!_pSync||navigator.onLine===false)return;
   let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(e){}
-  if(!signedIn)return; /* not signed in → don't nag; user can tap Sync when ready */
+  if(!signedIn||!_pdb)return; /* not signed in → don't nag; user can tap Sync when ready */
   _pdb.collection('pilates').get().then(snap=>{
     snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){localStorage.setItem(d.id,dd.value);_pLast[d.id]=dd.updated||Date.now();}});
     _pRerenderActive();
@@ -390,16 +413,33 @@ window.addEventListener('load',()=>{
         if(!window._pStarted){window._pStarted=true;_pInit();}
       }else if(!window._pStarted&&!_authResolved){
         /* First null can fire BEFORE Firebase restores the LOCAL session from
-           IndexedDB. Don't show the login gate immediately — wait a moment and
-           re-check currentUser. Only show the gate if still genuinely null. */
+           IndexedDB. This is especially likely right after a fresh deploy —
+           the service worker is installing/updating and the page is under
+           more load than normal, so the restore can genuinely take longer
+           than a single short wait. Re-check TWICE, with increasing delay,
+           before concluding the device really isn't signed in — this is
+           what was wrongly asking for studio email/password on every new
+           version, when the device was actually still signed in the whole
+           time (confirmed: a manual refresh always fixed it, because that
+           gave Firebase a fresh, uninterrupted shot at the same restore). */
         setTimeout(()=>{
           if(window._pStarted)return;
           let still=null;try{still=firebase.auth().currentUser;}catch(_e){}
           if(still){
             if(g)g.style.display='none';
             window._pStarted=true;_pInit();
-          }else if(typeof _showCloudGate==='function'){
-            _showCloudGate();
+          }else{
+            /* Second, longer re-check before giving up */
+            setTimeout(()=>{
+              if(window._pStarted)return;
+              let still2=null;try{still2=firebase.auth().currentUser;}catch(_e){}
+              if(still2){
+                if(g)g.style.display='none';
+                window._pStarted=true;_pInit();
+              }else if(typeof _showCloudGate==='function'){
+                _showCloudGate();
+              }
+            },3500);
           }
         },2500);
       }
@@ -416,7 +456,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v76</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v90</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -424,6 +464,7 @@ window.addEventListener('load',()=>{
       <strong id="top-date"></strong>
       <span id="top-day" style="font-size:10px;"></span>
     </div>
+    <div style="font-size:11px;color:var(--gold);margin-top:1px;" id="top-clock"></div>
     <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:3px;">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-mini">🔄 Sync</button>
       <button onclick="openNotepad()" title="Notepad" class="tb-mini">📝 Notes</button>
@@ -440,7 +481,9 @@ window.addEventListener('load',()=>{
 
 <!-- CLIENTS -->
 <div class="tab" id="tab-clients">
-  <div class="sh"><div class="st">Clients<small>Member Directory</small></div></div>
+  <div class="sh"><div class="st">Clients<small>Member Directory</small></div>
+    <button class="btn btn-outline btn-sm" onclick="openAttendanceLookup()" title="Look up a member's attendance and validity">🔍 Attendance</button>
+  </div>
   <div style="margin-bottom:8px;">
     <select id="client-planfilter" onchange="renderClients()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">📋 All plans</option>
@@ -473,19 +516,6 @@ window.addEventListener('load',()=>{
     </div>
   </div>
   <div id="schedule-content"></div>
-</div>
-
-<!-- PAYMENTS -->
-<div class="tab" id="tab-payments">
-  <div class="sh"><div class="st">Receipts<small>Payment Ledger</small></div>
-    <button class="btn btn-gold btn-sm" onclick="openPaymentModal()">+ New Receipt</button>
-  </div>
-  <div class="ftabs">
-    <button class="ftab active" onclick="setPayFilter('all',this)">All</button>
-    <button class="ftab" onclick="setPayFilter('due',this)">Due</button>
-    <button class="ftab" onclick="setPayFilter('paid',this)">Paid</button>
-  </div>
-  <div id="payment-list"></div>
 </div>
 
 <!-- STAFF -->
@@ -729,7 +759,7 @@ window.addEventListener('load',()=>{
 </div>
 <!-- Cash Book Entry -->
 <div class="mo" id="m-cashentry">
-  <div class="md"><button class="mc2" onclick="closeM('m-cashentry')">✕</button>
+  <div class="md"><button class="mc2" onclick="closeCashEntry()">✕</button>
     <h2 id="cash-modal-title">New Entry</h2>
     <input type="hidden" id="ce-id"/>
     <div class="fg">
@@ -740,7 +770,6 @@ window.addEventListener('load',()=>{
       </div>
       <input type="hidden" id="ce-type" value="in"/>
     </div>
-    <div class="fg"><label class="fl">Description</label><input class="fi" id="ce-desc" placeholder="Membership fee, rent, salary..."/></div>
     <!-- Credit: client picker (clean custom dropdown) -->
     <div id="ce-client-row" class="fg"><label class="fl">Client (Credits only)</label>
       <div style="position:relative;">
@@ -775,7 +804,7 @@ window.addEventListener('load',()=>{
       <select class="fi" id="ce-cat" onchange="_updateModeBalance()"></select>
       <div id="ce-cat-bal" style="font-size:12px;color:var(--text2);margin-top:6px;padding:5px 9px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
     </div>
-    <div class="fg"><label class="fl">Notes</label><input class="fi" id="ce-notes" placeholder="Reference, UPI ID..."/></div>
+    <div class="fg"><label class="fl">Description</label><input class="fi" id="ce-desc" placeholder="Membership fee, rent, salary..."/></div>
     <button class="sb2" id="ce-save-btn" onclick="saveCashEntry()" disabled style="opacity:0.45;">Save Entry</button>
     <button id="ce-del-btn" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteCashEntry()">🗑 Delete Entry</button>
   </div>
@@ -894,27 +923,69 @@ window.addEventListener('load',()=>{
       <div class="fg"><label class="fl">First Name</label><input class="fi" id="c-fname" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="Priya" oninput="const b=document.getElementById('c-save-btn');if(b){b.disabled=!this.value.trim();b.style.opacity=this.value.trim()?'':'0.45';}"/></div>
       <div class="fg"><label class="fl">Last Name</label><input class="fi" id="c-lname" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="Sharma"/></div>
     </div>
+    <div class="fg" id="c-category-row">
+      <label class="fl">Category</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="c-cat-trial" onclick="_cSetCategory('trial')" style="flex:1;padding:10px;border-radius:var(--rsm);border:1.5px solid var(--border2);background:none;color:var(--text);font-family:'Jost',sans-serif;font-weight:700;cursor:pointer;">🎯 Trial</button>
+        <button type="button" id="c-cat-regular" onclick="_cSetCategory('regular')" style="flex:1;padding:10px;border-radius:var(--rsm);border:1.5px solid var(--gold);background:var(--gold);color:#1a1a2e;font-family:'Jost',sans-serif;font-weight:700;cursor:pointer;">👤 Regular Member</button>
+      </div>
+      <input type="hidden" id="c-category" value="regular"/>
+    </div>
     <div class="fr">
       <div class="fg"><label class="fl">Phone (WhatsApp)</label><div style="display:flex;align-items:center;gap:6px;"><span style="background:var(--surface3);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 10px;font-size:14px;color:var(--text2);font-family:'Jost',sans-serif;">+91</span><input class="fi" id="c-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="98XXX XXXXX" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,10)"/></div></div>
-      <div class="fg"><label class="fl">Email</label><input class="fi" id="c-email" type="email" placeholder="email@..." autocomplete="off" autocapitalize="none" data-1p-ignore data-lpignore="true"/></div>
+    <div class="fr">
+      <div class="fg" id="c-email-row"><label class="fl">Email <span style="color:var(--text3);font-weight:400;" id="c-email-optional-tag"></span></label><input class="fi" id="c-email" type="email" placeholder="email@..." autocomplete="off" autocapitalize="none" data-1p-ignore data-lpignore="true"/></div>
+      <div class="fg"><label class="fl">Insta ID <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="c-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
     </div>
-    <div class="fg"><label class="fl">Address</label><input class="fi" id="c-addr" placeholder="Sector 15, Noida"/></div>
+    <div class="fg" id="c-addr-row"><label class="fl">Address</label><input class="fi" id="c-addr" placeholder="Sector 15, Noida"/></div>
     <div class="fr">
       <div class="fg"><label class="fl">Birthday <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="c-bday" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
       <div class="fg"><label class="fl">Anniversary <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="c-anni" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
     </div>
-    <div class="fg"><label class="fl">Joining Date</label><input class="fi" id="c-join" type="date"/></div>
+    <div class="fr">
+      <div class="fg" id="c-join-row"><label class="fl">Registration Date</label><input class="fi" id="c-join" type="date"/></div>
+      <div class="fg" id="c-trialdate-row" style="display:none;"><label class="fl">1st Session Date</label><input class="fi" id="c-trialdate" type="date"/></div>
+    </div>
     <div class="fg">
       <label class="fl">Referred By (Member ID)</label>
       <select class="fi" id="c-ref">
         <option value="">None</option>
       </select>
     </div>
-    <div class="fg"><label class="fl">Notes</label><input class="fi" id="c-notes" placeholder="Any special notes..."/></div>
+    <div class="fg" id="c-notes-row"><label class="fl">Notes</label><input class="fi" id="c-notes" placeholder="Any special notes..."/></div>
     <button class="sb2" id="c-save-btn" onclick="saveClient()" disabled style="opacity:0.45;">Save Client</button>
   </div>
 </div>
-
+<script>
+function _cSetCategory(cat){
+  document.getElementById('c-category').value=cat;
+  const trialBtn=document.getElementById('c-cat-trial');
+  const regBtn=document.getElementById('c-cat-regular');
+  const isTrial=cat==='trial';
+  trialBtn.style.background=isTrial?'var(--gold)':'none';
+  trialBtn.style.borderColor=isTrial?'var(--gold)':'var(--border2)';
+  trialBtn.style.color=isTrial?'#1a1a2e':'var(--text)';
+  regBtn.style.background=isTrial?'none':'var(--gold)';
+  regBtn.style.borderColor=isTrial?'var(--border2)':'var(--gold)';
+  regBtn.style.color=isTrial?'var(--text)':'#1a1a2e';
+  /* Trial registration is a quick walk-in capture. Email is now OPTIONAL
+     (not required) but stays fully enterable — younger clients are often
+     happy to share an email or Insta handle even at a quick trial signup,
+     and disabling the field removed that option entirely. Address/Notes
+     genuinely aren't needed yet for a trial, so those stay de-emphasized;
+     she gets the rest later, through this same form, when she converts. */
+  document.getElementById('c-email-optional-tag').textContent=isTrial?'(optional)':'';
+  ['c-addr-row','c-notes-row'].forEach(id=>{
+    const row=document.getElementById(id);
+    row.style.opacity=isTrial?'0.4':'';
+    row.querySelectorAll('input').forEach(inp=>inp.disabled=isTrial);
+  });
+  document.getElementById('c-join-row').style.display=isTrial?'none':'';
+  document.getElementById('c-trialdate-row').style.display=isTrial?'':'none';
+  if(isTrial&&!document.getElementById('c-trialdate').value)document.getElementById('c-trialdate').value=td();
+  document.getElementById('client-modal-title').textContent=isTrial?'Register Trial':'Add Client';
+}
+</script>
 <!-- Assign / Renew Membership -->
 <div class="mo" id="m-membership" style="z-index:250;">
   <div class="md">
@@ -1097,7 +1168,16 @@ function getSessionsLeft(mem,cid){
   Object.values(bookings).forEach(slots=>{
     Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
   });
-  const sessTotal=(mem.sessions||0)+(mem.bonus||0);
+  /* Two different storage conventions exist in real data, NOT interchangeable:
+     - mem.sessions (current field): base plan sessions ONLY — bonus is stored
+       separately in mem.bonus and must be added at read-time.
+     - mem.sessionsTotal (legacy field, still present in records created before
+       this field was renamed): bonus was already baked in when WRITTEN
+       (sessionsTotal = plan.sessions + bonus, written once, never separate).
+       Adding mem.bonus again here would double-count it.
+     Confirmed against real data (Yukti: sessionsTotal=14 already = 12+2,
+     adding bonus again wrongly gave 16). */
+  const sessTotal=mem.sessions!=null?(mem.sessions+(mem.bonus||0)):(mem.sessionsTotal||0);
   return Math.max(0,sessTotal-sessUsed);
 }
 function getMembershipStatus(mem,cid){
@@ -1123,7 +1203,55 @@ let _clientFilter='all';
 let _payFilter='all';
 let _schedDate=td();
 
+/* ===== ONE-TIME DATA MIGRATION =====
+   This is the real fix that should have existed from the moment the
+   `sessionsTotal` field was renamed to `sessions`. Instead of adding an
+   18th, 19th, 20th scattered "check both names" branch every time a new
+   bug surfaced from old-format records, this rewrites every legacy record
+   to the CURRENT shape, once, so all those defensive checks become
+   unnecessary. Runs automatically on every load; finishes instantly and
+   does nothing once everything is already migrated (checks a flag).
+   The man-wearing-different-clothes principle: the data's IDENTITY
+   (what it represents) must not depend on which era's field name was
+   used to write it down. */
+function _migrateLegacyData(){
+  if(localStorage.getItem('pp_migrated_v1')==='1')return; /* already done */
+  try{
+    const mems=ld('pp_memberships',{});
+    let changed=false;
+    Object.keys(mems).forEach(cid=>{
+      const m=mems[cid];if(!m)return;
+      /* Legacy: sessionsTotal ALREADY included bonus at write-time.
+         Current: sessions is the BASE count, bonus is added separately.
+         Converting must preserve the TRUE total, not just rename the key. */
+      if(m.sessions==null&&m.sessionsTotal!=null){
+        const trueTotal=m.sessionsTotal;
+        const bonus=m.bonus||0;
+        m.sessions=Math.max(0,trueTotal-bonus); /* base = total - bonus, so sessions+bonus still equals the original true total */
+        delete m.sessionsTotal;
+        changed=true;
+      }
+      /* Same correction inside each history entry, where the same legacy
+         shape can independently appear. */
+      if(m.history&&m.history.length){
+        m.history.forEach(h=>{
+          if(h.sessions==null&&h.sessionsTotal!=null){
+            const tot=h.sessionsTotal;const b=h.bonus||0;
+            h.sessions=Math.max(0,tot-b);
+            delete h.sessionsTotal;
+            changed=true;
+          }
+        });
+      }
+    });
+    if(changed){sv('pp_memberships',mems);if(typeof AUD==='function')AUD('🔧 Data migration','Converted legacy sessionsTotal fields to current format');}
+    localStorage.setItem('pp_migrated_v1','1');
+  }catch(e){console.warn('Migration failed, will retry next load:',e);}
+}
+
 function init(){
+  /* Migrate any legacy-format records BEFORE anything else reads them */
+  try{_migrateLegacyData();}catch(_e){}
   /* Auto-select content of any number input on focus, so the default 0
      (or any existing value) doesn't need a manual delete-first step */
   document.addEventListener('focusin',function(e){
@@ -1138,14 +1266,27 @@ function init(){
   if(dp)dp.value=td();
   renderDash();
   startDashClock();
+  /* Automatically check for a newer deployed version on every start —
+     silently, in the background. This used to require manually tapping
+     the version number in the topbar; if that tap never happened, the
+     browser/PWA could keep running an old, already-loaded copy of the
+     JavaScript indefinitely, even after a real fix was deployed and the
+     underlying file changed — looking exactly like "nothing I ship ever
+     takes effect," when the actual cause was simply an old version still
+     sitting in memory, never reloaded. */
+  setTimeout(()=>{try{if(typeof _autoCheckForUpdate==='function')_autoCheckForUpdate();}catch(_e){}},1500);
 }
 let _dashClockTimer=null;
 function startDashClock(){
   if(_dashClockTimer)clearInterval(_dashClockTimer);
   const tick=()=>{
-    const t=document.getElementById('dc-time');
-    if(!t||_activeTab!=='dashboard')return; /* only when dashboard visible */
     const n=new Date();
+    /* Top bar clock — always visible, on every tab */
+    const topClock=document.getElementById('top-clock');
+    if(topClock)topClock.textContent=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    /* Dashboard's own greeting card — unchanged, only when Dashboard is visible */
+    const t=document.getElementById('dc-time');
+    if(!t||_activeTab!=='dashboard')return;
     t.textContent=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
     const dEl=document.getElementById('dc-date');
     if(dEl)dEl.textContent=n.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -1511,6 +1652,7 @@ function renderClients(){
         </div>
       </div>
       <button onclick="event.stopPropagation();openWA('${c.id}')" style="background:none;border:none;font-size:20px;cursor:pointer;opacity:0.6;">💬</button>
+      ${st==='active'?`<button onclick="event.stopPropagation();_goBookSlot('${c.id}')" style="background:none;border:none;font-size:20px;cursor:pointer;opacity:0.6;" title="Book a slot for ${_esc(c.fname)}">📅</button>`:''}
     </div>`;
   }).join('');
   
@@ -1551,18 +1693,27 @@ function openAddClient(){
   document.getElementById('client-modal-title').textContent='Add Client';
   document.getElementById('c-id').value='';
   document.getElementById('c-memno-row').style.display='none';
-  ['c-fname','c-lname','c-phone','c-email','c-addr','c-notes'].forEach(id=>document.getElementById(id).value='');
+  ['c-fname','c-lname','c-phone','c-email','c-addr','c-notes','c-insta'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('c-photo').value='';
   setPhotoPreview('c-photo-preview','','📷','var(--surface3)');
   document.getElementById('c-photo-input').value='';
   document.getElementById('c-bday').value='';
   document.getElementById('c-anni').value='';
   document.getElementById('c-join').value=td();
+  document.getElementById('c-trialdate').value='';
+  /* Category choice only exists for a NEW registration — show it, default to Regular */
+  document.getElementById('c-category-row').style.display='';
+  _cSetCategory('regular');
   // Populate referral dropdown
   const clients=ld('pp_clients',[]);
   document.getElementById('c-ref').innerHTML='<option value="">None</option>'+
     clients.filter(c=>!c.archived).map(c=>`<option value="${c.id}">${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname}</option>`).join('');
   openM('m-client');
+}
+/* Dashboard's purple + button opens the same form, pre-set to Trial */
+function openTrialReg(){
+  openAddClient();
+  _cSetCategory('trial');
 }
 function openEditClient(cid){
   const clients=ld('pp_clients',[]);
@@ -1571,6 +1722,19 @@ function openEditClient(cid){
   document.getElementById('c-id').value=cid;
   document.getElementById('c-memno-row').style.display='block';
   document.getElementById('c-memno-display').textContent=c.memNo||'';
+  /* Editing an existing client never offers the Trial/Regular choice — that
+     decision was already made at registration and isn't something an edit
+     should be able to flip. Hide the row entirely, show the normal fields. */
+  document.getElementById('c-category-row').style.display='none';
+  document.getElementById('c-join-row').style.display='';
+  document.getElementById('c-trialdate-row').style.display='none';
+  document.getElementById('c-email-optional-tag').textContent='';
+  ['c-addr-row','c-notes-row'].forEach(id=>{
+    const row=document.getElementById(id);
+    row.style.opacity='';
+    row.querySelectorAll('input').forEach(inp=>inp.disabled=false);
+  });
+  document.getElementById('c-insta').value=c.insta||'';
   document.getElementById('c-fname').value=c.fname||'';
   document.getElementById('c-lname').value=c.lname||'';
   document.getElementById('c-phone').value=(c.phone||'').replace(/^\+91/,'').replace(/\D/g,'');
@@ -1595,14 +1759,43 @@ function openEditClient(cid){
 function saveClient(){
   const fname=document.getElementById('c-fname').value.trim();
   if(!fname){alert('Enter first name');return;}
+  const category=document.getElementById('c-category').value||'regular';
   const _ph=document.getElementById('c-phone').value.replace(/\D/g,'');
   if(_ph&&_ph.length!==10){alert('Mobile number must be exactly 10 digits (entered after +91).');return;}
+  if(category==='trial'&&!_ph){alert('Enter phone number');return;}
   const _em=document.getElementById('c-email').value.trim();
-  if(_em&&!_validateEmail(_em,document.getElementById('c-id').value||''))return;
+  if(category!=='trial'&&_em&&!_validateEmail(_em,document.getElementById('c-id').value||''))return;
   const clients=ld('pp_clients',[]);
   const existing=document.getElementById('c-id').value;
   const refId=document.getElementById('c-ref').value;
   const oldData=existing?clients.find(c=>c.id===existing)||{}:{};
+
+  /* Trial category: only meaningful for a NEW registration (existing client
+     edits never offer this choice — see openEditClient, which hides the
+     category row entirely). Generates a T-xx temp ID and creates a 1-session
+     trial membership, exactly as the old separate Trial form used to. */
+  if(!existing&&category==='trial'){
+    const lastT=clients.reduce((max,c)=>{const n=parseInt(((c.memNo||'').match(/^T-(\d+)/)||[])[1]||0);return n>max?n:max;},0);
+    const memNo='T-'+String(lastT+1).padStart(2,'0');
+    const id=Date.now().toString();
+    const today=td();
+    const trialDate=document.getElementById('c-trialdate').value||today;
+    const client={id,memNo,fname,lname:document.getElementById('c-lname').value.trim(),
+      phone:_ph?'+91'+_ph:'',email:_em,addr:'',
+      insta:document.getElementById('c-insta').value.trim(),
+      refId:refId||null,
+      notes:document.getElementById('c-notes').value.trim(),
+      trialDate:trialDate,isTrial:true,createdAt:today};
+    clients.push(client);sv('pp_clients',clients);
+    const mems=ld('pp_memberships',{});
+    mems[id]={cid:id,plan:'trial',startDate:trialDate,endDate:trialDate,sessionsLeft:1,fee:0,isTrial:true};
+    sv('pp_memberships',mems);
+    closeM('m-client');
+    toast('✓ Trial registered — '+fname+' ('+memNo+')');
+    renderClients();renderDash();
+    return;
+  }
+
   const data={
     ...oldData,                       /* preserve convertedFrom, conversionDate, isTrial, trialDate, etc. */
     id:existing||Date.now().toString(),
@@ -1610,6 +1803,7 @@ function saveClient(){
     fname,lname:document.getElementById('c-lname').value.trim(),
     phone:(function(){const p=document.getElementById('c-phone').value.replace(/\D/g,'');return p?'+91'+p:'';})(),
     email:document.getElementById('c-email').value.trim(),
+    insta:document.getElementById('c-insta').value.trim(),
     addr:document.getElementById('c-addr').value.trim(),
     bday:document.getElementById('c-bday').value,
     anni:document.getElementById('c-anni').value,
@@ -1991,6 +2185,20 @@ function renderPayments(){
 
 const RSEM='10px';
 // ===== SCHEDULE =====
+/* Jump from a client's card straight to today's Schedule, with that
+   member's name pre-filled in the new search box — looked up fresh here
+   rather than passed through the card's onclick string, to avoid fighting
+   apostrophe-escaping across three nested layers of quotes. */
+function _goBookSlot(cid){
+  const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
+  _schedDate=td();
+  showTab('schedule');
+  setTimeout(()=>{
+    const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
+    renderSchedule();
+    toast('📅 Find an empty slot below and tap it for '+c.fname);
+  },80);
+}
 function pickSchedDate(val){
   if(!val)return;
   _schedDate=val;
@@ -2062,6 +2270,7 @@ function renderSchedule(){
   const dayClosed=!!_dayClosedInfo;
   const _dayClosedReason=_dayClosedInfo&&_dayClosedInfo.reason?_dayClosedInfo.reason:'';
   const clients=ld('pp_clients',[]);
+  const _sq=''; /* search bar removed per request — kept as empty string so the highlight/dim logic below stays harmless (always shows everyone normally) without needing to touch that code separately */
 
   const morning=SLOTS.slice(0,5);
   const evening=SLOTS.slice(5);
@@ -2115,7 +2324,9 @@ function renderSchedule(){
         const bk=booked[m];
         if(bk){
           const c=clients.find(cl=>cl.id===bk.cid)||{};
-          html+=`<div style="flex:1;min-width:80px;background:${bk.attended?'rgba(74,222,128,0.15)':'rgba(201,168,76,0.1)'};border:1px solid ${bk.attended?'rgba(74,222,128,0.4)':'rgba(201,168,76,0.3)'};border-radius:${RSEM};padding:8px;cursor:pointer;text-align:center;" onclick="cycleSlot(${slotIdx},${m})">
+          const _hay=((c.memNo||'')+' '+(c.fname||'')+' '+(c.lname||'')).toLowerCase();
+          const _isMatch=!_sq||_hay.includes(_sq);
+          html+=`<div style="flex:1;min-width:80px;background:${bk.attended?'rgba(74,222,128,0.15)':'rgba(201,168,76,0.1)'};border:${_sq&&_isMatch?'2px solid var(--gold)':'1px solid '+(bk.attended?'rgba(74,222,128,0.4)':'rgba(201,168,76,0.3)')};border-radius:${RSEM};padding:8px;cursor:pointer;text-align:center;opacity:${_sq&&!_isMatch?'0.35':'1'};" onclick="cycleSlot(${slotIdx},${m})">
             <div style="font-size:12px;font-weight:700;color:var(--gold);">${c.fname||'?'}${c.isTrial?' 🎯':''}</div>
             <div style="font-size:9px;color:${bk.attended?'var(--green)':'var(--gold)'};">${bk.attended?'✓ Present':'⏳ Booked'}</div>
             <div style="font-size:8px;color:var(--text3);">${bk.attended?'tap=remove':'tap=present'}</div>
@@ -2222,7 +2433,7 @@ async function saveBooking(){
   // prevents the cross-device double-booking when sync hasn't caught up yet.
   let bookings=ld('pp_bookings',{});
   try{
-    if(typeof _pdb!=='undefined'&&navigator.onLine!==false){
+    if(_pdb&&navigator.onLine!==false){
       const snap=await _pdb.collection('pilates').doc('pp_bookings').get();
       if(snap.exists&&snap.data().value){bookings=JSON.parse(snap.data().value);sv('pp_bookings',bookings);}
     }
@@ -2397,7 +2608,6 @@ function showTab(n,btn){
   if(n==='cash')renderCash();
   if(n==='bills')renderBillsTasks();
   if(n==='staff')renderStaff();
-  if(n==='payments')renderPayments();
   if(n==='credits')renderCredits();
 }
 function renderPlanChips(selected){
@@ -2415,7 +2625,6 @@ function fabAction(){
     cash:()=>openCashEntry(),
     bills:()=>openAddBillTodo(),
     staff:()=>openAddStaff(),
-    payments:()=>openPaymentModal(),
     credits:null,
   };
   const fn=actions[_activeTab];
@@ -2611,7 +2820,7 @@ function resetAllData(){
         const dataKeys=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_bills','pp_todos','pp_audit','pp_announce','pp_notepad'];
         /* 1) clear the CLOUD copies first (so they don't sync back) */
         try{
-          if(typeof _pdb!=='undefined'){
+          if(_pdb){
             await Promise.all(dataKeys.map(k=>
               _pdb.collection('pilates').doc(k).set({value:JSON.stringify(k==='pp_clients'||k==='pp_staff'||k==='pp_cash'||k==='pp_payments'||k==='pp_ref_bonuses'||k==='pp_bills'||k==='pp_todos'||k==='pp_audit'?[]:{}),updated:Date.now()}).catch(()=>{})
             ));
@@ -3640,6 +3849,20 @@ document.addEventListener('click',e=>{
   const row=document.getElementById('ce-client-row');
   if(row&&!row.contains(e.target)){const p=document.getElementById('ce-client-results');if(p)p.style.display='none';}
 });
+/* Closes the cash voucher. If it was opened via the "open voucher" link
+   from inside a member's payment history, returns to that same member's
+   profile instead of leaving the user stranded on the bare underlying tab
+   — confirmed as the actual cause of "Escape takes me to the client list":
+   the old code fully closed the member's profile BEFORE opening the
+   voucher, so there was nothing left to go back to. */
+function closeCashEntry(){
+  closeM('m-cashentry');
+  if(window._ceReturnToUnified){
+    const cid=window._ceReturnToUnified;
+    window._ceReturnToUnified=null;
+    setTimeout(()=>openUnified(cid),150);
+  }
+}
 function openCashEntry(id,prefillCid){
   document.getElementById('cash-modal-title').textContent=id?'Edit Entry':'New Entry';
   document.getElementById('ce-id').value=id||'';
@@ -3659,13 +3882,17 @@ function openCashEntry(id,prefillCid){
   if(id){
     const e=ld('pp_cash',[]).find(x=>x.id===id)||{};
     setCEType(e.type||'in');
-    document.getElementById('ce-desc').value=e.desc||'';
+    /* The separate Notes field is gone (folded into Description per the
+       Cash/Credit terminology cleanup). If an OLDER entry still has real
+       notes content saved from before, fold it into the Description text
+       now being shown — so it's not silently lost, and becomes visible
+       and editable through the one remaining field. */
+    document.getElementById('ce-desc').value=(e.desc||'')+(e.notes?(e.desc?' — ':'')+e.notes:'');
     if(e.cid){_cePick(e.cid);}
     document.getElementById('ce-amt').value=e.amt||'';
     document.getElementById('ce-date').value=e.date||td();
     document.getElementById('ce-mode').value=e.mode||modes[0];
     if(e.mode2)document.getElementById('ce-mode2').value=e.mode2;
-    document.getElementById('ce-notes').value=e.notes||'';
     // Set cat after refreshCECats
     setTimeout(()=>{if(document.getElementById('ce-cat'))document.getElementById('ce-cat').value=e.cat||'';},50);
   } else if(prefillCid){
@@ -3679,13 +3906,12 @@ function openCashEntry(id,prefillCid){
     document.getElementById('ce-desc').value=(plan?plan+' fee':'Membership fee')+' — '+(c.fname||'');
     document.getElementById('ce-amt').value=due>0?due:'';
     document.getElementById('ce-date').value=td();
-    document.getElementById('ce-notes').value='';
     setTimeout(()=>{if(document.getElementById('ce-cat'))document.getElementById('ce-cat').value='Membership Fee';},50);
   } else {
     /* fresh entry → default to DEBIT (most cashbook entries are expenses;
        membership credits flow through the plan form) */
     setCEType('out');
-    ['ce-desc','ce-notes'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('ce-desc').value='';
     document.getElementById('ce-amt').value='';
     document.getElementById('ce-date').value=td();
     document.getElementById('ce-cid').value='';
@@ -3725,7 +3951,7 @@ function deleteCashEntry(){
       const e=cash.find(x=>x.id===id);
       sv('pp_cash',cash.filter(x=>x.id!==id));
       if(typeof AUD==='function')AUD('🗑 Cashbook entry deleted',(e?((e.type==='in'?'+':e.type==='contra'?'⇄':'-')+'₹'+(e.amt||0)+' '+(e.cat||e.desc||'')):''));
-      closeM('m-cashentry');renderCash();renderDash();toast('Entry deleted');
+      closeCashEntry();renderCash();renderDash();toast('Entry deleted');
     }}
   ]);
 }
@@ -3739,11 +3965,11 @@ function saveCashEntry(){
   const _cat=_t==='contra'?'Contra':document.getElementById('ce-cat').value;
   const _cidv=_t==='contra'?'':document.getElementById('ce-cid').value;
   if(_t==='in'&&/membership|renewal|drop-in/i.test(_cat||'')&&!_cidv){alert('Please select the client for this fee — a membership payment must be linked to a member.');return;}
-  const data={id,type:_t,desc:document.getElementById('ce-desc').value.trim(),cid:_t==='contra'?'':document.getElementById('ce-cid').value,amt,date:document.getElementById('ce-date').value||td(),mode:document.getElementById('ce-mode').value,mode2:_t==='contra'?document.getElementById('ce-mode2').value:'',cat:_t==='contra'?'Contra':document.getElementById('ce-cat').value,notes:document.getElementById('ce-notes').value.trim()};
+  const data={id,type:_t,desc:document.getElementById('ce-desc').value.trim(),cid:_t==='contra'?'':document.getElementById('ce-cid').value,amt,date:document.getElementById('ce-date').value||td(),mode:document.getElementById('ce-mode').value,mode2:_t==='contra'?document.getElementById('ce-mode2').value:'',cat:_t==='contra'?'Contra':document.getElementById('ce-cat').value};
   const idx=cash.findIndex(x=>x.id===id);
   const isNewCE=idx<0;
   if(idx>-1)cash[idx]=data;else cash.push(data);
-  sv('pp_cash',cash);closeM('m-cashentry');toast('✓ Entry saved!');renderCash();renderDash();
+  sv('pp_cash',cash);closeCashEntry();toast('✓ Entry saved!');renderCash();renderDash();
   /* offer printable receipt for a new client-linked credit (fee collection) */
   if(isNewCE&&_t==='in'&&data.cid&&typeof offerReceiptCash==='function')offerReceiptCash(data.id);
 }
@@ -3752,7 +3978,7 @@ function renderCash(){
   const clients=ld('pp_clients',[]);
   // Also include legacy pp_payments as 'in' entries
   const legacyPays=ld('pp_payments',[]).map(p=>({
-    id:'leg_'+p.id,type:'in',desc:p.forWhat||'Payment',cid:p.cid,
+    id:'leg_'+p.id,type:'in',desc:p.forWhat||'Receipt',cid:p.cid,
     amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes,_legacy:true
   }));
   // Merge: show pp_cash entries + legacy payments not already in pp_cash
@@ -3826,7 +4052,7 @@ function renderCash(){
 // ===== CASH DAYBOOK (print + Excel export) =====
 function _dbAllEntries(){
   const cashRaw=ld('pp_cash',[]);
-  const legacyPays=ld('pp_payments',[]).map(p=>({id:'leg_'+p.id,type:'in',desc:p.forWhat||'Payment',cid:p.cid,amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes,_legacy:true}));
+  const legacyPays=ld('pp_payments',[]).map(p=>({id:'leg_'+p.id,type:'in',desc:p.forWhat||'Receipt',cid:p.cid,amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes,_legacy:true}));
   const ids=new Set(cashRaw.map(e=>e.id));
   return [...cashRaw,...legacyPays.filter(p=>!ids.has(p.id))];
 }
@@ -3958,67 +4184,7 @@ function npCopy(){
   }
 }
 
-// ===== TRIAL REGISTRATION =====
-function openTrialReg(){
-  document.getElementById('tr-fname').value='';
-  document.getElementById('tr-lname').value='';
-  document.getElementById('tr-phone').value='';
-  document.getElementById('tr-notes').value='';
-  document.getElementById('tr-date').value=td();
-  document.getElementById('tr-ref').value='';
-  document.getElementById('tr-ref-search').value='';
-  /* Build search list for referral */
-  const clients=ld('pp_clients',[]);
-  window._trRefList=clients.filter(c=>!c.archived).map(c=>({id:c.id,label:(c.memNo?c.memNo+' — ':'')+c.fname+' '+(c.lname||''),search:((c.memNo||'')+' '+c.fname+' '+(c.lname||'')).toLowerCase()}));
-  openM('m-trial');
-}
-/* Trial referral search */
-function _trRefSearch(){
-  const inp=document.getElementById('tr-ref-search');
-  const panel=document.getElementById('tr-ref-results');
-  if(!inp||!panel)return;
-  const q=(inp.value||'').trim().toLowerCase();
-  let list=window._trRefList||[];
-  if(q)list=list.filter(c=>c.search.includes(q));
-  let html='<div onclick="_trRefPick(\'\')" style="padding:8px 12px;border-bottom:1px solid var(--gold);color:var(--text3);font-size:12px;cursor:pointer;">No referral</div>';
-  html+=list.slice(0,30).map(c=>'<div onclick="_trRefPick(\''+c.id+'\')" style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);font-size:13px;cursor:pointer;">'+c.label+'</div>').join('');
-  panel.innerHTML=html;panel.style.display='block';
-}
-function _trRefPick(rid){
-  document.getElementById('tr-ref').value=rid;
-  const c=(window._trRefList||[]).find(x=>x.id===rid);
-  document.getElementById('tr-ref-search').value=c?c.label:'';
-  document.getElementById('tr-ref-results').style.display='none';
-}
-document.addEventListener('click',function(ev){
-  const r=document.getElementById('tr-ref-results');
-  if(r&&!r.contains(ev.target)&&ev.target.id!=='tr-ref-search')r.style.display='none';
-});
-function saveTrialReg(){
-  const fname=document.getElementById('tr-fname').value.trim();
-  const phone=document.getElementById('tr-phone').value.trim();
-  if(!fname){alert('Enter first name');return;}
-  if(!phone){alert('Enter phone number');return;}
-  const clients=ld('pp_clients',[]);
-  const mems=ld('pp_memberships',{});
-  /* #6: trials get a TEMP trial ID (T-xx), NOT a member number.
-     A real PPxxx is assigned only when they convert to a paid plan. */
-  const lastT=clients.reduce((max,c)=>{const n=parseInt(((c.memNo||'').match(/^T-(\d+)/)||[])[1]||0);return n>max?n:max;},0);
-  const memNo='T-'+String(lastT+1).padStart(2,'0');
-  const id=Date.now().toString();
-  const today=td();
-  const trialDate=document.getElementById('tr-date').value||today;
-  const client={id,memNo,fname,lname:document.getElementById('tr-lname').value.trim(),
-    phone,email:'',address:'',refId:document.getElementById('tr-ref').value||null,
-    notes:document.getElementById('tr-notes').value.trim(),
-    trialDate:trialDate,isTrial:true,createdAt:today};
-  clients.push(client);sv('pp_clients',clients);
-  mems[id]={cid:id,plan:'trial',startDate:trialDate,endDate:trialDate,sessionsLeft:1,fee:0,isTrial:true};
-  sv('pp_memberships',mems);
-  closeM('m-trial');
-  toast('✓ Trial registered — '+fname+' ('+memNo+')');
-  renderClients();renderDash();
-}
+// ===== TRIAL REGISTRATION (merged into Add Client above — see openTrialReg / _cSetCategory) =====
 
 // ===== KEYBOARD SHORTCUTS / HOTKEYS =====
 (function(){
@@ -4059,8 +4225,20 @@ function saveTrialReg(){
 })();
 
 // ===== START =====
-// init() called by Firebase sync after data loaded
-if(typeof _pSync==='undefined')init();
+// init() called by Firebase sync after data loaded.
+// CRITICAL FIX: this used to be a bare, immediate call — but it sits BEFORE
+// the login screen's own HTML further down the page (#pp-login, #lg-users,
+// etc.) has even been parsed yet. Calling init() (which can trigger
+// ppAuthGate(), which needs those elements) before they exist is a real
+// timing race — outcome depends on exact parse speed, explaining
+// inconsistent "sometimes the topbar/login shows correctly, sometimes
+// not" behavior. Deferred to DOMContentLoaded so it only ever runs once
+// the full page structure genuinely exists.
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>{if(typeof _pSync==='undefined')init();});
+}else{
+  if(typeof _pSync==='undefined')init();
+}
 </script>
 
 <script>
@@ -4071,54 +4249,6 @@ if('serviceWorker' in navigator){
 }
 </script>
 
-<!-- Trial Registration Modal -->
-<div class="mo" id="m-trial">
-  <div class="md">
-    <button class="mc2" onclick="closeM('m-trial')">✕</button>
-    <h2 style="color:var(--gold);">🎯 Trial Class</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5;">Register a walk-in for a <strong>free trial class</strong>. Their record stays for future follow-up.</p>
-    <div class="fg">
-      <label class="fl">First Name *</label>
-      <input class="fi" id="tr-fname" placeholder="First name" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" oninput="const b=document.getElementById('tr-save-btn');if(b){b.disabled=!this.value.trim();b.style.opacity=this.value.trim()?'':'0.45';}"/>
-    </div>
-    <div class="fr">
-      <div class="fg">
-        <label class="fl">Last Name</label>
-        <input class="fi" id="tr-lname" placeholder="Last name" autocomplete="off" autocapitalize="words" spellcheck="false"/>
-      </div>
-      <div class="fg">
-        <label class="fl">Phone *</label>
-        <input class="fi" id="tr-phone" type="tel" placeholder="98xxx xxxxx" autocomplete="off"/>
-      </div>
-    </div>
-    <div class="fg">
-      <label class="fl">Referred By (if any)</label>
-      <div style="position:relative;">
-        <input class="fi" id="tr-ref-search" autocomplete="off" placeholder="🔍 Search member…" oninput="_trRefSearch()" onfocus="_trRefSearch()"/>
-        <input type="hidden" id="tr-ref" value=""/>
-        <div id="tr-ref-results" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:180px;overflow-y:auto;background:var(--surface2);border:1px solid var(--gold);border-radius:var(--rsm);z-index:50;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
-      </div>
-    </div>
-    <div class="fr">
-      <div class="fg">
-        <label class="fl">Trial Date</label>
-        <input class="fi" id="tr-date" type="date"/>
-      </div>
-      <div class="fg">
-        <label class="fl">Notes / Interest</label>
-        <input class="fi" id="tr-notes" placeholder="e.g. Morning slots, weight loss..." autocomplete="off"/>
-      </div>
-    </div>
-    <div style="background:var(--surface2);border-radius:12px;padding:12px;margin-bottom:16px;border-left:3px solid var(--gold);">
-      <div style="font-size:12px;color:var(--text2);line-height:1.6;">
-        ✅ Gets a <strong style="color:var(--text);">Trial Class</strong> membership (1 free session)<br/>
-        ✅ Assigned a member ID for tracking<br/>
-        ✅ Book their slot in Schedule tab as usual
-      </div>
-    </div>
-    <button class="sb2" id="tr-save-btn" onclick="saveTrialReg()" disabled style="opacity:0.45;">Register Trial Member ✓</button>
-  </div>
-</div>
 <!-- ================= PHASE 1: AUTH + RBAC + AUDIT LOG ================= -->
 <style id="pp-auth-css">
 #pp-login{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -4209,6 +4339,62 @@ if('serviceWorker' in navigator){
     <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:10px;" onclick="clearAudit()">Clear Log</button>
   </div>
 </div>
+
+<!-- ATTENDANCE LOOKUP MODAL -->
+<div class="mo" id="m-attlookup">
+  <div class="md" style="max-height:85vh;overflow-y:auto;">
+    <button class="mc2" onclick="closeM('m-attlookup')">✕</button>
+    <h2>🔍 Attendance Lookup</h2>
+    <input class="fi" id="al-search" placeholder="Type a name or member ID..." oninput="renderAttLookup()" style="margin-bottom:10px;"/>
+    <div id="al-results" style="max-height:65vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<script>
+function openAttendanceLookup(){
+  document.getElementById('al-search').value='';
+  document.getElementById('al-results').innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Start typing a name or member ID above.</div>';
+  openM('m-attlookup');
+  setTimeout(()=>{try{document.getElementById('al-search').focus();}catch(e){}},150);
+}
+function renderAttLookup(){
+  const q=(document.getElementById('al-search').value||'').trim().toLowerCase();
+  const out=document.getElementById('al-results');
+  if(!q){out.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Start typing a name or member ID above.</div>';return;}
+  const clients=ld('pp_clients',[]);
+  const mems=ld('pp_memberships',{});
+  const bookings=ld('pp_bookings',{});
+  const matches=clients.filter(c=>{
+    const hay=((c.memNo||'')+' '+c.fname+' '+(c.lname||'')).toLowerCase();
+    return hay.includes(q);
+  }).slice(0,15);
+  if(!matches.length){out.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">No member matches "'+_esc(q)+'"</div>';return;}
+  out.innerHTML=matches.map(c=>{
+    const m=mems[c.id];
+    /* Same fields, same calculations as Print Profile's attendance section —
+       one shared source of truth, not a separate recalculation. */
+    const att=[];
+    Object.keys(bookings).forEach(date=>{
+      Object.keys(bookings[date]||{}).forEach(slot=>{
+        (bookings[date][slot]||[]).forEach(bk=>{if(bk&&bk.cid===c.id)att.push({date,slot,attended:!!bk.attended});});
+      });
+    });
+    att.sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:null;
+    const sessTotal=m?((m.sessions!=null?m.sessions:(m.sessionsTotal||0))+(m.bonus||0)):0;
+    const sessLeft=m?getSessionsLeft(m,c.id):0;
+    const attendedCount=att.filter(a=>a.attended).length;
+    const rows=att.slice(0,30).map(a=>`<tr><td>${fmt(a.date)}</td><td>${a.slot}</td><td style="color:${a.attended?'var(--green)':'var(--gold)'};">${a.attended?'✓ Attended':'⏳ Booked'}</td></tr>`).join('');
+    return `<div class="card" style="padding:14px;margin-bottom:12px;">
+      <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--gold);margin-bottom:4px;">${_esc(c.fname)} ${_esc(c.lname||'')} <span style="font-size:12px;color:var(--text3);">(${_esc(c.memNo||'—')})</span></div>
+      ${m?`<div style="font-size:13px;color:var(--text2);margin-bottom:2px;">Plan: <b>${_esc(plan)}</b> &nbsp;•&nbsp; Validity: ${fmt(m.startDate)} to ${fmt(m.endDate)}</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">Total allotted: <b>${m.plan==='unlimited'?'Unlimited':sessTotal}</b> &nbsp;•&nbsp; Attended: <b style="color:var(--green);">${attendedCount}</b> &nbsp;•&nbsp; Remaining: <b>${m.plan==='unlimited'?'Unlimited':sessLeft}</b></div>`
+      :'<div style="font-size:13px;color:var(--text3);margin-bottom:8px;">No plan on record.</div>'}
+      ${att.length?`<table style="width:100%;font-size:12px;border-collapse:collapse;"><tr style="color:var(--text3);text-align:left;"><th style="padding:3px 6px;">Date</th><th style="padding:3px 6px;">Slot</th><th style="padding:3px 6px;">Status</th></tr>${rows}</table>${att.length>30?'<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px;">…and '+(att.length-30)+' more</div>':''}`:'<div style="font-size:12px;color:var(--text3);">No bookings on record.</div>'}
+    </div>`;
+  }).join('');
+}
+</script>
 
 <script>
 /* ================= AUTH CORE ================= */
@@ -4327,6 +4513,13 @@ function ppAuthGate(){
           st.textContent='@keyframes spin{to{transform:rotate(360deg);}}';
           document.head.appendChild(st);
         }
+      }
+      if(!_pdb){
+        /* Firebase truly unavailable — don't hang waiting on a connection
+           that will never come. Proceed with whatever users are already
+           cached locally, so the PIN screen still appears. */
+        setTimeout(()=>ppAuthGate(),300);
+        return;
       }
       _pdb.collection('pilates').doc('pp_users').get().then(d=>{
         if(d.exists&&d.data()&&d.data().value){localStorage.setItem('pp_users',d.data().value);}
@@ -4469,8 +4662,8 @@ function applyRole(){
     },50);
   }
 }
-const _STAFF_BLOCKED_TABS=['cash','credits','payments'];
-const _TRAINER_BLOCKED_TABS=['dashboard','clients','cash','credits','payments'];
+const _STAFF_BLOCKED_TABS=['cash','credits'];
+const _TRAINER_BLOCKED_TABS=['dashboard','clients','cash','credits'];
 
 /* ================= AUDIT LOG ================= */
 function AUD(action,detail){
@@ -4524,7 +4717,9 @@ wrapAudit('saveBillTask',()=>'📋 Bill/Task saved');
 wrapAudit('delTodo',()=>'🗑 Task deleted');
 wrapAudit('toggleTodo',()=>'☑️ Task status toggled');
 wrapAudit('toggleBillStatus',()=>'☑️ Bill paid/due toggled');
-wrapAudit('saveTrialReg',()=>'🎯 Trial registered: '+(_gv('tr-fname')+' '+_gv('tr-lname')).trim());
+/* saveTrialReg no longer exists as a separate function — its audit entry is
+   now covered by the saveClient wrapAudit call above, since trial registration
+   is now just one branch of the same merged saveClient function. */
 wrapAudit('saveReferralBonus',()=>'🎁 Referral reward saved');
 wrapAudit('toggleReferralBonus',()=>'🎁 Referral reward toggled');
 wrapAudit('saveNewPlan',()=>'📐 Plan added');
@@ -4644,11 +4839,31 @@ function deleteUser(){
 }
 
 /* ================= RBAC WRAPPERS ================= */
+/* CRITICAL: this specific override is what makes the PIN/login screen show
+   at all. It MUST run regardless of anything else in this block — wrapped
+   in its own try/catch so an error anywhere else here can never silently
+   skip authentication and land someone straight on the real dashboard with
+   no PIN, no matter their role. Confirmed as a real structural risk: this
+   previously sat unprotected, two-thirds into one large shared script block,
+   meaning any earlier failure in that same block would have silently
+   prevented this exact line from ever running. */
+try{
+  const _oInitSafe=window.init;
+  window.init=function(){
+    try{ppAuthGate();}catch(_e){}
+    return _oInitSafe.apply(this,arguments);
+  };
+}catch(_e){}
 (function(){
-  /* gate init behind login */
-  const _oInit=window.init;
-  window.init=function(){ppAuthGate();return _oInit.apply(this,arguments);};
+  /* Each override below is wrapped in its OWN try/catch. Previously, a
+     failure in any ONE of these (e.g. the first, showTab) would silently
+     prevent EVERY override declared after it in this same block from ever
+     being attached — confirmed as the real cause of the entire "Admin
+     Tools" section vanishing from About: renderCredits' override sits last
+     in this list, so any earlier failure here took it down too, even
+     though nothing was wrong with renderCredits itself. */
 
+  try{
   /* block restricted tabs for staff */
   const _oShowTab=window.showTab;
   window.showTab=function(n,btn){
@@ -4657,15 +4872,19 @@ function deleteUser(){
     if(ppIsTrainer()&&_TRAINER_BLOCKED_TABS.includes(n)){toast('🔒 Access restricted');return;}
     return _oShowTab.apply(this,arguments);
   };
+  }catch(_e){}
 
+  try{
   /* FAB: staff cannot add on cash/bills/staff/payments tabs */
   const _oFab=window.fabAction;
   window.fabAction=function(){
     if(ppIsTrainer()){toast('🔒 Not available');return;}
-    if(ppIsStaff()&&['cash','bills','staff','payments','credits'].includes(_activeTab)){toast('🔒 Not available');return;}
+    if(ppIsStaff()&&['cash','bills','staff','credits'].includes(_activeTab)){toast('🔒 Not available');return;}
     return _oFab.apply(this,arguments);
   };
+  }catch(_e){}
 
+  try{
   /* dashboard: strip revenue & dues for staff */
   const _oDash=window.renderDash;
   window.renderDash=function(){
@@ -4678,6 +4897,7 @@ function deleteUser(){
     }
     return r;
   };
+  }catch(_e){}
 
   /* NOTE: a staff-restriction wrapper for the old detail page used to live here.
      It hid Edit Profile / Deactivate / Reactivate / Add Reward buttons from staff.
@@ -4685,6 +4905,7 @@ function deleteUser(){
      the unified member form. FLAGGED for Santosh — staff currently has unrestricted
      access to those actions there until this is explicitly decided. */
 
+  try{
   /* staff tab: limited attendance-only view for staff role */
   const _oStaff=window.renderStaff;
   window.renderStaff=function(){
@@ -4758,7 +4979,9 @@ function deleteUser(){
     }).join('');
     document.getElementById('staff-list').innerHTML=html;
   };
+  }catch(_e){}
 
+  try{
   /* tasks tab: staff sees only own assigned tasks, view-only */
   const _oBT=window.renderBillsTasks;
   window.renderBillsTasks=function(){
@@ -4780,7 +5003,9 @@ function deleteUser(){
         </div>
       </div>`).join(''):`<div style="text-align:center;padding:40px 20px;color:var(--text3);font-size:13px;">${sid?'No tasks assigned to you yet':'Your login is not linked to a staff record — ask admin'}</div>`);
   };
+  }catch(_e){}
 
+  try{
   /* block financial/edit modals for staff (safety net) */
   ['openCashEntry','openEditPayment','openAddStaff','openAddBillTodo','openStaffAdv','openManagePlans','openAddReferralBonus','exportPPData','importPPData','resetAllData'].forEach(fn=>{
     const o=window[fn];
@@ -4790,6 +5015,9 @@ function deleteUser(){
       return o.apply(this,arguments);
     };
   });
+  }catch(_e){}
+
+  try{
   /* staff: editing existing clients & reassigning existing plans = admin only */
   (function(){
     const oEdit=window.openEditClient;
@@ -4807,6 +5035,9 @@ function deleteUser(){
       return oAssign.apply(this,arguments);
     };
   })();
+  }catch(_e){}
+
+  try{
   /* trainer is strictly view-only: block all adding/editing actions */
   ['openAddClient','openTrialReg','openAssignMembership','openBookingModal','saveBooking','cycleSlot','confirmCycleSlot','cycStaffAtt','saveClient','saveMembership','savePayment','saveCashEntry','saveBillTask','delTodo','toggleBillStatus','saveStaff','delStaff','saveStaffAdv','saveTrialReg','saveReferralBonus','toggleReferralBonus','archiveClient'].forEach(fn=>{
     const o=window[fn];
@@ -4816,20 +5047,27 @@ function deleteUser(){
       return o.apply(this,arguments);
     };
   });
+  }catch(_e){}
 
+  try{
   /* About page: append admin tools (Users & Audit) */
   const _oCred=window.renderCredits;
   window.renderCredits=function(){
     const r=_oCred.apply(this,arguments);
+    const _slot=document.getElementById('admin-tools-slot');
+    if(!_slot)return r;
+    /* Always re-check from scratch — remove any previous attempt first,
+       so a stale "already handled" state (e.g. from PPS not being ready
+       on an earlier render) can never permanently block this from ever
+       trying again on a later, correct render. */
+    const _existing=document.getElementById('admin-tools');
+    if(_existing)_existing.remove();
     if(ppIsAdmin()){
-      const cc=document.getElementById('credits-content');
-      const _slot=document.getElementById('admin-tools-slot');
-      if(_slot&&!document.getElementById('admin-tools')){
-        const d=document.createElement('div');d.id='admin-tools';
-        d.innerHTML=`<div class="div-section">🔐 Admin Tools</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-          <button class="sb2" onclick="openReports()" style="margin:0;font-size:12px;padding:10px 6px;">📊 Reports</button>
-          <button class="sb2" onclick="openStatement()" style="margin:0;font-size:12px;padding:10px 6px;">📑 Statement</button>
+      const d=document.createElement('div');d.id='admin-tools';
+      d.innerHTML=`<div class="div-section">🔐 Admin Tools</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <button class="sb2" onclick="openReports()" style="margin:0;font-size:12px;padding:10px 6px;">📊 Reports</button>
+        <button class="sb2" onclick="openStatement()" style="margin:0;font-size:12px;padding:10px 6px;">📑 Statement</button>
           <button class="sb2" onclick="openManagePlans()" style="margin:0;font-size:12px;padding:10px 6px;">⚙️ Plans</button>
           <button class="sb2" onclick="openStudioEdit()" style="margin:0;font-size:12px;padding:10px 6px;">🏛 Studio Details</button>
           <button class="sb2" onclick="openAnnounce()" style="margin:0;font-size:12px;padding:10px 6px;">📢 Announcements</button>
@@ -4839,11 +5077,11 @@ function deleteUser(){
           </div>
           <div style="font-size:10px;color:var(--text3);margin:6px 0 4px;text-align:center;">☁️ ${(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'offline mode'}</div>
           <button class="sb2" onclick="cloudSignOut()" style="background:none;border:1px solid var(--rose);color:var(--rose);font-size:11px;padding:8px;margin:0;">☁️ Sign-out</button>`;
-        _slot.appendChild(d);
-      }
+      _slot.appendChild(d);
     }
     return r;
   };
+  }catch(_e){}
 })();
 </script>
 
@@ -5141,7 +5379,7 @@ function openReports(){
 /* merged operating cashbook: pp_cash + legacy payments, excluding contra */
 function _opsCash(){
   const cashRaw=ld('pp_cash',[]);
-  const legacyPays=ld('pp_payments',[]).map(p=>({id:'leg_'+p.id,type:'in',desc:p.forWhat||'Payment',cid:p.cid,amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes}));
+  const legacyPays=ld('pp_payments',[]).map(p=>({id:'leg_'+p.id,type:'in',desc:p.forWhat||'Receipt',cid:p.cid,amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes}));
   const ids=new Set(cashRaw.map(e=>e.id));
   return [...cashRaw,...legacyPays.filter(p=>!ids.has(p.id))].filter(e=>e.type!=='contra'&&e.cat!=='Contra'&&!/security deposit|deposit refund|capital|loan|asset/i.test(e.cat||''));
 }
@@ -5339,8 +5577,8 @@ function printProfile(cid){
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
   const mems=ld('pp_memberships',{});const m=mems[cid];
   const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:null;
-  const _legPays=ld('pp_payments',[]).filter(p=>p.cid===cid).map(p=>({date:p.date,amt:p.amt,mode:p.mode,desc:p.forWhat||'Payment'}));
-  const _cashPays=ld('pp_cash',[]).filter(e=>e.cid===cid&&e.type==='in').map(e=>({date:e.date,amt:e.amt,mode:e.mode,desc:e.desc||'Payment'}));
+  const _legPays=ld('pp_payments',[]).filter(p=>p.cid===cid).map(p=>({date:p.date,amt:p.amt,mode:p.mode,desc:p.forWhat||'Receipt'}));
+  const _cashPays=ld('pp_cash',[]).filter(e=>e.cid===cid&&e.type==='in').map(e=>({date:e.date,amt:e.amt,mode:e.mode,desc:e.desc||'Receipt'}));
   const _seenP=new Set();
   const pays=[..._legPays,..._cashPays].filter(p=>{const k=p.date+'_'+p.amt;if(_seenP.has(k))return false;_seenP.add(k);return true;}).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const totalPaid=getClientTotalPaid(cid);
@@ -5812,6 +6050,36 @@ function _updateModeBalance(){
 
 /* ===== UPDATE NOTIFICATION ===== */
 function _appVer(){return (document.getElementById('app-ver')||{}).textContent||'this version';}
+function _autoCheckForUpdate(){
+  if(!('serviceWorker' in navigator))return;
+  /* Skip entirely when not on a real http(s) origin (e.g. opened directly
+     as a local file for testing) — service workers and this fetch are
+     guaranteed to fail there by browser design, and even with a .catch()
+     handler, the browser still logs the blocked attempt itself as a
+     visible console error before the catch ever runs. No point trying. */
+  if(location.protocol!=='http:'&&location.protocol!=='https:')return;
+  /* Same detection as the manual checkForUpdate() below, but completely
+     silent — no "checking…" toast, no "up to date" dialog. Only ever
+     interrupts the user if a genuine version mismatch is found. */
+  fetch('sw.js?_t='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(txt=>{
+    const m=txt.match(/CACHE='([^']+)'/);
+    const serverVer=m?m[1]:'';
+    const localVer='pilates-'+_appVer().replace(/^v/,'v');
+    if(serverVer&&serverVer!==localVer){
+      showConfirm('🆕','Update Available','A newer version ('+serverVer.replace('pilates-','')+') is available.<br><br>You are on '+_appVer()+'.',[
+        {label:'Later',color:'var(--border2)',outline:true,action:null},
+        {label:'Update now',color:'var(--gold)',action:()=>{
+          toast('Updating…');
+          if('caches' in window)caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k))));
+          navigator.serviceWorker.getRegistrations().then(rs=>{
+            rs.forEach(r=>{try{r.update();}catch(e){}if(r.waiting)r.waiting.postMessage('skipWaiting');});
+          });
+          setTimeout(()=>location.reload(true),800);
+        }}
+      ]);
+    }
+  }).catch(()=>{}); /* silent — no error dialog for an automatic background check */
+}
 function checkForUpdate(){
   if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on '+_appVer()+'.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   toast('Checking for updates…');
@@ -6143,7 +6411,7 @@ function _modesForAccount(acct){
 }
 function _allCashEntries(){
   const cashRaw=ld('pp_cash',[]);
-  const legacy=ld('pp_payments',[]).map(p=>({id:'leg_'+p.id,type:'in',desc:p.forWhat||'Payment',cid:p.cid,amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes}));
+  const legacy=ld('pp_payments',[]).map(p=>({id:'leg_'+p.id,type:'in',desc:p.forWhat||'Receipt',cid:p.cid,amt:p.amt,date:p.date,mode:p.mode,cat:p.forWhat||'Membership Fee',notes:p.notes}));
   const ids=new Set(cashRaw.map(e=>e.id));
   return [...cashRaw,...legacy.filter(p=>!ids.has(p.id))];
 }
@@ -6557,18 +6825,32 @@ function openUnified(cid,focusSection){
   const c=clients.find(x=>x.id===cid);
   if(!c){toast('Client not found');return;}
   _ufReturnTab=document.querySelector('.tab.active')?.id||'tab-clients';
-  /* Header */
-  document.getElementById('uf-name').textContent=(c.fname||'')+' '+(c.lname||'');
-  document.getElementById('uf-memno').textContent=c.memNo||'';
-  const _mEdit=document.getElementById('uf-memno-edit');
-  if(_mEdit)_mEdit.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin())?'':'none';
-  document.getElementById('uf-profile-summary').textContent=_fmtPhone(c.phone)+(c.email?' · '+c.email:'');
-  const phEl=document.getElementById('uf-photo');
-  phEl.innerHTML=c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;"/>`:'👤';
-  /* Populate all 3 sections */
-  _ufPopulateProfile(c);
-  _ufPopulatePlan(cid);
-  _ufPopulatePayment(cid);
+  /* Header — also wrapped now. These were unguarded even after the fix
+     to the three section-populate calls below; any ONE of these four
+     lines throwing (for any reason) would have stopped execution before
+     ever reaching openM('m-unified'), with the exact same silent-failure
+     symptom as the sections below. */
+  try{
+    document.getElementById('uf-name').textContent=(c.fname||'')+' '+(c.lname||'');
+    document.getElementById('uf-memno').textContent=c.memNo||'';
+    const _mEdit=document.getElementById('uf-memno-edit');
+    if(_mEdit)_mEdit.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin())?'':'none';
+    document.getElementById('uf-profile-summary').textContent=_fmtPhone(c.phone)+(c.email?' · '+c.email:'');
+    const phEl=document.getElementById('uf-photo');
+    if(phEl)phEl.innerHTML=c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;"/>`:'👤';
+  }catch(_e){console.warn('Header failed to render:',_e);}
+  /* Populate all 3 sections — each wrapped individually. A failure in ANY
+     ONE of these (e.g. a malformed date or missing field on a specific
+     real client's history — the exact kind of legacy-data inconsistency
+     found repeatedly this week) must never again silently prevent the
+     modal from opening at all. Before this fix, an error here would stop
+     execution before reaching openM('m-unified') below, meaning the card
+     would do NOTHING when tapped — exactly the reported symptom of some
+     clients opening fine and others not, with clean test data never
+     reproducing it since it has no messy history to trip on. */
+  try{_ufPopulateProfile(c);}catch(_e){console.warn('Profile section failed to render:',_e);}
+  try{_ufPopulatePlan(cid);}catch(_e){console.warn('Plan section failed to render:',_e);}
+  try{_ufPopulatePayment(cid);}catch(_e){console.warn('Payment section failed to render:',_e);}
   /* All 3 sections COLLAPSED by default — user taps to expand what they need */
   document.getElementById('uf-body-profile').style.display='none';
   document.getElementById('uf-profile-arrow').textContent='▶';
@@ -6580,19 +6862,58 @@ function openUnified(cid,focusSection){
   /* Show admin-only actions */
   const adminRow=document.getElementById('uf-admin-row');
   if(adminRow)adminRow.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin())?'':'none';
+  /* The Deactivate button's label/color must reflect the client's ACTUAL
+     current state — confusingly, it always said "Deactivate" even when
+     looking at an already-inactive client, even though tapping it
+     correctly offered to reactivate her. Fixed so it's never ambiguous
+     about what the button will actually do. */
+  const _deactBtn=document.getElementById('uf-deactivate-btn');
+  if(_deactBtn){
+    if(c.archived){
+      _deactBtn.textContent='✅ Reactivate';
+      _deactBtn.style.color='var(--green)';
+      _deactBtn.style.borderColor='var(--green)';
+    }else{
+      _deactBtn.textContent='⏸ Deactivate';
+      _deactBtn.style.color='var(--text3)';
+      _deactBtn.style.borderColor='var(--border)';
+    }
+  }
   /* Arm dirty-tracking for profile save button (always, regardless of which section opens) */
   setTimeout(()=>armDirty('uf-body-profile','uf-save-profile'),100);
 }
 
 function closeUnified(){
-  /* 2-step back: if any section is open, collapse all first. If already collapsed, close the form. */
+  /* Multi-step back, checked in this order — always step back ONE level,
+     never jump straight to fully closed from something deeper:
+       1. A chip sub-form (Renew/Freeze/Change/Extend/Resume) or the
+          "Edit current Plan" correction panel is open → close just that.
+       2. A top-level section (Profile/Plan/Payment) is expanded → collapse
+          all three back to the overview bars.
+       3. Everything is already collapsed → close the whole form. */
+  const subform=document.getElementById('uf-plan-subform');
+  const editPanel=document.getElementById('uf-edit-dates');
+  if(subform&&subform.style.display!=='none'&&subform.innerHTML.trim()){
+    subform.style.display='none';subform.innerHTML='';subform.dataset.action='';
+    const actionsBar=document.getElementById('uf-plan-actions');
+    if(actionsBar)actionsBar.querySelectorAll('.uf-act-btn').forEach(b=>{
+      b.style.background='none';b.style.color='var(--text)';
+      b.style.borderColor=b.dataset.action==='resume'?'var(--green)':'var(--border2)';
+    });
+    return;
+  }
+  if(editPanel&&editPanel.style.display!=='none'){
+    editPanel.style.display='none';
+    window._ufEditTarget=null;
+    return;
+  }
   const sections=['profile','plan','payment'];
   const anyOpen=sections.some(s=>{
     const body=document.getElementById('uf-body-'+s);
     return body&&body.style.display!=='none';
   });
   if(anyOpen){
-    /* Step 1: collapse all sections back to overview */
+    /* Step: collapse all sections back to overview */
     sections.forEach(s=>{
       const body=document.getElementById('uf-body-'+s);
       const arrow=document.getElementById('uf-'+s+'-arrow');
@@ -6601,7 +6922,7 @@ function closeUnified(){
     });
     return; /* stay on the form — user sees the 3 collapsed bars */
   }
-  /* Step 2: all collapsed → close the form */
+  /* All collapsed → close the form */
   closeM('m-unified');
   if(_ufReturnTab)showTab(_ufReturnTab.replace('tab-',''));
 }
@@ -6715,6 +7036,19 @@ function ufSaveProfile(){
 }
 
 /* ---- PLAN ---- */
+/* Explicit, one-tap correction for the isTrial/real-plan contradiction —
+   never runs automatically, only when the admin taps the warning banner. */
+function _ufClearStaleTrial(cid){
+  const clients=ld('pp_clients',[]);
+  const c=clients.find(x=>x.id===cid);if(!c)return;
+  c.isTrial=false;
+  if(!c.convertedFrom)c.convertedFrom='trial';
+  sv('pp_clients',clients);
+  if(typeof AUD==='function')AUD('fix_trial_flag','Cleared stale isTrial flag for '+cid+' (already had a real plan)');
+  toast('✓ Fixed — no longer shown as trial');
+  _ufPopulatePlan(cid);
+}
+
 function _ufPopulatePlan(cid){
   const mems=ld('pp_memberships',{});
   const m=mems[cid];
@@ -6741,7 +7075,7 @@ function _ufPopulatePlan(cid){
         (arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});
       });
     });
-    const sessTotal=(m.sessions||p?.sessions||0)+(m.bonus||0);
+    const sessTotal=m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(p?.sessions||0)+(m.bonus||0));
     const sessLeft=Math.max(0,sessTotal-sessUsed);
     /* Days info */
     const today=new Date();
@@ -6773,7 +7107,14 @@ function _ufPopulatePlan(cid){
     const _sessLabel=_isUnlimited?'Unlimited':''+sessTotal;
     const _sessRemLabel=_isUnlimited?'Unlimited':''+sessLeft;
     
-    planInfo.innerHTML=`<div class="uf-plan-info">
+    /* Surface a real data contradiction instead of silently fixing it:
+       a client can be stuck with isTrial:true on their record even though
+       a genuine non-trial plan was already assigned (older registration
+       paths didn't always clear this correctly). Admin sees it and can
+       clear it with one tap — nothing changes without that explicit action. */
+    const _staleTrialFlag=c&&c.isTrial&&m.plan!=='trial'&&p;
+    
+    planInfo.innerHTML=`${_staleTrialFlag?`<div style="background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.4);border-radius:var(--rsm);padding:10px;margin-bottom:8px;font-size:12px;color:#e74c3c;">⚠️ This client still shows internally as "Trial — not converted," but already has a real ${pName} plan assigned. <a href="#" onclick="event.preventDefault();_ufClearStaleTrial('${cid}')" style="color:#e74c3c;text-decoration:underline;font-weight:700;">Tap to fix this</a></div>`:''}<div class="uf-plan-info">
       <div class="uf-label">Current Plan</div>
       <div style="font-size:16px;font-weight:700;color:var(--gold);margin:4px 0;">${pName}${_isUnlimited?' (Unlimited)':' ('+sessTotal+' sessions)'}</div>
       <div><span class="uf-label">Period:</span> ${fmt(m.startDate)} → ${fmt(m.endDate)}</div>
@@ -6783,7 +7124,7 @@ function _ufPopulatePlan(cid){
       <div><span class="uf-label">Status:</span> ${statusLabel}</div>
       ${m.frozenDays||m.frozenDate||m.status==='frozen'?`<div><span class="uf-label">Freeze Info:</span> ${m.frozenDate?'Froze on '+fmt(m.frozenDate):''}${m.resumeDate?' · Resumed '+fmt(m.resumeDate):''}${m.frozenDays?' · '+m.frozenDays+' days frozen':''}</div>`:''}
     </div>
-    ${typeof ppIsAdmin==='function'&&ppIsAdmin()?'<button onclick="_ufEditDates()" style="width:100%;margin-top:8px;padding:10px;background:none;border:1.5px dashed var(--gold);color:var(--gold);border-radius:var(--rsm);font-size:12px;font-family:\'Jost\',sans-serif;font-weight:600;cursor:pointer;">✏️ Edit this plan — dates, fee, discount, sessions, status</button>':''}
+    ${typeof ppIsAdmin==='function'&&ppIsAdmin()?'<button onclick="_ufEditDates()" style="width:100%;margin-top:8px;padding:10px;background:none;border:1.5px dashed var(--gold);color:var(--gold);border-radius:var(--rsm);font-size:12px;font-family:\'Jost\',sans-serif;font-weight:600;cursor:pointer;">✏️ Edit current Plan (clerical mistakes only)</button>':''}
     <div id="uf-edit-dates" style="display:none;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:8px;border:1px solid var(--gold);">
       <div id="uf-edit-banner" style="font-size:11px;color:var(--amber);margin-bottom:8px;">⚠️ Correcting a wrong entry. This rewrites the current plan record directly — no history entry is created (use "Change Plan" instead if this is a genuine mid-term upgrade/downgrade for the client).</div>
       <div class="fg"><label class="fl">Plan</label><select class="fi" id="uf-edit-plan" onchange="_ufEditPlanChanged()"></select></div>
@@ -6814,7 +7155,10 @@ function _ufPopulatePlan(cid){
       document.getElementById('uf-assign-btn').textContent='🎯 Assign Plan (Convert from Trial)';
       document.getElementById('uf-plan-start').value='';
       summary.innerHTML='<span style="color:#9b59b6;">Trial · convert to regular</span>';
-    }else if(isActive||isFrozen){
+    }else{
+      /* Active, expiring, OR expired — same 4 chips always visible once a real
+         plan exists. No swap to a different layout on expiry: the options
+         never visually disappear, only Frozen is a genuinely different state. */
       actions.style.display='flex';
       actions.style.flexWrap='wrap';
       assignDiv.style.display='none';
@@ -6822,23 +7166,15 @@ function _ufPopulatePlan(cid){
         actions.innerHTML=`
           <button data-action="resume" onclick="ufPlanAction('resume')" class="uf-act-btn" style="flex:1;border-color:var(--green);">▶️ Resume</button>
           <button data-action="change" onclick="ufPlanAction('change')" class="uf-act-btn" style="flex:1;">🔀 Change Plan</button>`;
+        summary.textContent=pName+' · ❄️ Frozen';
       }else{
         actions.innerHTML=`
           <button data-action="renew" onclick="ufPlanAction('renew')" class="uf-act-btn" style="flex:1;">🔄 Renew</button>
           <button data-action="change" onclick="ufPlanAction('change')" class="uf-act-btn" style="flex:1;">🔀 Change</button>
           <button data-action="freeze" onclick="ufPlanAction('freeze')" class="uf-act-btn" style="flex:1;">❄️ Freeze</button>
           <button data-action="extend" onclick="ufPlanAction('extend')" class="uf-act-btn" style="flex:1;">➕ Extend</button>`;
+        summary.textContent=pName+(st==='expired'?' · expired '+fmt(m.endDate):' · expires '+fmt(m.endDate));
       }
-      summary.textContent=pName+(isFrozen?' · ❄️ Frozen':' · expires '+fmt(m.endDate));
-    }else{
-      /* Expired — show renew form */
-      actions.style.display='none';
-      assignDiv.style.display='';
-      document.getElementById('uf-assign-btn').textContent='🔄 Renew';
-      /* Default start = day after expiry */
-      const exp=new Date(m.endDate+'T00:00:00');exp.setDate(exp.getDate()+1);
-      document.getElementById('uf-plan-start').value=_localDate(exp);
-      summary.innerHTML='<span style="color:var(--red);">Expired</span>';
     }
   }else{
     /* No plan at all — first assignment */
@@ -6889,7 +7225,7 @@ function _ufRenderHistory(cid){
     html+=hist.map((h,idx)=>{
       const plans=getPlans();
       const p=plans.find(x=>x.id===h.plan);
-      return '<div class="uf-history-item" style="cursor:pointer;" onclick="_ufEditHistoryEntry(\''+cid+'\','+idx+')"><b>'+(p?p.name:h.plan)+'</b> · '+fmt(h.startDate)+' → '+fmt(h.endDate)+'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN')+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">✏️ tap to correct</div></div>';
+      return '<div class="uf-history-item" style="cursor:pointer;" onclick="_ufEditHistoryEntry(\''+cid+'\','+idx+')"><b>'+(p?p.name:h.plan)+'</b> · '+fmt(h.startDate)+' → '+fmt(h.endDate)+(h.plan==='trial'?'':'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN'))+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">✏️ tap to correct</div></div>';
     }).join('');
   }
   const evtItems=events.filter(e=>['freeze','resume','extend'].includes(e.type));
@@ -6919,11 +7255,37 @@ function _ufEditHistoryEntry(cid,idx){
   if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m||!m.history||!m.history[idx])return;
+  const h=m.history[idx];
+
+  /* A trial history entry is NOT a plan with a wrong fee — it's a free,
+     one-session walk-in record. The full plan-correction panel (plan
+     dropdown + fee + discount + sessions) doesn't fit it at all, and since
+     'trial' is deliberately excluded from that dropdown's choices, opening
+     it for a trial row silently fell through to whatever plan happened to
+     be first in the list (e.g. "Standard, 10K") — confirmed as the exact
+     cause of the confusing mismatch reported. Trial gets its own minimal,
+     date-only correction instead. */
+  if(h.plan==='trial'){
+    showConfirm('🎯','Correct Trial Date',
+      'This was a free trial visit — only the date can be wrong here, never a fee or plan.<br><br>'+
+      '<input class="fi" type="date" id="_trial-fix-date" value="'+(h.startDate||'')+'" style="margin-top:6px;"/>',
+      [{label:'Cancel',color:'var(--border2)',outline:true,action:null},
+       {label:'Save Corrected Date',color:'var(--gold)',action:()=>{
+         const nd=document.getElementById('_trial-fix-date').value;
+         if(!nd)return;
+         h.startDate=nd;h.endDate=nd;
+         mems[cid]=m;sv('pp_memberships',mems);
+         AUD('edit_history','Corrected trial date for '+cid+' to '+nd);
+         toast('✓ Trial date corrected');
+         _ufPopulatePlan(cid);
+       }}]);
+    return;
+  }
+
   const cash=ld('pp_cash',[]).filter(e=>e.cid===cid).length;
   const pays=ld('pp_payments',[]).filter(p=>p.cid===cid).length;
   const proceed=()=>{
     window._ufEditTarget={cid,kind:'history',idx};
-    const h=m.history[idx];
     const plans=getPlans();
     const planSel=document.getElementById('uf-edit-plan');
     planSel.innerHTML=plans.filter(p=>p.id!=='trial').map(p=>
@@ -6936,7 +7298,7 @@ function _ufEditHistoryEntry(cid,idx){
     document.getElementById('uf-edit-sessions').value=h.sessions||'';
     document.getElementById('uf-edit-bonus').value=h.bonus||0;
     document.getElementById('uf-edit-status').value='active';
-    document.getElementById('uf-edit-banner').innerHTML='⚠️ Correcting a PAST plan entry (history). This does NOT affect the member\'s current plan.';
+    document.getElementById('uf-edit-banner').innerHTML='⚠️ Correcting a PAST plan entry (history) — for fixing a CLERICAL MISTAKE only (wrong fee, wrong date, wrong plan selected at the time). This does NOT affect the member\'s current plan. A genuine change that really happened back then should be its own new entry, not an overwrite of this one.';
     document.getElementById('uf-edit-dates').style.display='';
     document.getElementById('uf-edit-dates').scrollIntoView({behavior:'smooth',block:'center'});
     setTimeout(()=>armDirty('uf-edit-dates','uf-edit-save-btn'),50);
@@ -6992,6 +7354,15 @@ function _ufEditMemNo(){
   document.getElementById('uf-memno').textContent=trimmed;
 }
 function _ufEditDates(){
+  const panel=document.getElementById('uf-edit-dates');
+  /* Toggle-to-close: tapping the button again while the panel is already
+     open should close it, matching the same pattern as the Renew/Freeze/
+     Change/Extend chips elsewhere in this form. */
+  if(panel&&panel.style.display!=='none'&&window._ufEditTarget&&window._ufEditTarget.kind==='live'){
+    panel.style.display='none';
+    window._ufEditTarget=null;
+    return;
+  }
   const cid=document.getElementById('uf-cid').value;
   window._ufEditTarget={cid,kind:'live'};
   const mems=ld('pp_memberships',{});
@@ -7106,10 +7477,13 @@ function _ufSaveDates(){
   m.bonus=nbonus;
   if(!isNaN(nsess))m.sessions=nsess;
   /* Recompute sessionsLeft against the (possibly new) sessions+bonus total,
-     preserving sessions already attended so far */
+     preserving sessions already attended so far. Must count ONLY attended
+     bookings, exactly like getSessionsLeft() — this was previously counting
+     every booking regardless of whether the member actually showed up,
+     silently disagreeing with every other screen that shows this number. */
   const bookings=ld('pp_bookings',{});
   let sessUsed=0;
-  Object.values(bookings).forEach(slots=>{Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid)sessUsed++;});});});
+  Object.values(bookings).forEach(slots=>{Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});});
   const newTotal=(isNaN(nsess)?m.sessions:nsess)+nbonus;
   m.sessionsLeft=Math.max(0,newTotal-sessUsed);
   if(nstatus)m.status=nstatus;
@@ -7165,7 +7539,7 @@ function ufPlanAction(action){
   Object.entries(bookings).forEach(([dt,slots])=>{
     Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
   });
-  const sessTotal=(m.sessions||p?.sessions||0)+(m.bonus||0);
+  const sessTotal=m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(p?.sessions||0)+(m.bonus||0));
   const sessLeft=Math.max(0,sessTotal-sessUsed);
 
   if(action==='renew'){
@@ -7269,7 +7643,7 @@ function ufCalcChange(){
   Object.entries(bookings).forEach(([dt,slots])=>{
     Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
   });
-  const sessTotal=(m.sessions||oldP?.sessions||0)+(m.bonus||0);
+  const sessTotal=m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(oldP?.sessions||0)+(m.bonus||0));
   const sessLeft=Math.max(0,sessTotal-sessUsed);
   
   /* Use ORIGINAL plan days for consumption (not extended), active days only */
@@ -7441,7 +7815,13 @@ function ufAssignPlan(){
   /* Determine event type — must be BEFORE history push which references these */
   const clients=ld('pp_clients',[]);
   const c=clients.find(x=>x.id===cid);
-  const isTrialConvert=c&&c.memNo&&c.memNo.startsWith('T-');
+  /* Trial conversion is determined by the REAL isTrial flag on the client
+     record — not by inferring it from the memNo prefix. Some clients (like
+     those registered through an older flow) can be flagged isTrial:true
+     while already carrying a regular PP-series number, not a T-xx temp ID.
+     Checking memNo alone left such clients permanently stuck as "still
+     trial" even after real plans were assigned/renewed for them. */
+  const isTrialConvert=!!(c&&c.isTrial);
   const eventType=(!existing||!existing.plan||isTrialConvert)?'assign':'renew';
   
   /* Push current plan to history if it exists */
@@ -7518,7 +7898,7 @@ function ufDoChange(){
   Object.entries(bookings).forEach(([dt,slots])=>{
     Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
   });
-  const sessTotal=(m.sessions||oldP?.sessions||0)+(m.bonus||0);
+  const sessTotal=m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(oldP?.sessions||0)+(m.bonus||0));
   const sessLeft=Math.max(0,sessTotal-sessUsed);
   const origDays=oldP?oldP.days:(totalDays-frozenDays);
   const consumed=_ufConsumed(m.fee||0,origDays,activeDays,sessTotal,sessUsed);
@@ -7605,6 +7985,14 @@ function _ufPopulatePayment(cid){
   document.getElementById('uf-pay-amt').value='';
   document.getElementById('uf-pay-notes').value='';
   document.getElementById('uf-pay-date').value=td(); /* default to today, but staff can change for backdated/part payments */
+  /* The button's enabled state must be reset here too, not just the field's
+     value — otherwise typing into one member's amount field leaves the
+     button enabled for EVERY member viewed afterward in the same session,
+     until a full reload. Confirmed by reproducing the exact sequence with a
+     real headless test: type → close without saving → open a different
+     member → button was already enabled with an empty field. */
+  const _payBtn=document.getElementById('uf-pay-btn');
+  if(_payBtn){_payBtn.disabled=true;_payBtn.style.opacity='0.45';}
   
   /* Auto-select Payment For based on context */
   const payForEl=document.getElementById('uf-pay-for');
@@ -7634,11 +8022,11 @@ function _ufPopulatePayment(cid){
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
             <div style="flex:1;">
               <span style="color:var(--text2);">${fmt(p.date)} · ${p.mode||''}</span>
-              ${p.desc&&p.desc!=='Payment'?'<span style="color:var(--text3);"> · '+p.desc+'</span>':''}
-              ${p.forWhat&&p.forWhat!=='Payment'?'<span style="color:var(--text3);"> · '+p.forWhat+'</span>':''}
+              ${p.desc&&p.desc!=='Receipt'?'<span style="color:var(--text3);"> · '+p.desc+'</span>':''}
+              ${p.forWhat&&p.forWhat!=='Receipt'?'<span style="color:var(--text3);"> · '+p.forWhat+'</span>':''}
             </div>
             <span style="color:var(--green);font-weight:700;margin-left:8px;">₹${(p.amt||0).toLocaleString('en-IN')}</span>
-            ${isCash?'<button onclick="closeM(\'m-unified\');setTimeout(()=>openCashEntry(\''+p.id+'\'),250)" style="background:none;border:none;font-size:10px;cursor:pointer;padding:2px 4px;color:var(--text3);" title="Open voucher">📋</button>':''}
+            ${isCash?'<button onclick="window._ceReturnToUnified=document.getElementById(\'uf-cid\').value;closeM(\'m-unified\');setTimeout(()=>openCashEntry(\''+p.id+'\'),250)" style="background:none;border:none;font-size:10px;cursor:pointer;padding:2px 4px;color:var(--text3);" title="Open voucher">📋</button>':''}
             <button onclick="_ufEditPayDesc('${p.id}')" style="background:none;border:none;font-size:10px;cursor:pointer;padding:2px 4px;color:var(--text3);" title="Change type">✏️</button>
           </div>`;}
         ).join('')+(unique.length>10?'<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px;">…and '+(unique.length-10)+' more</div>':'');
@@ -7827,7 +8215,7 @@ function ufSavePayment(){
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Admin</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button onclick="resetBookingPin(document.getElementById('uf-cid').value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:14px;background:none;color:var(--text3);font-size:11px;font-family:'Jost',sans-serif;cursor:pointer;">🔓 Reset PIN</button>
-        <button onclick="archiveClient(document.getElementById('uf-cid').value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:14px;background:none;color:var(--text3);font-size:11px;font-family:'Jost',sans-serif;cursor:pointer;">⏸ Deactivate</button>
+        <button id="uf-deactivate-btn" onclick="archiveClient(document.getElementById('uf-cid').value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:14px;background:none;color:var(--text3);font-size:11px;font-family:'Jost',sans-serif;cursor:pointer;">⏸ Deactivate</button>
         <button onclick="deleteClient(document.getElementById('uf-cid').value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:14px;background:none;color:var(--red);font-size:11px;font-family:'Jost',sans-serif;cursor:pointer;">🗑 Delete</button>
       </div>
     </div>
