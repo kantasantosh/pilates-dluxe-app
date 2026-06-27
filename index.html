@@ -456,7 +456,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v90</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v95</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1298,7 +1298,18 @@ function startDashClock(){
 }
 
 // ===== MODALS =====
-function openM(id){document.getElementById(id).classList.add('open');}
+function openM(id){
+  /* Close any OTHER currently-open modal first — EXCEPT m-confirm, which
+     is always meant to layer ON TOP of whatever form triggered it (e.g.
+     confirming a deletion while the unified form stays open behind it).
+     Two NON-confirm modals stacked open at once was confirmed as a real
+     reported symptom; this makes that structurally impossible without
+     breaking every "are you sure?" dialog in the app. */
+  if(id!=='m-confirm'){
+    document.querySelectorAll('.mo.open').forEach(m=>{if(m.id!==id&&m.id!=='m-confirm')m.classList.remove('open');});
+  }
+  document.getElementById(id).classList.add('open');
+}
 /* ===== Form dirty-tracking: grey out Save until something actually changes =====
    Call armDirty(modalId, saveBtnId) AFTER populating the form. The save button
    starts disabled and enables on the first real change to any field. */
@@ -2617,7 +2628,17 @@ function renderPlanChips(selected){
       ${p.name}<br><small style="font-weight:400;opacity:0.7;">${p.sessions===999?'Unlimited':p.sessions+' sessions'} • ${!p.days?'':p.days===1?'1 day':p.days===7?'1 week':p.days===30?'1 month':p.days===90?'3 months':p.days===180?'6 months':p.days+' days'} • ₹${(p.price||0).toLocaleString('en-IN')}</small>
     </button>`).join('');
 }
+let _fabLastTap=0;
 function fabAction(){
+  /* Debounce: ignore any tap within 600ms of the last one. If multiple
+     taps ever queue up (e.g. behind something briefly blocking input)
+     and then release all at once, this stops them firing as a burst of
+     several different windows opening together — confirmed as a real,
+     reported symptom: one logical tap on + somehow opened 4 different
+     screens in sequence. */
+  const now=Date.now();
+  if(now-_fabLastTap<600)return;
+  _fabLastTap=now;
   const actions={
     dashboard:openTrialReg,
     clients:openAddClient,
@@ -4351,6 +4372,80 @@ if('serviceWorker' in navigator){
 </div>
 
 <script>
+/* ===== ONE-TIME TRIAL HISTORY RENUMBERING =====
+   Renumbers every client who was EVER a trial (currently still trial, OR
+   converted to a real plan) into a single, correctly chronological T-1
+   through T-N sequence, based on the REAL trialDate (when she actually
+   came in), not createdAt (when the record happened to be typed into the
+   system later — which for many real clients was a much later bulk-entry
+   date and has nothing to do with actual chronology).
+   Sort: trialDate ascending, then first name alphabetically for same-day
+   ties, then internal id as a last-resort tiebreaker only for the rare
+   case of two people sharing both the same date AND the same first name.
+   Still-trial clients: their memNo is REPLACED with the new T-number
+   (this is their only ID — they have no other).
+   Converted clients: their real PP-number is NEVER touched. The T-number
+   is stored separately (trialSeq) as a historical reference only.
+   This automatically makes the NEXT new trial registration become
+   T-(highest+1), since that logic already scans existing T- numbers. */
+function _buildTrialRenumberPlan(){
+  const clients=ld('pp_clients',[]);
+  const everTrial=clients.filter(c=>c.isTrial||c.convertedFrom==='trial');
+  const sorted=everTrial.slice().sort((a,b)=>{
+    const da=a.trialDate||'',db=b.trialDate||'';
+    if(da!==db)return da<db?-1:1;
+    const na=(a.fname||'').toLowerCase(),nb=(b.fname||'').toLowerCase();
+    if(na!==nb)return na<nb?-1:1;
+    return (a.id||'')<(b.id||'')?-1:1;
+  });
+  return sorted.map((c,idx)=>({client:c,newT:'T-'+String(idx+1).padStart(2,'0')}));
+}
+function openRenumberTrials(){
+  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const plan=_buildTrialRenumberPlan();
+  const stillTrial=plan.filter(p=>p.client.isTrial);
+  const converted=plan.filter(p=>p.client.convertedFrom==='trial');
+  const rows=plan.map(p=>{
+    const c=p.client;
+    const isConv=c.convertedFrom==='trial';
+    const oldLabel=isConv?(c.memNo||'—')+' (real ID, unchanged)':(c.memNo||'—');
+    return `<tr>
+      <td style="padding:4px 6px;font-weight:700;color:var(--gold);">${p.newT}</td>
+      <td style="padding:4px 6px;">${_esc(c.fname)} ${_esc(c.lname||'')}</td>
+      <td style="padding:4px 6px;color:var(--text3);">${fmt(c.trialDate)}</td>
+      <td style="padding:4px 6px;color:${isConv?'var(--green)':'var(--text2)'};">${isConv?'✓ Converted':'Still trial'}</td>
+      <td style="padding:4px 6px;color:var(--text3);">${_esc(oldLabel)}</td>
+    </tr>`;
+  }).join('');
+  showConfirm('🔢','Renumber Trial History?',
+    'This will assign T-1 through T-'+plan.length+' to every client who was ever a trial, ordered by their REAL trial date (oldest first).<br><br>'+
+    '<b>'+stillTrial.length+'</b> still-trial clients will have their member ID REPLACED with the new T-number.<br>'+
+    '<b>'+converted.length+'</b> converted clients keep their existing real ID — the T-number is only added as historical reference, nothing about their real account changes.<br><br>'+
+    'The next NEW trial registered after this will automatically become T-'+(plan.length+1)+'.<br><br>'+
+    '<div style="max-height:240px;overflow-y:auto;margin-top:10px;border:1px solid var(--border);border-radius:8px;"><table style="width:100%;font-size:11px;border-collapse:collapse;"><tr style="color:var(--text3);text-align:left;position:sticky;top:0;background:var(--surface2);"><th style="padding:4px 6px;">New</th><th style="padding:4px 6px;">Name</th><th style="padding:4px 6px;">Trial Date</th><th style="padding:4px 6px;">Status</th><th style="padding:4px 6px;">Old ID</th></tr>'+rows+'</table></div>',
+    [
+      {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+      {label:'Apply Renumbering',color:'var(--red)',action:()=>_applyTrialRenumber(plan)}
+    ]
+  );
+}
+function _applyTrialRenumber(plan){
+  const clients=ld('pp_clients',[]);
+  let changed=0;
+  plan.forEach(p=>{
+    const c=clients.find(x=>x.id===p.client.id);if(!c)return;
+    if(c.isTrial){
+      c.memNo=p.newT; /* still on trial — this T-number IS her only ID */
+    }else if(c.convertedFrom==='trial'){
+      c.trialSeq=p.newT; /* converted — keep her real PP-number, add T-number as historical reference only */
+    }
+    changed++;
+  });
+  sv('pp_clients',clients);
+  if(typeof AUD==='function')AUD('🔢 Trial history renumbered','T-1 through T-'+plan.length+' assigned by real trial date, '+changed+' records updated');
+  toast('✓ Renumbered '+changed+' records — T-1 through T-'+plan.length);
+  renderClients();renderDash();
+}
 function openAttendanceLookup(){
   document.getElementById('al-search').value='';
   document.getElementById('al-results').innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Start typing a name or member ID above.</div>';
@@ -4467,7 +4562,27 @@ async function ppHash(uid,pin){
   }catch(e){return 'plain:'+pin;}
 }
 function ppUsers(){return ld('pp_users',[]);}
-function ppIsAdmin(){return !!(PPS&&PPS.role==='admin');}
+function ppIsAdmin(){
+  /* TEMPORARY DIAGNOSTIC: log the exact state every time this is checked,
+     so we can see directly what's happening without needing dev tools open
+     at the exact right moment. Remove once the real cause is found. */
+  if(window._ppDebugCount===undefined)window._ppDebugCount=0;
+  if(window._ppDebugCount<30){
+    window._ppDebugCount++;
+    console.log('[ppIsAdmin check #'+window._ppDebugCount+']','PPS exists:',!!PPS,'role:',PPS?PPS.role:'(no PPS)');
+  }
+  /* HARD SAFETY NET, run on every single call (this function fires
+     constantly throughout the app — confirmed by the diagnostic above):
+     if PPS is genuinely valid right now, the full-screen login overlay
+     must NEVER still be showing. Force it hidden here, every time,
+     rather than relying on applyRole() having run once at login and
+     never being re-triggered if the overlay gets shown again later. */
+  if(PPS&&PPS.id){
+    const _lg=document.getElementById('pp-login');
+    if(_lg&&_lg.style.display!=='none')_lg.style.display='none';
+  }
+  return !!(PPS&&PPS.role==='admin');
+}
 function ppIsStaff(){return !!(PPS&&PPS.role==='staff');}
 function ppIsTrainer(){return !!(PPS&&PPS.role==='trainer');}
 function ppMyStaffId(){
@@ -4626,6 +4741,18 @@ document.getElementById('lg-pin').addEventListener('keyup',e=>{if(e.key==='Enter
 
 /* ================= ROLE APPLICATION ================= */
 function applyRole(){
+  /* HARD SAFETY NET: this full-screen login overlay has NO inline
+     display:none by default — it's visible until JS hides it. If
+     ppAuthGate() is ever re-triggered after a successful login (a real,
+     confirmed-possible timing race this week), it can set this back to
+     visible with nothing afterward guaranteed to hide it again. That
+     would invisibly cover the ENTIRE screen and block every click,
+     while everything underneath keeps working and logging normally —
+     exactly matching "console shows success, nothing visibly happens."
+     Since applyRole() only ever runs with a confirmed, valid PPS, it is
+     always safe to force this hidden here, unconditionally. */
+  const _lg=document.getElementById('pp-login');
+  if(_lg)_lg.style.display='none';
   /* topbar user chip + logout */
   const tb=document.querySelector('.topbar');
   if(tb&&!document.getElementById('tb-user')){
@@ -4731,8 +4858,11 @@ wrapAudit('resetAllData',()=>'🧨 ALL DATA RESET');
 
 function openAuditModal(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
-  document.getElementById('aud-search').value='';
-  renderAudit();openM('m-audit');
+  openM('m-audit');
+  try{
+    document.getElementById('aud-search').value='';
+    renderAudit();
+  }catch(_e){console.warn('Audit log failed to render:',_e);}
 }
 function renderAudit(){
   const q=(document.getElementById('aud-search').value||'').toLowerCase();
@@ -4754,7 +4884,8 @@ function clearAudit(){
 /* ================= USER MANAGEMENT (ADMIN) ================= */
 function openUsersModal(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
-  renderUsersList();openM('m-users');
+  openM('m-users');
+  try{renderUsersList();}catch(_e){console.warn('Users list failed to render:',_e);}
 }
 function renderUsersList(){
   const users=ppUsers();
@@ -5074,6 +5205,7 @@ try{
           <button class="sb2" onclick="openUsersModal()" style="margin:0;font-size:12px;padding:10px 6px;">👥 Users & Access</button>
           <button class="sb2" onclick="openCompRule()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);">🎁 Referral Rule</button>
           <button class="sb2" onclick="openAuditModal()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>
+          <button class="sb2" onclick="openRenumberTrials()" style="margin:0;font-size:12px;padding:10px 6px;grid-column:span 2;background:none;border:1.5px solid rgba(231,76,60,0.4);color:#e74c3c;">🔢 Renumber Trial History (T-1...T-82)</button>
           </div>
           <div style="font-size:10px;color:var(--text3);margin:6px 0 4px;text-align:center;">☁️ ${(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'offline mode'}</div>
           <button class="sb2" onclick="cloudSignOut()" style="background:none;border:1px solid var(--rose);color:var(--rose);font-size:11px;padding:8px;margin:0;">☁️ Sign-out</button>`;
@@ -5246,12 +5378,14 @@ function saveComp(){
 function getCompRule(){return ld('pp_comp_rule',{auto:true,classes:1,cash:0});}
 function openCompRule(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
-  const r=getCompRule();
-  document.getElementById('cr-auto').value=r.auto?'1':'0';
-  document.getElementById('cr-classes').value=r.classes||0;
-  document.getElementById('cr-cash').value=r.cash||0;
   openM('m-comprule');
-  setTimeout(()=>armDirty('m-comprule','cr-save-btn'),50);
+  try{
+    const r=getCompRule();
+    document.getElementById('cr-auto').value=r.auto?'1':'0';
+    document.getElementById('cr-classes').value=r.classes||0;
+    document.getElementById('cr-cash').value=r.cash||0;
+    setTimeout(()=>armDirty('m-comprule','cr-save-btn'),50);
+  }catch(_e){console.warn('Comp rule failed to render:',_e);}
 }
 function saveCompRule(){
   const r={auto:document.getElementById('cr-auto').value==='1',
@@ -5374,7 +5508,14 @@ function chRepM(d){
 function openReports(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
   if(!_repM){const n=new Date();_repM={y:n.getFullYear(),m:n.getMonth()};}
-  renderReports();openM('m-reports');
+  /* Open the modal FIRST, unconditionally, then populate it. Confirmed by
+     direct testing: renderReports() throwing on real data (a 100+ line
+     function touching all real clients/bookings/cash, with zero internal
+     protection) was silently preventing openM() from ever running, since
+     it sat AFTER renderReports() on the same line. The modal must always
+     at least open, even if its content fails to render correctly. */
+  openM('m-reports');
+  try{renderReports();}catch(_e){console.warn('Reports failed to render:',_e);}
 }
 /* merged operating cashbook: pp_cash + legacy payments, excluding contra */
 function _opsCash(){
@@ -6236,15 +6377,17 @@ document.addEventListener('keydown',function(e){
 /* ===== Studio editor ===== */
 function openStudioEdit(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
-  const s=getStudio();
-  document.getElementById('st-name').value=s.name;
-  document.getElementById('st-tagline').value=s.tagline;
-  document.getElementById('st-addr').value=s.addr;
-  document.getElementById('st-phone').value=s.phone;
-  document.getElementById('st-insta').value=s.insta;
-  document.getElementById('st-gst').value=s.gst||'';
   openM('m-studio');
-  setTimeout(()=>armDirty('m-studio','st-save-btn'),50);
+  try{
+    const s=getStudio();
+    document.getElementById('st-name').value=s.name;
+    document.getElementById('st-tagline').value=s.tagline;
+    document.getElementById('st-addr').value=s.addr;
+    document.getElementById('st-phone').value=s.phone;
+    document.getElementById('st-insta').value=s.insta;
+    document.getElementById('st-gst').value=s.gst||'';
+    setTimeout(()=>armDirty('m-studio','st-save-btn'),50);
+  }catch(_e){console.warn('Studio details failed to render:',_e);}
 }
 function saveStudio(){
   const s={
@@ -6379,16 +6522,18 @@ function saveStudio(){
 let _stmtSel='cash'; /* 'cash' or 'bank' — exactly one real account showing at a time */
 function openStatement(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
-  _stmtSel=''; /* nothing selected by default — gold means "currently showing", not "on by default" */
-  document.getElementById('stmt-modes').innerHTML=[
-    {key:'cash',label:'💵 Cash'},
-    {key:'bank',label:'🏦 Bank (UPI/Card/Transfer/PhonePe)'}
-  ].map(a=>`<button type="button" class="stmt-chip" data-a="${a.key}" onclick="toggleStmtAccount('${a.key}',this)" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;">${a.label}</button>`).join('');
-  const now=new Date();
-  document.getElementById('stmt-from').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-  document.getElementById('stmt-to').value=td();
-  document.getElementById('stmt-result').innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Tap Cash or Bank above to view the statement.</div>';
   openM('m-statement');
+  try{
+    _stmtSel=''; /* nothing selected by default — gold means "currently showing", not "on by default" */
+    document.getElementById('stmt-modes').innerHTML=[
+      {key:'cash',label:'💵 Cash'},
+      {key:'bank',label:'🏦 Bank (UPI/Card/Transfer/PhonePe)'}
+    ].map(a=>`<button type="button" class="stmt-chip" data-a="${a.key}" onclick="toggleStmtAccount('${a.key}',this)" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Jost',sans-serif;">${a.label}</button>`).join('');
+    const now=new Date();
+    document.getElementById('stmt-from').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    document.getElementById('stmt-to').value=td();
+    document.getElementById('stmt-result').innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Tap Cash or Bank above to view the statement.</div>';
+  }catch(_e){console.warn('Statement failed to render:',_e);}
 }
 function toggleStmtAccount(key,btn){
   /* exactly one account shown at a time — tapping it shows results instantly */
@@ -6523,12 +6668,14 @@ function printStatement(){
 function getAnnounce(){return ld('pp_announce',{msg:'',type:'info',until:''});}
 function openAnnounce(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
-  const a=getAnnounce();
-  document.getElementById('an-msg').value=a.msg||'';
-  document.getElementById('an-type').value=a.type||'info';
-  document.getElementById('an-until').value=a.until||'';
   openM('m-announce');
-  setTimeout(()=>armDirty('m-announce','an-save-btn'),50);
+  try{
+    const a=getAnnounce();
+    document.getElementById('an-msg').value=a.msg||'';
+    document.getElementById('an-type').value=a.type||'info';
+    document.getElementById('an-until').value=a.until||'';
+    setTimeout(()=>armDirty('m-announce','an-save-btn'),50);
+  }catch(_e){console.warn('Announcement failed to render:',_e);}
 }
 function saveAnnounce(){
   const a={msg:document.getElementById('an-msg').value.trim(),type:document.getElementById('an-type').value,until:document.getElementById('an-until').value};
@@ -6821,9 +6968,19 @@ function _validateEmail(email,currentCid){
 let _ufReturnTab=''; /* remember which tab to return to on close */
 
 function openUnified(cid,focusSection){
+  console.log('[openUnified called] cid=',cid,' PPS exists:',!!PPS);
+  /* Same hard safety net as ppIsAdmin() — if we're genuinely here with a
+     valid session, the full-screen login overlay must never still be
+     covering the screen and silently blocking this very click. */
+  if(PPS&&PPS.id){
+    const _lg=document.getElementById('pp-login');
+    if(_lg&&_lg.style.display!=='none')_lg.style.display='none';
+  }
   const clients=ld('pp_clients',[]);
+  console.log('[openUnified] clients loaded from storage, count=',clients.length);
   const c=clients.find(x=>x.id===cid);
-  if(!c){toast('Client not found');return;}
+  if(!c){console.log('[openUnified] CLIENT NOT FOUND for cid',cid);toast('Client not found');return;}
+  console.log('[openUnified] client found:',c.fname,'- proceeding to open modal');
   _ufReturnTab=document.querySelector('.tab.active')?.id||'tab-clients';
   /* Header — also wrapped now. These were unguarded even after the fix
      to the three section-populate calls below; any ONE of these four
