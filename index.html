@@ -481,7 +481,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99b</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99d</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1626,7 +1626,10 @@ function _getFilteredClients(){
     if(c.archived)return false;
     const st=getMembershipStatus(mems[c.id],c.id);
     if(_clientFilter2==='trial'&&!c.isTrial)return false;
-    if(_clientFilter2==='converted'&&c.convertedFrom!=='trial')return false;
+    if(_clientFilter2==='converted'&&c.convertedFrom!=='trial'&&!c.isTrial)return false;
+    /* A client is "converted" if convertedFrom==='trial', OR if she was a trial
+       (isTrial flag) and now has a regular membership */
+    if(_clientFilter2==='converted'&&c.isTrial&&!mems[c.id])return false;
     if(_clientFilter2==='active'&&st!=='active'&&st!=='expiring')return false;
     if(_clientFilter2==='expiring'&&st!=='expiring')return false;
     if(_clientFilter2==='expired'&&c.isTrial)return false; /* trials are one-time, not memberships */
@@ -1677,8 +1680,8 @@ function renderClients(){
         <div class="client-sub">${_fmtPhone(c.phone)}${plan?(()=>{const _baseS=mem.sessions||plan.sessions||0;const _bonus=mem.bonus||0;const _tot=_baseS+_bonus;return ' • <b style="color:var(--gold);">'+plan.name+'</b>'+(_tot&&_tot!==999?' ('+(_bonus>0?_baseS+'+'+_bonus:_tot)+' sess)':'');})():''}</div>
         <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial '+fmt(c.trialDate):''} • 📅 ${c.isTrial?'':'Joined '}${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem&&!c.isTrial?' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          ${c.isTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
-            (c.convertedFrom==='trial'?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+
+          ${c.isTrial&&!mems[c.id]?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
+            ((c.convertedFrom==='trial'||(c.isTrial&&mems[c.id]))?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+
             (mem&&mem.history&&mem.history.some(h=>h.endReason&&h.endReason.includes('Changed'))?`<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:10px;">🔀 PLAN CHANGED</span> `:'')+
             (mem&&mem.status==='frozen'?(()=>{
               /* On Leave X/Y, same calculation as the unified form's Plan section —
@@ -1702,7 +1705,7 @@ function renderClients(){
         </div>
       </div>
       <button onclick="event.stopPropagation();openWA('${c.id}')" style="background:none;border:none;font-size:20px;cursor:pointer;opacity:0.6;">💬</button>
-      ${st==='active'?`<button onclick="event.stopPropagation();_goBookSlot('${c.id}')" style="background:none;border:none;font-size:20px;cursor:pointer;opacity:0.6;" title="Book a slot for ${_esc(c.fname)}">📅</button>`:''}
+      ${(st==='active'||st==='expiring')?`<button onclick="event.stopPropagation();_goBookSlot('${c.id}')" style="background:none;border:none;font-size:20px;cursor:pointer;opacity:0.6;" title="Book a slot for ${_esc(c.fname)}">📅</button>`:''}
     </div>`;
   }).join('');
   
@@ -1710,8 +1713,8 @@ function renderClients(){
   const _allC=clients.filter(c=>!c.archived);
   const _counts={
     all:_allC.length,
-    active:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='active';}).length,
-    converted:_allC.filter(c=>c.convertedFrom==='trial').length,
+    active:_allC.filter(c=>{const m=mems[c.id];if(!m)return false;const st=getMembershipStatus(m,c.id);return st==='active'||st==='expiring';}).length,
+    converted:_allC.filter(c=>c.convertedFrom==='trial'||(c.isTrial&&mems[c.id])).length,
     trial:_allC.filter(c=>c.isTrial).length,
     expiring:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expiring';}).length,
     expired:_allC.filter(c=>{if(c.isTrial)return false;const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expired';}).length,
@@ -3046,10 +3049,7 @@ function renderCredits(){
       </div>
     </div>
     <div style="margin:0 16px 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button onclick="sendFeedback()" style="background:#25D366;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;color:white;">💬 Feedback</button>
-        <div id="bio-about-area"></div>
-      </div>
+        <button onclick="sendFeedback()" style="width:100%;background:#25D366;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;color:white;">💬 Feedback via WhatsApp</button>
     </div>
     <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
       <div style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><svg viewBox="0 0 100 100" width="40" height="40" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
@@ -3071,7 +3071,6 @@ function renderCredits(){
       <button onclick="resetAllData()" style="width:100%;padding:10px;border-radius:var(--rsm);border:1px solid var(--red);background:none;color:var(--red);font-family:'Jost',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">🗑 Reset all data (irreversible)</button>
     </div>
   `;
-  renderBioAbout();
 }
 function renderBioAbout(){
   const area=document.getElementById('bio-about-area');
@@ -5295,7 +5294,6 @@ try{
           <button class="sb2" onclick="openUsersModal()" style="margin:0;font-size:12px;padding:10px 6px;">👥 Users & Access</button>
           <button class="sb2" onclick="openCompRule()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);">🎁 Referral Rule</button>
           <button class="sb2" onclick="openAuditModal()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>
-          <button class="sb2" onclick="openRenumberTrials()" style="margin:0;font-size:12px;padding:10px 6px;grid-column:span 2;background:none;border:1.5px solid rgba(231,76,60,0.4);color:#e74c3c;">🔢 Renumber Trial History (T-1...T-82)</button>
           </div>
           <div style="font-size:10px;color:var(--text3);margin:6px 0 4px;text-align:center;">☁️ ${(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'offline mode'}</div>
           <button class="sb2" onclick="cloudSignOut()" style="background:none;border:1px solid var(--rose);color:var(--rose);font-size:11px;padding:8px;margin:0;">☁️ Sign-out</button>`;
@@ -6367,9 +6365,11 @@ if('serviceWorker' in navigator){
 
 /* ===== KEYBOARD: Enter=next/save · Cmd/Ctrl+S=save · Escape=close ===== */
 function _openModal(){
-  /* find the currently visible modal */
+  /* find the currently visible modal — check class first, then inline style */
+  const byClass=document.querySelector('.mo.open');
+  if(byClass)return byClass;
   const mods=document.querySelectorAll('.mo');
-  for(const m of mods){if(m.classList.contains('open')||getComputedStyle(m).display!=='none'&&m.offsetParent!==null)return m;}
+  for(const m of mods){if(m.style.display==='flex')return m;}
   return null;
 }
 function _saveModal(modal){
@@ -6385,12 +6385,16 @@ document.addEventListener('keydown',function(e){
     if(modal){e.preventDefault();_saveModal(modal);}
     return;
   }
-  // Escape → close current modal
+  // Escape → close current modal (stepped for unified form)
   if(e.key==='Escape'){
     if(modal){
       e.preventDefault();
-      const x=modal.querySelector('.mc2');
-      if(x)x.click();else modal.classList.remove('open');
+      if(modal.id==='m-unified'){
+        closeUnified(); /* stepped: collapse sections → close form */
+      }else{
+        const x=modal.querySelector('.mc2');
+        if(x)x.click();else{modal.classList.remove('open');modal.style.display='none';}
+      }
     }
     return;
   }
@@ -7192,23 +7196,6 @@ window.addEventListener('popstate',function(){
   if(uf&&uf.classList.contains('open')){
     closeUnified();
     history.pushState(null,'',''); /* prevent actual back navigation */
-  }
-});
-/* Escape key: same multi-step back as back button / popstate */
-document.addEventListener('keydown',function(e){
-  if(e.key!=='Escape')return;
-  /* If ANY modal is open, close/step-back */
-  const uf=document.getElementById('m-unified');
-  if(uf&&uf.classList.contains('open')){
-    e.preventDefault();
-    closeUnified();
-    return;
-  }
-  /* For other modals, just close them */
-  const openMo=document.querySelector('.mo.open');
-  if(openMo){
-    e.preventDefault();
-    closeM(openMo.id);
   }
 });
 /* Push a history entry when unified form opens so back button works */
