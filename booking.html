@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>Book a Class — Pilates D'Luxe</title>
+<title>Book a Session — Pilates D'Luxe</title>
 <link rel="manifest" href="booking-manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="bookingicon192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="bookingicon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="booking-icon.png">
 <meta name="theme-color" content="#0d0c0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,7 +14,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -101,10 +99,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 <body>
 
 <div class="header">
-  <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-    <svg viewBox="0 0 100 100" width="30" height="30" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg>
-    <div class="logo">Pilates D'Luxe<small>Book a Class · <span onclick="bkCheckUpdate()" style="cursor:pointer;text-decoration:underline;">v16</span></small></div>
-  </div>
+  <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
 </div>
 
 <div class="container">
@@ -118,47 +113,6 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 const _cfg={apiKey:"AIzaSyDq5AjTUCxZ85CBffYFh_MmKhibN7Pjnl8",authDomain:"ss-indent-pro-3b7ea.firebaseapp.com",projectId:"ss-indent-pro-3b7ea",storageBucket:"ss-indent-pro-3b7ea.firebasestorage.app",messagingSenderId:"221934576188",appId:"1:221934576188:web:9c6ae243ea05b701bc5939"};
 if(!firebase.apps.length)firebase.initializeApp(_cfg);
 const db=firebase.firestore();
-
-/* ===== Themed popup (replaces ugly browser alert) ===== */
-function pdlAlert(msg,icon){
-  return new Promise(resolve=>{
-    const ov=document.createElement('div');
-    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
-    ov.innerHTML=`<div style="background:var(--surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;max-width:340px;width:100%;padding:24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:pdlpop 0.2s ease;">
-      <div style="font-size:38px;margin-bottom:10px;">${icon||'ℹ️'}</div>
-      <div style="font-size:14px;color:var(--text,#fff);line-height:1.6;margin-bottom:18px;">${msg}</div>
-      <button id="pdl-ok" style="background:linear-gradient(135deg,#c9a84c,#e0c068);color:#1a1a2e;border:none;border-radius:24px;padding:11px 32px;font-family:'Jost',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">OK</button>
-    </div>`;
-    document.body.appendChild(ov);
-    const close=()=>{ov.remove();resolve();};
-    ov.querySelector('#pdl-ok').onclick=close;
-    ov.onclick=e=>{if(e.target===ov)close();};
-  });
-}
-if(!document.getElementById('pdl-pop-style')){
-  const st=document.createElement('style');st.id='pdl-pop-style';
-  st.textContent='@keyframes pdlpop{from{transform:scale(0.92);opacity:0;}to{transform:scale(1);opacity:1;}}';
-  document.head.appendChild(st);
-}
-function pdlConfirm(msg,yesLabel,noLabel,icon){
-  return new Promise(resolve=>{
-    const ov=document.createElement('div');
-    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
-    ov.innerHTML=`<div style="background:var(--surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;max-width:340px;width:100%;padding:24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:pdlpop 0.2s ease;">
-      <div style="font-size:38px;margin-bottom:10px;">${icon||'⚠️'}</div>
-      <div style="font-size:14px;color:var(--text,#fff);line-height:1.6;margin-bottom:18px;">${msg}</div>
-      <div style="display:flex;gap:10px;">
-        <button id="pdl-no" style="flex:1;background:none;border:1px solid var(--border2,#555);color:var(--text2,#bbb);border-radius:24px;padding:11px 0;font-family:'Jost',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">${noLabel||'No'}</button>
-        <button id="pdl-yes" style="flex:1;background:#c0392b;color:#fff;border:none;border-radius:24px;padding:11px 0;font-family:'Jost',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">${yesLabel||'Yes'}</button>
-      </div>
-    </div>`;
-    document.body.appendChild(ov);
-    const done=v=>{ov.remove();resolve(v);};
-    ov.querySelector('#pdl-yes').onclick=()=>done(true);
-    ov.querySelector('#pdl-no').onclick=()=>done(false);
-    ov.onclick=e=>{if(e.target===ov)done(false);};
-  });
-}
 const COL='pilates';
 
 const SLOTS=['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM'];
@@ -166,65 +120,27 @@ const MACHINES=5;
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-let _clients=[], _bookings={}, _mems={}, _announce=null, _closedDays={}, _plans=[];
+let _clients=[], _bookings={}, _mems={}, _closedDays={};
 let _selDate='', _selSlot='', _step=1;
-let _memberPhone='', _memberId='', _memberName='', _memberGreeting='';
+let _memberPhone='', _memberId='', _memberName='';
 
 // Load data from Firestore
 async function loadData(){
   try{
-    const [cSnap, bSnap, mSnap, aSnap, clSnap, plSnap] = await Promise.all([
+    const [cSnap, bSnap, mSnap, cdSnap] = await Promise.all([
       db.collection(COL).doc('pp_clients').get(),
       db.collection(COL).doc('pp_bookings').get(),
       db.collection(COL).doc('pp_memberships').get(),
-      db.collection(COL).doc('pp_announce').get().catch(()=>null),
-      db.collection(COL).doc('pp_closed_days').get().catch(()=>null),
-      db.collection(COL).doc('pp_plans').get().catch(()=>null)
+      db.collection(COL).doc('pp_closed_days').get()
     ]);
     _clients = cSnap.exists ? JSON.parse(cSnap.data().value) : [];
     _bookings = bSnap.exists ? JSON.parse(bSnap.data().value) : {};
     _mems = mSnap.exists ? JSON.parse(mSnap.data().value) : {};
-    try{_announce = (aSnap&&aSnap.exists)?JSON.parse(aSnap.data().value):null;}catch(e){_announce=null;}
-    try{_closedDays = (clSnap&&clSnap.exists)?JSON.parse(clSnap.data().value):{};}catch(e){_closedDays={};}
-    try{_plans = (plSnap&&plSnap.exists)?JSON.parse(plSnap.data().value):[];}catch(e){_plans=[];}
+    _closedDays = cdSnap.exists ? JSON.parse(cdSnap.data().value) : {};
     renderStep1();
-    /* member already authenticated → verify and greet them */
-    if(_googleUser&&typeof verifyGoogleUser==='function'){try{verifyGoogleUser();}catch(e){}}
-    startLiveSync();
   } catch(e){
     document.getElementById('main-content').innerHTML=`<div class="loading">⚠️ Could not load data.<br/>Please try again.</div>`;
   }
-}
-
-/* LIVE SYNC: keep bookings/memberships/clients fresh in real time so the
-   page never shows stale slots (fixes mobile-vs-laptop mismatch). */
-let _liveSyncOn=false;
-function startLiveSync(){
-  if(_liveSyncOn)return;_liveSyncOn=true;
-  try{
-    db.collection(COL).doc('pp_bookings').onSnapshot(d=>{
-      if(d.exists&&d.data().value){
-        try{_bookings=JSON.parse(d.data().value);}catch(e){}
-        _refreshLiveViews();
-      }
-    });
-    db.collection(COL).doc('pp_memberships').onSnapshot(d=>{
-      if(d.exists&&d.data().value){
-        try{_mems=JSON.parse(d.data().value);}catch(e){}
-        _refreshLiveViews();
-      }
-    });
-    db.collection(COL).doc('pp_clients').onSnapshot(d=>{
-      if(d.exists&&d.data().value){try{_clients=JSON.parse(d.data().value);}catch(e){}}
-    });
-  }catch(e){}
-}
-function _refreshLiveViews(){
-  /* re-render the slot screen ONLY when the member isn't mid-selection,
-     so we never wipe a slot they just tapped. */
-  try{
-    if(_step===1&&_memberId&&!_selSlot){renderStep1();}
-  }catch(e){}
 }
 
 function td(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
@@ -247,16 +163,12 @@ function getSlotAvail(date, slot){
 function renderStep1(){
   _step=1;
   const days=getNext7Days();
-  if(!_selDate)_selDate=days[0].key;
+  if(!_selDate||_closedDays[_selDate]){
+    const firstOpen=days.find(d=>!_closedDays[d.key]);
+    _selDate=firstOpen?firstOpen.key:days[0].key;
+  }
 
   document.getElementById('main-content').innerHTML=`
-    ${(_memberGreeting&&_googleUser)?`<div style="background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.06));border:1px solid rgba(201,168,76,0.4);border-radius:12px;padding:14px 16px;margin-bottom:12px;font-size:15px;font-weight:600;color:var(--gold);line-height:1.5;">${_memberGreeting}<div id="member-qr-s1" style="display:flex;justify-content:center;margin-top:12px;"></div><div style="text-align:center;margin-top:8px;"><button onclick="saveMyQR()" style="background:none;border:1px solid var(--gold);border-radius:16px;padding:5px 14px;font-size:12px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;">⬇ Save my QR card (works offline)</button></div></div>`:''}
-    ${(_announce&&_announce.msg&&!(_announce.until&&_announce.until<new Date().toISOString().slice(0,10)))?(function(){
-      const t=_announce.type;
-      const c=t==='warn'?{bg:'rgba(251,191,36,0.12)',br:'rgba(251,191,36,0.5)',ic:'⚠️'}:t==='offer'?{bg:'rgba(201,168,76,0.14)',br:'rgba(201,168,76,0.6)',ic:'🎉'}:{bg:'rgba(96,165,250,0.12)',br:'rgba(96,165,250,0.5)',ic:'ℹ️'};
-      return '<div style="background:'+c.bg+';border:1px solid '+c.br+';border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:14px;line-height:1.5;display:flex;gap:10px;align-items:flex-start;"><span style="font-size:18px;">'+c.ic+'</span><span>'+_announce.msg.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</span></div>';
-    })():''}
-    ${_googleUser?`<div style="text-align:right;margin-bottom:8px;"><button onclick="switchAccount()" style="background:none;border:1px solid var(--border2,#444);border-radius:16px;padding:4px 12px;font-size:11px;color:var(--text2,#aaa);cursor:pointer;font-family:'Jost',sans-serif;">↪ Sign out / switch account (${_googleUser.email})</button></div>`:''}
     <div class="steps">
       <div class="step active" id="s1"></div>
       <div class="step" id="s2"></div>
@@ -265,14 +177,23 @@ function renderStep1(){
     <div class="card">
       <div class="section-title">📅 Select Date</div>
       <div class="date-row" id="date-row">
-        ${days.map(d=>`
-          <div class="date-btn${d.key===_selDate?' selected':''}${d.isToday?' today':''}${(_closedDays&&_closedDays[d.key])?' closed':''}" onclick="selectDate('${d.key}')" ${(_closedDays&&_closedDays[d.key])?'title="Studio closed"':''} style="${(_closedDays&&_closedDays[d.key])?'opacity:0.4;position:relative;':''}">
+        ${days.map(d=>{
+          const isClosed=!!_closedDays[d.key];
+          return `
+          <div class="date-btn${d.key===_selDate?' selected':''}${d.isToday?' today':''}" onclick="${isClosed?'':'selectDate(\''+d.key+'\')'}" style="${isClosed?'opacity:0.35;cursor:not-allowed;':''}">
             <div class="day">${d.isToday?'Today':d.day}</div>
             <div class="num">${d.num}</div>
-            <div class="mon">${(_closedDays&&_closedDays[d.key])?'🚫':d.mon}</div>
-          </div>`).join('')}
+            <div class="mon">${isClosed?'🚫 Closed':d.mon}</div>
+          </div>`;
+        }).join('')}
       </div>
     </div>
+    ${_closedDays[_selDate]?`
+    <div class="card" style="text-align:center;padding:24px 20px;">
+      <div style="font-size:36px;margin-bottom:10px;">🚫</div>
+      <div style="font-size:15px;font-weight:700;color:var(--red);margin-bottom:6px;">Studio Closed</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;">${_closedDays[_selDate].reason||'Closed for the day'}.<br/>Please select another date.</div>
+    </div>`:`
     <div class="card">
       <div class="section-title">⏰ Select Slot</div>
       <div class="slot-period">☀️ Morning</div>
@@ -285,179 +206,31 @@ function renderStep1(){
       </div>
     </div>
     <button class="btn-book" onclick="goStep2()" id="btn-next" ${!_selSlot?'disabled':''}>Continue →</button>
-    <p class="note">Select a date and available time slot to continue</p>`;
-  /* draw greeting QR (step 1) — centered white box */
-  setTimeout(()=>{
-    const outer=document.getElementById('member-qr-s1');
-    if(outer&&_memberId&&typeof QRCode!=='undefined'){
-      outer.style.cssText='display:flex;justify-content:center;align-items:center;margin-top:12px;width:100%;';
-      outer.innerHTML='<div id="qr-inner-s1" style="background:#fff;padding:12px;border-radius:12px;display:inline-block;line-height:0;"></div>';
-      try{new QRCode(document.getElementById('qr-inner-s1'),{text:'PDL:'+_memberId,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});}catch(e){}
-    }
-  },150);
-}
-function saveMyQR(){
-  /* render a printable/saveable card in a new tab as an image-friendly page */
-  const c=_clients.find(x=>x.id===_memberId);
-  if(!c){pdlAlert('Please sign in first.','ℹ️');return;}
-  const w=window.open('','_blank');
-  if(!w){pdlAlert('Please allow popups to save your card.','ℹ️');return;}
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>My Pilates D'Luxe Card</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
-    <style>body{font-family:Arial,sans-serif;margin:0;padding:20px;display:flex;flex-direction:column;align-items:center;background:#f5f5f5;}
-    .card{background:#fff;border:2px solid #c9a84c;border-radius:16px;padding:24px;text-align:center;max-width:300px;}
-    .nm{font-size:20px;font-weight:700;margin-top:12px;color:#111;}
-    .id{font-size:13px;color:#666;}
-    .hd{font-family:Georgia,serif;font-size:20px;letter-spacing:3px;color:#1a1a1a;}
-    .tg{font-size:9px;letter-spacing:2px;color:#8a7a52;text-transform:uppercase;margin-bottom:14px;}
-    .tip{font-size:12px;color:#888;margin-top:18px;text-align:center;}</style></head>
-    <body><div class="card"><div class="hd">PILATES D'LUXE</div><div class="tg">Luxurious French Pilates</div>
-    <div id="q" style="display:flex;justify-content:center;"></div>
-    <div class="nm">${(c.fname+' '+(c.lname||'')).trim()}</div><div class="id">Member ID: ${c.memNo||'—'}</div></div>
-    <div class="tip">📱 Long-press the card → "Save to Photos" to keep it offline.<br>Show this at the studio to check in.</div>
-    <script>new QRCode(document.getElementById('q'),{text:'PDL:${_memberId}',width:200,height:200,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});<\/script>
-    </body></html>`);
-  w.document.close();
+    <p class="note">Select a date and available time slot to continue</p>`}`;
 }
 
 function renderSlotBtn(slot){
   const avail=getSlotAvail(_selDate, slot);
   const full=avail<=0;
   const sel=slot===_selSlot&&!full;
-  const mine=_memberId&&((_bookings[_selDate]&&_bookings[_selDate][slot])||[]).some(b=>b.cid===_memberId&&!b.attended);
-  if(mine){
-    return `<div class="slot-btn" style="border:2px solid var(--gold,#c9a84c);background:rgba(201,168,76,0.12);cursor:default;">
-      <div class="slot-time">${slot.replace(' AM','').replace(' PM','')}<span style="font-size:10px;color:var(--text3);margin-left:3px;">${slot.includes('AM')?'AM':'PM'}</span></div>
-      <div class="slot-avail"><span style="color:var(--gold,#c9a84c);font-weight:700;font-size:11px;">✓ YOUR BOOKING</span></div>
-      <div style="display:flex;gap:6px;justify-content:center;margin-top:4px;">
-        <button onclick="event.stopPropagation();reschedulePrompt('${slot}')" style="background:none;border:1px solid var(--gold,#c9a84c);border-radius:12px;padding:2px 8px;font-size:10px;color:var(--gold,#c9a84c);cursor:pointer;">Reschedule</button>
-        <button onclick="event.stopPropagation();cancelPrompt('${slot}')" style="background:none;border:1px solid #c0392b;border-radius:12px;padding:2px 8px;font-size:10px;color:#e57373;cursor:pointer;">Cancel</button>
-      </div>
-    </div>`;
-  }
   return `<div class="slot-btn${full?' full':sel?' selected':''}" onclick="${full?'':'selectSlot(\''+slot+'\')'}">
     <div class="slot-time">${slot.replace(' AM','').replace(' PM','')}<span style="font-size:10px;color:var(--text3);margin-left:3px;">${slot.includes('AM')?'AM':'PM'}</span></div>
     <div class="slot-avail">${full?'<span class="badge-full">FULL</span>':'<span class="badge-avail">'+avail+' spots left</span>'}</div>
   </div>`;
 }
-/* ===== Member self-reschedule (24h cutoff, into any empty slot) ===== */
-let _reschedFrom=null;
-function reschedulePrompt(fromSlot){
-  const slotHour=_slotStartHour(fromSlot);
-  const classTime=new Date(_selDate+'T00:00:00');classTime.setHours(slotHour,0,0,0);
-  if((classTime-new Date())<2*3600*1000){
-    pdlAlert('Rescheduling is allowed only up to 2 hours before the class. Please contact the studio for last-minute changes.','⏰');
-    return;
-  }
-  _reschedFrom={date:_selDate,slot:fromSlot};
-  pdlAlert('Now tap any available slot (this day or another) to move your '+fromSlot+' booking there.','↪').then(()=>{
-    _selSlot='';renderStep1();
-  });
-}
-function _slotStartHour(slot){
-  const m=slot.match(/(\d+)/);let h=m?parseInt(m[1]):8;
-  if(slot.includes('PM')&&h!==12)h+=12;if(slot.includes('AM')&&h===12)h=0;return h;
-}
-/* ===== Member self-cancel (2h cutoff, returns the session) ===== */
-function cancelPrompt(fromSlot){
-  const slotHour=_slotStartHour(fromSlot);
-  const classTime=new Date(_selDate+'T00:00:00');classTime.setHours(slotHour,0,0,0);
-  if((classTime-new Date())<2*3600*1000){
-    pdlAlert('Cancellation is allowed only up to 2 hours before the class. Please contact the studio for last-minute changes.','⏰');
-    return;
-  }
-  pdlConfirm('Cancel your '+fromSlot+' booking on '+formatDate(_selDate)+'? Your session will be returned and the slot freed for others.','Cancel Booking','Keep it').then(ok=>{
-    if(ok)doCancel({date:_selDate,slot:fromSlot});
-  });
-}
-async function doCancel(target){
-  const okPin=await requireBookingPin();
-  if(!okPin)return;
-  try{
-    const bSnap=await db.collection(COL).doc('pp_bookings').get();
-    const bk=bSnap.exists?JSON.parse(bSnap.data().value):{};
-    if(!(bk[target.date]&&bk[target.date][target.slot])){pdlAlert('That booking was already changed. Please refresh.','ℹ️');return;}
-    const arr=bk[target.date][target.slot];
-    const i=arr.findIndex(b=>b.cid===_memberId&&!b.attended);
-    if(i<0){pdlAlert('That booking was already changed or already attended. Please refresh.','ℹ️');return;}
-    arr.splice(i,1);
-    await db.collection(COL).doc('pp_bookings').set({value:JSON.stringify(bk),updated:Date.now()});
-    _bookings=bk;
-    /* return the session to the member (unless unlimited) */
-    const mSnap=await db.collection(COL).doc('pp_memberships').get();
-    const mems=mSnap.exists?JSON.parse(mSnap.data().value):{};
-    if(mems[_memberId]&&mems[_memberId].plan!=='unlimited'){
-      const tot=mems[_memberId].sessionsTotal||0;
-      mems[_memberId].sessionsLeft=Math.min((mems[_memberId].sessionsLeft||0)+1,tot||999);
-    }
-    /* persist a freshly-set PIN if this was the member's first action */
-    if(_pendingPinHash&&mems[_memberId]){mems[_memberId].bookPin=_pendingPinHash;_pendingPinHash=null;}
-    await db.collection(COL).doc('pp_memberships').set({value:JSON.stringify(mems),updated:Date.now()});
-    _mems=mems;
-    pdlAlert('✓ Your '+target.slot+' booking on '+formatDate(target.date)+' is cancelled. The session has been returned to your account.','✅').then(()=>{
-      _selSlot='';refreshGreeting();renderStep1();
-    });
-  }catch(e){pdlAlert('Cancellation failed. Please try again.','⚠️');}
-}
-function switchAccount(){
-  _reschedFrom=null;
-  firebase.auth().signOut().then(()=>{
-    _googleUser=null;_memberId='';_memberName='';_memberGreeting='';window._bkStarted=false;
-    showSignInGate();
-  }).catch(()=>{
-    _googleUser=null;showSignInGate();
-  });
-}
 
 function selectDate(d){
-  if(_closedDays&&_closedDays[d]){
-    const r=_closedDays[d].reason;
-    pdlAlert('🚫 The studio is closed on this day'+(r?' — '+r:'')+'. Please choose another date.');
-    return;
-  }
+  if(_closedDays[d])return; /* closed days can't be selected */
   _selDate=d;_selSlot='';
   renderStep1();
 }
 
 function selectSlot(s){
-  /* reschedule mode: move existing booking into this empty slot */
-  if(_reschedFrom){
-    const from=_reschedFrom;_reschedFrom=null;
-    doReschedule(from,{date:_selDate,slot:s});
-    return;
-  }
   _selSlot=s;
+  // Re-render slots only
   document.querySelectorAll('.slot-btn').forEach(el=>el.classList.remove('selected'));
   event.currentTarget.classList.add('selected');
   document.getElementById('btn-next').disabled=false;
-}
-async function doReschedule(from,to){
-  const okPin=await requireBookingPin();
-  if(!okPin)return;
-  try{
-    const bSnap=await db.collection(COL).doc('pp_bookings').get();
-    const bk=bSnap.exists?JSON.parse(bSnap.data().value):{};
-    /* remove from old slot */
-    if(bk[from.date]&&bk[from.date][from.slot]){
-      const arr=bk[from.date][from.slot];
-      const i=arr.findIndex(b=>b.cid===_memberId&&!b.attended);
-      if(i<0){pdlAlert('That booking was already changed. Please refresh.','ℹ️');return;}
-      /* capacity check on the destination */
-      if(!bk[to.date])bk[to.date]={};
-      if(!bk[to.date][to.slot])bk[to.date][to.slot]=[];
-      if(bk[to.date][to.slot].length>=MACHINES){pdlAlert('That slot just became full. Please pick another.','⚠️');return;}
-      if(bk[to.date][to.slot].some(b=>b.cid===_memberId)){pdlAlert('You already have a booking in that slot.','ℹ️');return;}
-      const moved=arr.splice(i,1)[0];
-      moved.bookedAt=new Date().toISOString();moved.notes='Online (rescheduled)';
-      bk[to.date][to.slot].push(moved);
-      await db.collection(COL).doc('pp_bookings').set({value:JSON.stringify(bk),updated:Date.now()});
-      _bookings=bk;
-      /* persist a freshly-set PIN if this was the member's first action */
-      if(_pendingPinHash&&_mems[_memberId]){_mems[_memberId].bookPin=_pendingPinHash;_pendingPinHash=null;
-        await db.collection(COL).doc('pp_memberships').set({value:JSON.stringify(_mems),updated:Date.now()});}
-      pdlAlert('✓ Moved to '+to.slot+' on '+formatDate(to.date)+'.','✅').then(()=>{_selSlot='';renderStep1();});
-    }
-  }catch(e){pdlAlert('Reschedule failed. Please try again.','⚠️');}
 }
 
 let _googleUser=null;
@@ -465,9 +238,9 @@ let _googleUser=null;
 function goStep2(){
   if(!_selSlot)return;
   _step=2;
-  if(_googleUser&&_memberId){
-    // Already signed in & identified — validate the chosen slot, then confirm
-    verifyAndConfirm();
+  if(_googleUser){
+    // Already signed in — verify directly
+    verifyGoogleUser();
     return;
   }
   document.getElementById('main-content').innerHTML=`
@@ -499,25 +272,24 @@ function goStep2(){
 async function signInGoogle(){
   try{
     const provider=new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({prompt:'select_account'});
     const result=await firebase.auth().signInWithPopup(provider);
     _googleUser=result.user;
-    const hadSlot=!!_selSlot;
-    verifyGoogleUser(); /* identifies member + shows welcome */
-    /* if they had already chosen a slot before signing in, proceed to confirm */
-    if(hadSlot&&_memberId){verifyAndConfirm();}
+    verifyGoogleUser();
   }catch(e){
-    pdlAlert('Sign in failed. Please try again.');
+    alert('Sign in failed. Please try again.');
   }
 }
 
-/* STEP 1 job: identify the signed-in member, then ALWAYS show the welcome screen.
-   No slot validation here — that happens only when they click Continue. */
 function verifyGoogleUser(){
   const email=_googleUser.email.toLowerCase();
   const client=_clients.find(c=>!c.archived&&c.email&&c.email.toLowerCase()===email);
   if(!client){
     document.getElementById('main-content').innerHTML=`
+      <div class="steps">
+        <div class="step done"></div>
+        <div class="step active"></div>
+        <div class="step"></div>
+      </div>
       <div class="card">
         <div class="section-title">❌ Not Registered</div>
         <div style="text-align:center;padding:20px 0;">
@@ -527,102 +299,28 @@ function verifyGoogleUser(){
             Please contact the studio to register your email.
           </p>
         </div>
-        <button class="btn-outline" onclick="switchAccount()">← Try another account</button>
+        <button class="btn-outline" onclick="firebase.auth().signOut();_googleUser=null;renderStep1();">← Try Again</button>
       </div>`;
     return;
   }
   const mem=_mems[client.id];
-  if(!mem){showMemberError('No active membership found. Please contact the studio.');return;}
-  if(mem.endDate&&mem.endDate<td()){showMemberError('Your membership expired on '+formatDate(mem.endDate)+'. Please contact the studio to renew.');return;}
-  /* identity OK — set member, build greeting, and SHOW WELCOME (screen 1) */
-  _memberId=client.id;
-  _memberName=(client.fname+' '+(client.lname||'')).trim();
-  refreshGreeting();
-  _selSlot='';
-  renderStep1();
-}
-/* STEP 3 job: validate the chosen slot for THIS member, then show confirm. */
-function verifyAndConfirm(){
-  const client=_clients.find(c=>c.id===_memberId);
-  if(!client){verifyGoogleUser();return;}
-  const mem=_mems[client.id];
-  if(!mem){showMemberError('No active membership found. Please contact the studio.');return;}
-  if(mem.plan!=='unlimited'&&(function(){
-    /* Never trust mem.sessionsLeft alone — a sync gap or legacy data can leave
-       it stuck at 0 while real attendance proves sessions remain. Recalculate
-       fresh, same safe pattern used on the studio admin app. */
-    let sessUsed=0;
-    Object.values(_bookings||{}).forEach(day=>Object.values(day||{}).forEach(arr=>(arr||[]).forEach(b=>{
-      if(b.cid===_memberId)sessUsed++;
-    })));
-    const sessTotal=mem.sessionsTotal||0;
-    const recalculated=Math.max(0,sessTotal-sessUsed);
-    const trustworthy=Math.max(mem.sessionsLeft||0,recalculated);
-    return trustworthy<=0;
-  })()){showMemberError('You have no sessions available to book. (Any classes already booked are still confirmed.) Please renew to book more.');return;}
-  if(mem.endDate&&mem.endDate<td()){showMemberError('Your membership expired on '+formatDate(mem.endDate)+'. Please contact the studio to renew.');return;}
-  if(mem.endDate&&_selDate>mem.endDate){showMemberError('Your membership is valid till '+formatDate(mem.endDate)+'. The selected date is beyond your plan validity.');return;}
-  if(mem.startDate&&_selDate<mem.startDate){showMemberError('Your plan starts on '+formatDate(mem.startDate)+'. You can book classes from that date onward.');return;}
-  /* GUARD 1: cannot book a slot whose date+time is already in the past */
-  if(_isSlotPast(_selDate,_selSlot)){showMemberError('That time has already passed. Please pick an upcoming slot.');return;}
-  /* GUARD 2: only one class per day — block if member already has a booking that day */
-  const dayBks=_bookings[_selDate]||{};
-  const alreadyToday=Object.values(dayBks).some(arr=>(arr||[]).some(b=>b.cid===client.id));
-  if(alreadyToday){showMemberError('You already have a class booked on '+formatDate(_selDate)+'. Only one class per day is allowed. Tap "Back to slots" to pick another day.');return;}
+  if(!mem){
+    showMemberError('No active membership found. Please contact the studio.');return;
+  }
+  if(mem.plan!=='unlimited'&&mem.sessionsLeft<=0){
+    showMemberError('No sessions remaining. Please renew your membership.');return;
+  }
   if(client.isTrial){
     const alreadyBooked=Object.entries(_bookings).some(([d,slots])=>Object.values(slots).some(arr=>arr.some(b=>b.cid===client.id)));
     if(alreadyBooked){showMemberError('Trial class already used. Please enrol for membership.');return;}
   }
   const slotBks=(_bookings[_selDate]&&_bookings[_selDate][_selSlot])||[];
-  if(slotBks.some(b=>b.cid===client.id)){showMemberError('You are already booked for this slot! Tap "Back to slots" and choose another.');return;}
+  if(slotBks.some(b=>b.cid===client.id)){
+    showMemberError('You are already booked for this slot!');return;
+  }
+  _memberId=client.id;
+  _memberName=(client.fname+' '+(client.lname||'')).trim();
   goStep3();
-}
-/* true if the given date+slot start time is in the past (with a small grace) */
-function _isSlotPast(date,slot){
-  try{
-    const h=_slotStartHour(slot);
-    const dt=new Date(date+'T00:00:00');dt.setHours(h,0,0,0);
-    return (dt.getTime()) < (Date.now() - 0); /* slot start already passed */
-  }catch(e){return false;}
-}
-/* builds _memberGreeting from the CURRENT in-memory _mems (so it stays
-   accurate after each booking in the same session) */
-function refreshGreeting(){
-  try{
-    const client=_clients.find(x=>x.id===_memberId);
-    if(!client){_memberGreeting='';return;}
-    const mem=_mems[_memberId];
-    const fn=client.fname||'there';
-    let line='';
-    if(mem){
-      const dleft=Math.ceil((new Date(mem.endDate+'T00:00:00')-new Date(td()+'T00:00:00'))/86400000);
-      const planName=(_plans&&_plans.find?(_plans.find(p=>p.id===mem.plan)||{}).name:'')||mem.plan||'';
-      /* count this member's attended + upcoming-booked classes */
-      let attended=0, booked=0;
-      try{Object.values(_bookings||{}).forEach(day=>Object.values(day||{}).forEach(arr=>(arr||[]).forEach(b=>{
-        if(b.cid===_memberId){ if(b.attended)attended++; else booked++; }
-      })));}catch(e){}
-      let parts=[];
-      if(planName)parts.push('<b>'+planName+'</b> plan');
-      if(mem.plan==='unlimited')parts.push('Unlimited sessions');
-      else if(typeof mem.sessionsLeft==='number'){
-        const total=mem.sessionsTotal||0;
-        const available=mem.sessionsLeft; /* not yet booked */
-        parts.push('Attended: '+attended+' · Booked: '+booked+' · Available: '+available+' (of '+total+')');
-      }
-      if(mem.endDate)parts.push('valid till '+formatDate(mem.endDate));
-      line=parts.join(' · ');
-      if(mem.plan!=='unlimited'&&typeof mem.sessionsLeft==='number'&&mem.sessionsLeft<=0){
-        if(booked>0)
-          line+='<br><span style="color:#fbbf24;">All sessions booked — you have '+booked+' upcoming class'+(booked!==1?'es':'')+'. To book more, renew your plan.</span>';
-        else
-          line+='<br><span style="color:#f87171;">⚠️ No sessions left — please renew.</span>';
-      }
-      else if(dleft>=0&&dleft<=7)
-        line+='<br><span style="color:#fbbf24;">Expires in '+dleft+' day'+(dleft!==1?'s':'')+' — renew soon!</span>';
-    }
-    _memberGreeting='Welcome back, '+fn+'! 🌸'+(line?'<br><span style="font-size:13px;opacity:0.95;font-weight:400;">'+line+'</span>':'');
-  }catch(e){_memberGreeting='';}
 }
 
 function showMemberError(msg){
@@ -637,7 +335,6 @@ function showMemberError(msg){
 function goStep3(){
   _step=3;
   document.getElementById('main-content').innerHTML=`
-    <div style="text-align:center;font-size:14px;color:var(--gold);font-weight:700;margin-bottom:12px;">${_memberName||''}</div>
     <div class="steps">
       <div class="step done"></div>
       <div class="step done"></div>
@@ -647,65 +344,17 @@ function goStep3(){
       <div class="section-title">✅ Confirm Booking</div>
       <div class="confirm-card">
         <div class="confirm-row"><span class="confirm-label">Name</span><span class="confirm-val">${_memberName}</span></div>
+        <div class="confirm-row"><span class="confirm-label">Google</span><span class="confirm-val" style="font-size:12px;">${_googleUser?_googleUser.email:''}</span></div>
         <div class="confirm-row"><span class="confirm-label">Date</span><span class="confirm-val">${formatDate(_selDate)}</span></div>
         <div class="confirm-row"><span class="confirm-label">Time</span><span class="confirm-val">${_selSlot}</span></div>
         <div class="confirm-row"><span class="confirm-label">Studio</span><span class="confirm-val">Pilates D'Luxe</span></div>
       </div>
       <button class="btn-book" onclick="confirmBooking()" id="btn-confirm">Confirm Booking ✓</button>
-      <button class="btn-outline" onclick="_selSlot='';renderStep1()">← Back to slots</button>
+      <button class="btn-outline" onclick="goStep2()">← Back</button>
     </div>`;
 }
 
 async function confirmBooking(){
-  /* Per-member booking PIN gate (stops accidental bookings by others) */
-  const okPin=await requireBookingPin();
-  if(!okPin)return;
-  _doConfirmBooking();
-}
-async function _sha(t){
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-/* returns true if the member's PIN is verified (or just set) */
-function requireBookingPin(){
-  return new Promise(resolve=>{
-    const mem=_mems[_memberId]||{};
-    const hasPin=!!mem.bookPin;
-    const ov=document.createElement('div');
-    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(5px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;';
-    ov.innerHTML=`<div style="background:var(--surface,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;max-width:320px;width:100%;padding:24px;text-align:center;">
-      <div style="font-size:34px;margin-bottom:6px;">🔒</div>
-      <div style="font-size:16px;font-weight:700;color:var(--text,#fff);margin-bottom:4px;">${hasPin?'Enter your booking PIN':'Set a booking PIN'}</div>
-      <div style="font-size:12px;color:var(--text2,#aaa);margin-bottom:16px;line-height:1.5;">${hasPin?'Enter your 4-digit PIN to confirm this booking.':'Create a 4-digit PIN. You\'ll enter it each time you book — it stops others (like kids!) from booking by mistake.'}</div>
-      <input id="bp-in" type="tel" inputmode="numeric" maxlength="4" placeholder="● ● ● ●" autocomplete="off" name="pdl-bookpin" data-1p-ignore data-lpignore="true" data-form-type="other" style="width:140px;text-align:center;font-size:24px;letter-spacing:8px;padding:10px;border-radius:12px;border:1px solid var(--border2,#444);background:var(--surface2,#222);color:var(--text,#fff);outline:none;"/>
-      <div id="bp-err" style="font-size:12px;color:#f87171;min-height:16px;margin:8px 0;"></div>
-      <button id="bp-ok" style="width:100%;background:linear-gradient(135deg,#c9a84c,#e0c068);color:#1a1a2e;border:none;border-radius:24px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;">${hasPin?'Confirm':'Set PIN & Continue'}</button>
-      <button id="bp-cancel" style="width:100%;background:none;border:none;color:var(--text2,#aaa);padding:10px;font-size:13px;cursor:pointer;margin-top:4px;">Cancel</button>
-      ${hasPin?'<div style="font-size:11px;color:var(--text3,#777);margin-top:6px;">Forgot PIN? Ask the studio to reset it.</div>':''}
-    </div>`;
-    document.body.appendChild(ov);
-    const inp=ov.querySelector('#bp-in');setTimeout(()=>inp.focus(),100);
-    const err=ov.querySelector('#bp-err');
-    const close=v=>{ov.remove();resolve(v);};
-    ov.querySelector('#bp-cancel').onclick=()=>close(false);
-    inp.oninput=()=>{inp.value=inp.value.replace(/\D/g,'').slice(0,4);};
-    inp.onkeydown=e=>{if(e.key==='Enter')ov.querySelector('#bp-ok').click();};
-    ov.querySelector('#bp-ok').onclick=async()=>{
-      const pin=inp.value;
-      if(pin.length!==4){err.textContent='Enter a 4-digit PIN';return;}
-      const h=await _sha('PDLBOOK'+pin);
-      if(hasPin){
-        if(h===mem.bookPin)close(true);
-        else{err.textContent='Wrong PIN. Try again.';inp.value='';inp.focus();}
-      }else{
-        /* set the PIN now (saved with the booking write) */
-        _pendingPinHash=h;close(true);
-      }
-    };
-  });
-}
-let _pendingPinHash=null;
-async function _doConfirmBooking(){
   document.getElementById('btn-confirm').disabled=true;
   document.getElementById('btn-confirm').textContent='Booking...';
   try{
@@ -716,64 +365,25 @@ async function _doConfirmBooking(){
     if(!freshBk[_selDate])freshBk[_selDate]={};
     if(!freshBk[_selDate][_selSlot])freshBk[_selDate][_selSlot]=[];
     if(freshBk[_selDate][_selSlot].length>=MACHINES){
-      pdlAlert('Sorry! This slot just got full. Please select another slot.');
+      alert('Sorry! This slot just got full. Please select another slot.');
       _selSlot='';renderStep1();return;
     }
     if(freshBk[_selDate][_selSlot].some(b=>b.cid===_memberId)){
-      pdlAlert('You are already booked for this slot!');return;
-    }
-    /* safety-net guards (in case state changed): past slot + one-per-day */
-    if(_isSlotPast(_selDate,_selSlot)){pdlAlert('That time has already passed. Please pick an upcoming slot.');_selSlot='';renderStep1();return;}
-    const _dayB=freshBk[_selDate]||{};
-    if(Object.values(_dayB).some(arr=>(arr||[]).some(b=>b.cid===_memberId))){
-      pdlAlert('You already have a class booked that day. Only one class per day is allowed.');_selSlot='';renderStep1();return;
+      alert('You are already booked for this slot!');return;
     }
     // Add booking
-    /* Count sessions used from FRESH data, BEFORE adding this new booking —
-       otherwise the booking-in-progress would be counted as already-used. */
-    let _sessUsedFresh=0;
-    Object.values(freshBk||{}).forEach(day=>Object.values(day||{}).forEach(arr=>(arr||[]).forEach(b=>{
-      if(b.cid===_memberId)_sessUsedFresh++;
-    })));
     freshBk[_selDate][_selSlot].push({cid:_memberId,notes:'Online booking',attended:false,bookedAt:new Date().toISOString()});
-    // Deduct session — re-verify plan limits with fresh data (B2 enforcement)
+    // Deduct session
     const mSnap=await db.collection(COL).doc('pp_memberships').get();
     const freshMems=mSnap.exists?JSON.parse(mSnap.data().value):{};
-    const fm=freshMems[_memberId];
-    if(fm&&fm.plan!=='unlimited'&&(function(){
-      /* Never trust fm.sessionsLeft alone — recalculate fresh from real
-         attendance (counted above, before this booking was added), same safe
-         pattern used elsewhere. Protects against a stale stored field
-         wrongly blocking a member who genuinely still has sessions left. */
-      const sessTotal=fm.sessionsTotal||0;
-      const recalculated=Math.max(0,sessTotal-_sessUsedFresh);
-      const trustworthy=Math.max(fm.sessionsLeft||0,recalculated);
-      return trustworthy<=0;
-    })()){
-      pdlAlert('No sessions remaining on your plan. Please renew your membership.');
-      renderStep1();return;
-    }
-    if(fm&&fm.endDate&&_selDate>fm.endDate){
-      pdlAlert('Your membership validity ends on '+fm.endDate+'. Please renew to book this date.');
-      renderStep1();return;
-    }
     if(freshMems[_memberId]&&freshMems[_memberId].plan!=='unlimited'&&freshMems[_memberId].sessionsLeft>0){
       freshMems[_memberId].sessionsLeft--;
-    }
-    /* save a newly-created booking PIN onto the member's record */
-    if(_pendingPinHash&&freshMems[_memberId]){freshMems[_memberId].bookPin=_pendingPinHash;_pendingPinHash=null;}
-    if(freshMems[_memberId]){
       await db.collection(COL).doc('pp_memberships').set({value:JSON.stringify(freshMems),updated:Date.now()});
     }
     await db.collection(COL).doc('pp_bookings').set({value:JSON.stringify(freshBk),updated:Date.now()});
-    /* sync in-memory state so a SECOND booking in the same session sees the
-       updated session count + new booking (fixes stale-count over-booking) */
-    _mems=freshMems;_bookings=freshBk;
-    /* refresh the greeting line with the new remaining count */
-    if(typeof refreshGreeting==='function')refreshGreeting();
     showSuccess();
   }catch(e){
-    pdlAlert('Booking failed. Please try again.');
+    alert('Booking failed. Please try again.');
     document.getElementById('btn-confirm').disabled=false;
     document.getElementById('btn-confirm').textContent='Confirm Booking ✓';
   }
@@ -790,7 +400,8 @@ function showSuccess(){
         <div class="confirm-row"><span class="confirm-label">Time</span><span class="confirm-val">${_selSlot}</span></div>
         <div class="confirm-row"><span class="confirm-label">Studio</span><span class="confirm-val">Pilates D'Luxe</span></div>
       </div>
-      <button class="btn-book" style="margin-top:24px;" onclick="_selSlot='';_reschedFrom=null;renderStep1()">Book Another Class</button>
+      <p class="note">Please arrive 5 minutes early. Bring your mat and water bottle. 💪</p>
+      <button class="btn-book" style="margin-top:24px;" onclick="location.reload()">Book Another Session</button>
     </div>`;
 }
 
@@ -802,43 +413,11 @@ function formatDate(d){
 }
 
 // Start
-/* Members must sign in with their registered Google account first —
-   Firestore security rules require an authenticated session to read data. */
-function showSignInGate(){
-  document.getElementById('main-content').innerHTML=`
-    <div class="card" style="text-align:center;">
-      <div class="section-title" style="justify-content:center;">Welcome to Pilates D'Luxe</div>
-      <p style="font-size:14px;color:var(--text2);line-height:1.6;margin:14px 0 20px;">
-        Please sign in with the Google account (email) registered with the studio to view available slots and book your class.
-      </p>
-      <button class="btn-book" onclick="signInGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;height:20px;background:#fff;border-radius:3px;padding:2px;"/>
-        Sign in with Google
-      </button>
-      <p class="note">Your data is secure. Only your studio-registered email can book.</p>
-    </div>`;
-}
-firebase.auth().onAuthStateChanged(u=>{
-  if(u){
-    _googleUser=u;
-    if(!window._bkStarted){window._bkStarted=true;loadData();}
-  }else{
-    showSignInGate();
-  }
-});
+loadData();
 </script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('booking-sw.js').catch(()=>{}));
-}
-function bkCheckUpdate(){
-  pdlAlert('You are on <b>v16</b>. Tap OK to force-load the latest version.','🔄').then(()=>{
-    Promise.resolve()
-      .then(()=>('serviceWorker' in navigator)?navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))):null)
-      .then(()=>('caches' in window)?caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))):null)
-      .then(()=>location.reload(true))
-      .catch(()=>location.reload(true));
-  });
 }
 </script>
 </body>

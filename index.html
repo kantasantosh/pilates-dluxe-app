@@ -481,7 +481,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v98e</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99b</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -543,36 +543,46 @@ window.addEventListener('load',()=>{
   <div id="schedule-content"></div>
 </div>
 
-<!-- STAFF -->
-<div class="tab" id="tab-staff">
-  <div class="sh">
-    <div class="st">Staff<small>Team & Attendance</small></div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance">🖨</button>
-      <button class="btn btn-gold btn-sm" onclick="openAddStaff()">+ Add</button>
-    </div>
+<!-- TnS: TASKS & STAFF COMBINED -->
+<div class="tab" id="tab-tns">
+  <!-- Sub-tab navigation -->
+  <div class="ftabs" id="tns-subtabs">
+    <button class="ftab active" onclick="setTnsView('bills',this)">📋 Bills</button>
+    <button class="ftab" onclick="setTnsView('tasks',this)">✅ Tasks</button>
+    <button class="ftab" onclick="setTnsView('staff',this)">👨‍🏫 Staff</button>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;">
-    <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664;</button>
-    <div id="staff-ml" style="font-size:14px;font-weight:700;color:var(--gold);flex:1;text-align:center;"></div>
-    <input type="month" id="staff-month-pick" class="fi" style="width:auto;padding:7px 10px;font-size:12px;" onchange="pickStaffMonth(this.value)"/>
-    <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">&#9654;</button>
-  </div>
-  <div id="staff-list"></div>
-</div>
 
-<!-- BILLS & TODO COMBINED -->
-<div class="tab" id="tab-bills">
-  <div class="sh">
-    <div class="st">Tasks & Bills<small>One-time & Recurring</small></div>
-    <button class="btn btn-gold btn-sm" onclick="openAddBillTodo()">+ Add</button>
+  <!-- BILLS + TASKS content -->
+  <div id="tns-bills">
+    <div class="sh">
+      <div class="st">Tasks & Bills<small>One-time & Recurring</small></div>
+      <button class="btn btn-gold btn-sm" onclick="openAddBillTodo()">+ Add</button>
+    </div>
+    <!-- Sub-tabs for Tasks vs Bills filtering -->
+    <div class="ftabs" id="bt-filter-tabs">
+      <button class="ftab active" onclick="setBTFilter('todo',this)">✅ Tasks</button>
+      <button class="ftab" onclick="setBTFilter('bills',this)">💡 Bills</button>
+    </div>
+    <div id="bills-list"></div>
   </div>
-  <!-- Sub-tabs -->
-  <div class="ftabs">
-    <button class="ftab active" onclick="setBTFilter('todo',this)">✅ Tasks</button>
-    <button class="ftab" onclick="setBTFilter('bills',this)">💡 Bills</button>
+
+  <!-- STAFF content -->
+  <div id="tns-staff" style="display:none;">
+    <div class="sh">
+      <div class="st">Staff<small>Team & Attendance</small></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance">🖨</button>
+        <button class="btn btn-gold btn-sm" onclick="openAddStaff()">+ Add</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664;</button>
+      <div id="staff-ml" style="font-size:14px;font-weight:700;color:var(--gold);flex:1;text-align:center;"></div>
+      <input type="month" id="staff-month-pick" class="fi" style="width:auto;padding:7px 10px;font-size:12px;" onchange="pickStaffMonth(this.value)"/>
+      <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">&#9654;</button>
+    </div>
+    <div id="staff-list"></div>
   </div>
-  <div id="bills-list"></div>
 </div>
 
 <!-- CASH BOOK -->
@@ -920,8 +930,7 @@ window.addEventListener('load',()=>{
   <button class="nb" onclick="showTab('clients',this)"><span class="ni">👥</span>Clients</button>
   <button class="nb" onclick="showTab('schedule',this)"><span class="ni">📅</span>Schedule</button>
   <button class="nb" onclick="showTab('cash',this)"><span class="ni">💰</span>Cash</button>
-  <button class="nb" onclick="showTab('bills',this)"><span class="ni">📋</span>Tasks</button>
-  <button class="nb" onclick="showTab('staff',this)"><span class="ni">👨‍🏫</span>Staff</button>
+  <button class="nb" onclick="showTab('tns',this)"><span class="ni">📋</span>TnS</button>
   <button class="nb" onclick="showTab('credits',this)"><span class="ni">ℹ️</span>About</button>
 </div>
 
@@ -1618,8 +1627,9 @@ function _getFilteredClients(){
     const st=getMembershipStatus(mems[c.id],c.id);
     if(_clientFilter2==='trial'&&!c.isTrial)return false;
     if(_clientFilter2==='converted'&&c.convertedFrom!=='trial')return false;
-    if(_clientFilter2==='active'&&st!=='active')return false;
+    if(_clientFilter2==='active'&&st!=='active'&&st!=='expiring')return false;
     if(_clientFilter2==='expiring'&&st!=='expiring')return false;
+    if(_clientFilter2==='expired'&&c.isTrial)return false; /* trials are one-time, not memberships */
     if(_clientFilter2==='expired'&&st!=='expired'&&st!=='none')return false;
     if(_clientFilter2==='due'){
       const totalPaid=getClientTotalPaid(c.id);
@@ -1704,7 +1714,7 @@ function renderClients(){
     converted:_allC.filter(c=>c.convertedFrom==='trial').length,
     trial:_allC.filter(c=>c.isTrial).length,
     expiring:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expiring';}).length,
-    expired:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expired';}).length,
+    expired:_allC.filter(c=>{if(c.isTrial)return false;const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expired';}).length,
     due:_allC.filter(c=>{const m=mems[c.id];if(!m)return false;return getClientTotalCharged(c.id)>getClientTotalPaid(c.id);}).length,
     inactive:clients.filter(c=>c.archived).length,
   };
@@ -2608,7 +2618,8 @@ function sendWA(){
 function showTab(n,btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
-  if(n==='todo')n='bills';
+  if(n==='todo'||n==='bills')n='tns';
+  if(n==='staff')n='tns';
   document.getElementById('tab-'+n).classList.add('active');
   if(!btn){
     /* fallback: highlight the nav button whose onclick targets this tab */
@@ -2646,8 +2657,7 @@ function showTab(n,btn){
   if(n==='clients')renderClients();
   if(n==='schedule')renderSchedule();
   if(n==='cash')renderCash();
-  if(n==='bills')renderBillsTasks();
-  if(n==='staff')renderStaff();
+  if(n==='tns'){renderBillsTasks();renderStaff();}
   if(n==='credits')renderCredits();
 }
 function renderPlanChips(selected){
@@ -2673,8 +2683,11 @@ function fabAction(){
     clients:openAddClient,
     schedule:()=>toast('Tap any empty slot + to book'),
     cash:()=>openCashEntry(),
-    bills:()=>openAddBillTodo(),
-    staff:()=>openAddStaff(),
+    tns:()=>{
+      const staffPanel=document.getElementById('tns-staff');
+      if(staffPanel&&staffPanel.style.display!=='none')openAddStaff();
+      else openAddBillTodo();
+    },
     credits:null,
   };
   const fn=actions[_activeTab];
@@ -3511,9 +3524,31 @@ function saveStaffAdv(){
 let _btFilter='todo';
 function setBTFilter(f,btn){
   _btFilter=f;
-  document.querySelectorAll('#tab-bills .ftab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#bt-filter-tabs .ftab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
   renderBillsTasks();
+}
+function setTnsView(view,btn){
+  document.querySelectorAll('#tns-subtabs .ftab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const bills=document.getElementById('tns-bills');
+  const staff=document.getElementById('tns-staff');
+  if(view==='staff'){
+    if(bills)bills.style.display='none';
+    if(staff)staff.style.display='';
+    renderStaff();
+  }else{
+    if(staff)staff.style.display='none';
+    if(bills)bills.style.display='';
+    /* Set the inner filter: bills or tasks */
+    if(view==='bills'||view==='tasks'){
+      _btFilter=view==='tasks'?'todo':'bills';
+      document.querySelectorAll('#bt-filter-tabs .ftab').forEach(t=>t.classList.remove('active'));
+      const target=document.querySelector('#bt-filter-tabs .ftab'+(view==='tasks'?':first-child':':last-child'));
+      if(target)target.classList.add('active');
+    }
+    renderBillsTasks();
+  }
 }
 function openAddBillTodo(id,type){
   const isNew=!id;
@@ -3931,6 +3966,9 @@ function openCashEntry(id,prefillCid){
   document.getElementById('ce-mode2').innerHTML=modes.map(m=>`<option>${m}</option>`).join('');
   if(id){
     const e=ld('pp_cash',[]).find(x=>x.id===id)||{};
+    /* Store the original entry so the balance preview can subtract it
+       (prevents double-counting the entry's own amount in projections) */
+    window._ceOriginal={id:e.id,type:e.type||'in',amt:e.amt||0,mode:e.mode||'',cat:e.cat||''};
     setCEType(e.type||'in');
     /* The separate Notes field is gone (folded into Description per the
        Cash/Credit terminology cleanup). If an OLDER entry still has real
@@ -3946,6 +3984,7 @@ function openCashEntry(id,prefillCid){
     // Set cat after refreshCECats
     setTimeout(()=>{if(document.getElementById('ce-cat'))document.getElementById('ce-cat').value=e.cat||'';},50);
   } else if(prefillCid){
+    window._ceOriginal=null;
     /* opened from a client profile → Credit, pre-fill client + due amount + description */
     setCEType('in');
     _cePick(prefillCid);
@@ -3958,6 +3997,7 @@ function openCashEntry(id,prefillCid){
     document.getElementById('ce-date').value=td();
     setTimeout(()=>{if(document.getElementById('ce-cat'))document.getElementById('ce-cat').value='Membership Fee';},50);
   } else {
+    window._ceOriginal=null;
     /* fresh entry → default to DEBIT (most cashbook entries are expenses;
        membership credits flow through the plan form) */
     setCEType('out');
@@ -4817,20 +4857,20 @@ function applyRole(){
       if(oc.indexOf("'cash'")>-1||oc.indexOf("'credits'")>-1)b.style.display='none';
     });
     /* staff tab: hide Add / Share buttons */
-    document.querySelectorAll('#tab-staff .sh button').forEach(b=>b.style.display='none');
+    document.querySelectorAll('#tns-staff .sh button').forEach(b=>b.style.display='none');
     /* hide Manage Plans (plan definitions are admin-only) */
     var _mp=document.getElementById('btn-manage-plans');if(_mp)_mp.style.display='none';
     /* tasks tab: hide filter tabs, add button & share */
-    document.querySelectorAll('#tab-bills .sh button, #tab-bills .ftab').forEach(b=>b.style.display='none');
+    document.querySelectorAll('#tns-bills .sh button, #bt-filter-tabs').forEach(b=>b.style.display='none');
   }
   if(ppIsTrainer()){
-    /* trainer sees only Schedule + Staff (own attendance) */
+    /* trainer sees only Schedule + TnS (own attendance) */
     document.querySelectorAll('.bnav .nb').forEach(b=>{
       const oc=b.getAttribute('onclick')||'';
-      if(!(oc.indexOf("'schedule'")>-1||oc.indexOf("'staff'")>-1||oc.indexOf("'bills'")>-1))b.style.display='none';
+      if(!(oc.indexOf("'schedule'")>-1||oc.indexOf("'tns'")>-1))b.style.display='none';
     });
-    document.querySelectorAll('#tab-staff .sh button').forEach(b=>b.style.display='none');
-    document.querySelectorAll('#tab-bills .sh button, #tab-bills .ftab').forEach(b=>b.style.display='none');
+    document.querySelectorAll('#tns-staff .sh button').forEach(b=>b.style.display='none');
+    document.querySelectorAll('#tns-bills .sh button, #bt-filter-tabs').forEach(b=>b.style.display='none');
     const fb=document.getElementById('fab-btn');if(fb)fb.style.display='none';
     /* land on Schedule, not Dashboard */
     setTimeout(()=>{
@@ -6173,10 +6213,17 @@ function _catBalance(cat,type){
 function _updateModeBalance(){
   const amt=parseFloat(document.getElementById('ce-amt')?document.getElementById('ce-amt').value:0)||0;
   const type=document.getElementById('ce-type')?document.getElementById('ce-type').value:'in';
+  const orig=window._ceOriginal; /* original entry when editing (null for new) */
   const el=document.getElementById('ce-mode-bal');
   if(el){
     const mode=document.getElementById('ce-mode').value;
-    const bal=_modeBalance(mode);
+    let bal=_modeBalance(mode);
+    /* When editing, subtract the original entry's effect on the mode balance
+       so the projection shows the NET change, not a double-count */
+    if(orig&&orig.mode===mode){
+      if(orig.type==='in')bal-=orig.amt;
+      else if(orig.type==='out'||orig.type==='contra')bal+=orig.amt;
+    }
     let proj=bal;
     if(type==='in')proj=bal+amt;else if(type==='out'||type==='contra')proj=bal-amt;
     const projTxt=amt>0?` → after: <b style="color:${proj>=0?'var(--green)':'var(--red)'};">₹${proj.toLocaleString('en-IN')}</b>`:'';
@@ -6199,7 +6246,8 @@ function _updateModeBalance(){
   const m2row=document.getElementById('ce-mode2-row');
   if(el2&&m2row&&m2row.style.display!=='none'){
     const mode2=document.getElementById('ce-mode2').value;
-    const bal2=_modeBalance(mode2);
+    let bal2=_modeBalance(mode2);
+    if(orig&&orig.type==='contra'&&orig.mode===mode2)bal2+=orig.amt; /* contra credited to mode2 */
     const proj2=amt>0?bal2+amt:bal2;
     el2.innerHTML=`${mode2}: <b style="color:${bal2>=0?'var(--green)':'var(--red)'};">₹${bal2.toLocaleString('en-IN')}</b>${amt>0?` → after: <b style="color:${proj2>=0?'var(--green)':'var(--red)'};">₹${proj2.toLocaleString('en-IN')}</b>`:''}`;
   }
@@ -6209,7 +6257,9 @@ function _updateModeBalance(){
   if(cb&&catRow&&catRow.style.display!=='none'&&type!=='contra'){
     const cat=document.getElementById('ce-cat').value;
     if(cat){
-      const cbal=_catBalance(cat);
+      let cbal=_catBalance(cat);
+      /* Subtract original entry's category contribution when editing */
+      if(orig&&(orig.cat||'')===cat)cbal-=orig.amt;
       const cproj=amt>0?cbal+amt:cbal;
       cb.style.display='block';
       cb.innerHTML=`${cat} a/c: <b style="color:var(--gold);">₹${cbal.toLocaleString('en-IN')}</b>${amt>0?` → after: <b style="color:var(--gold);">₹${cproj.toLocaleString('en-IN')}</b>`:''}`;
@@ -7144,6 +7194,23 @@ window.addEventListener('popstate',function(){
     history.pushState(null,'',''); /* prevent actual back navigation */
   }
 });
+/* Escape key: same multi-step back as back button / popstate */
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape')return;
+  /* If ANY modal is open, close/step-back */
+  const uf=document.getElementById('m-unified');
+  if(uf&&uf.classList.contains('open')){
+    e.preventDefault();
+    closeUnified();
+    return;
+  }
+  /* For other modals, just close them */
+  const openMo=document.querySelector('.mo.open');
+  if(openMo){
+    e.preventDefault();
+    closeM(openMo.id);
+  }
+});
 /* Push a history entry when unified form opens so back button works */
 const _origOpenUnified=openUnified;
 openUnified=function(){
@@ -7157,7 +7224,7 @@ function ufToggle(section){
   if(!body)return;
   const showing=body.style.display!=='none';
   body.style.display=showing?'none':'';
-  if(arrow)arrow.textContent=showing?'▶':'▼';
+  if(arrow)arrow.textContent=showing?'▶':'✕';
 }
 
 /* ---- PROFILE ---- */
@@ -8226,7 +8293,7 @@ function _ufPopulatePayment(cid){
     unique.sort((a,b)=>new Date(b.date)-new Date(a.date));
     if(!unique.length){payHist.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;">No payments yet</div>';
     }else{
-      payHist.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;">Payment History ('+unique.length+')</div>'+
+      payHist.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;">Receipt History ('+unique.length+')</div>'+
         unique.slice(0,10).map(p=>{
           const isCash=p.src==='cash';
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
@@ -8359,7 +8426,7 @@ function ufSavePayment(){
     <!-- ===== SECTION 2: PLAN ===== -->
     <div class="uf-section" id="uf-sec-plan">
       <div class="uf-sec-hdr" onclick="ufToggle('plan')">
-        <span>📋 Plan</span>
+        <span>📋 Current Plan & History</span>
         <span id="uf-plan-summary" style="font-size:11px;color:var(--text3);margin-left:8px;"></span>
         <span id="uf-plan-arrow" style="font-size:12px;margin-left:auto;">▶</span>
       </div>
@@ -8390,10 +8457,10 @@ function ufSavePayment(){
       </div>
     </div>
 
-    <!-- ===== SECTION 3: PAYMENT ===== -->
+    <!-- ===== SECTION 3: RECEIPTS ===== -->
     <div class="uf-section" id="uf-sec-payment">
       <div class="uf-sec-hdr" onclick="ufToggle('payment')">
-        <span>💳 Payment</span>
+        <span>🧾 Receipts</span>
         <span id="uf-pay-summary" style="font-size:11px;margin-left:8px;"></span>
         <span id="uf-pay-arrow" style="font-size:12px;margin-left:auto;">▶</span>
       </div>
