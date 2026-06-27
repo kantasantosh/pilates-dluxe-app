@@ -410,7 +410,7 @@ window.addEventListener('load',()=>{
     if(!window._pStarted){window._pStarted=true;_pInit();}
     return;
   }
-  /* Safety net: if auth doesn't respond within 8s (flaky network),
+  /* Safety net: if auth doesn't respond within 15s (flaky network),
      decide based on whether we're actually signed in. */
   const _fallback=setTimeout(()=>{
     if(window._pStarted)return;
@@ -423,7 +423,7 @@ window.addEventListener('load',()=>{
       /* not signed in → show the cloud login gate (don't try a doomed read) */
       if(typeof _showCloudGate==='function')_showCloudGate();
     }
-  },8000);
+  },15000);
   try{
     let _authResolved=false;
     firebase.auth().onAuthStateChanged(u=>{
@@ -436,15 +436,8 @@ window.addEventListener('load',()=>{
         if(!window._pStarted){window._pStarted=true;_pInit();}
       }else if(!window._pStarted&&!_authResolved){
         /* First null can fire BEFORE Firebase restores the LOCAL session from
-           IndexedDB. This is especially likely right after a fresh deploy —
-           the service worker is installing/updating and the page is under
-           more load than normal, so the restore can genuinely take longer
-           than a single short wait. Re-check TWICE, with increasing delay,
-           before concluding the device really isn't signed in — this is
-           what was wrongly asking for studio email/password on every new
-           version, when the device was actually still signed in the whole
-           time (confirmed: a manual refresh always fixed it, because that
-           gave Firebase a fresh, uninterrupted shot at the same restore). */
+           IndexedDB. On fresh deploys / SW updates, the restore can genuinely
+           take 8-12 seconds. Re-check THREE times with increasing delay. */
         setTimeout(()=>{
           if(window._pStarted)return;
           let still=null;try{still=firebase.auth().currentUser;}catch(_e){}
@@ -452,19 +445,28 @@ window.addEventListener('load',()=>{
             if(g)g.style.display='none';
             window._pStarted=true;_pInit();
           }else{
-            /* Second, longer re-check before giving up */
             setTimeout(()=>{
               if(window._pStarted)return;
               let still2=null;try{still2=firebase.auth().currentUser;}catch(_e){}
               if(still2){
                 if(g)g.style.display='none';
                 window._pStarted=true;_pInit();
-              }else if(typeof _showCloudGate==='function'){
-                _showCloudGate();
+              }else{
+                /* Third, final re-check */
+                setTimeout(()=>{
+                  if(window._pStarted)return;
+                  let still3=null;try{still3=firebase.auth().currentUser;}catch(_e){}
+                  if(still3){
+                    if(g)g.style.display='none';
+                    window._pStarted=true;_pInit();
+                  }else if(typeof _showCloudGate==='function'){
+                    _showCloudGate();
+                  }
+                },5000);
               }
-            },3500);
+            },4000);
           }
-        },2500);
+        },3000);
       }
     });
   }catch(e){clearTimeout(_fallback);if(!window._pStarted){window._pStarted=true;_pInit();}}
@@ -479,7 +481,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v97</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v98d</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1322,16 +1324,19 @@ function startDashClock(){
 
 // ===== MODALS =====
 function openM(id){
-  /* Close any OTHER currently-open modal first — EXCEPT m-confirm, which
-     is always meant to layer ON TOP of whatever form triggered it (e.g.
-     confirming a deletion while the unified form stays open behind it).
-     Two NON-confirm modals stacked open at once was confirmed as a real
-     reported symptom; this makes that structurally impossible without
-     breaking every "are you sure?" dialog in the app. */
+  /* Close any OTHER currently-open modal first — EXCEPT m-confirm */
   if(id!=='m-confirm'){
-    document.querySelectorAll('.mo.open').forEach(m=>{if(m.id!==id&&m.id!=='m-confirm')m.classList.remove('open');});
+    document.querySelectorAll('.mo.open').forEach(m=>{
+      if(m.id!==id&&m.id!=='m-confirm'){
+        m.classList.remove('open');
+        m.style.display='none';
+      }
+    });
   }
-  document.getElementById(id).classList.add('open');
+  const el=document.getElementById(id);
+  if(!el){console.error('[openM] element not found:',id);return;}
+  el.classList.add('open');
+  el.style.display='flex';
 }
 /* ===== Form dirty-tracking: grey out Save until something actually changes =====
    Call armDirty(modalId, saveBtnId) AFTER populating the form. The save button
@@ -1353,7 +1358,7 @@ function armDirty(modalId,btnId){
   modal._markDirty=mark;
 }
 function markDirty(modalId){const m=document.getElementById(modalId);if(m&&m._markDirty)m._markDirty();}
-function closeM(id){document.getElementById(id).classList.remove('open');}
+function closeM(id){const el=document.getElementById(id);if(el){el.classList.remove('open');el.style.display='none';}}
 
 // ===== DASHBOARD =====
 function renderDash(){
@@ -4586,29 +4591,11 @@ async function ppHash(uid,pin){
 }
 function ppUsers(){return ld('pp_users',[]);}
 function ppIsAdmin(){
-  /* TEMPORARY DIAGNOSTIC: log the exact state every time this is checked,
-     so we can see directly what's happening without needing dev tools open
-     at the exact right moment. Remove once the real cause is found. */
-  if(window._ppDebugCount===undefined)window._ppDebugCount=0;
-  if(window._ppDebugCount<30){
-    window._ppDebugCount++;
-    console.log('[ppIsAdmin check #'+window._ppDebugCount+']','PPS exists:',!!PPS,'role:',PPS?PPS.role:'(no PPS)');
-  }
-  /* HARD SAFETY NET, run on every single call (this function fires
-     constantly throughout the app — confirmed by the diagnostic above):
-     if PPS is genuinely valid right now, the full-screen login overlay
-     must NEVER still be showing. Force it hidden here, every time,
-     rather than relying on applyRole() having run once at login and
-     never being re-triggered if the overlay gets shown again later. */
+  /* Safety net: if PPS is valid, ensure login overlay is hidden and
+     topbar user chip exists */
   if(PPS&&PPS.id){
     const _lg=document.getElementById('pp-login');
     if(_lg&&_lg.style.display!=='none')_lg.style.display='none';
-    /* Same weakness, same fix, for the topbar name/logout chip: it was
-       only ever created ONCE by applyRole(), with a "don't recreate if
-       one already exists" guard. If that one chance was ever missed or
-       the chip disappeared for any reason, nothing ever rebuilt it —
-       confirmed as the actual cause of the logout button going missing.
-       Recreate it here too, every time, if it's not currently present. */
     const _tb=document.querySelector('.topbar');
     if(_tb&&!document.getElementById('tb-user')){
       const _d=document.createElement('div');_d.className='tb-user';_d.id='tb-user';
@@ -7043,14 +7030,17 @@ function openUnified(cid,focusSection){
   try{_ufPopulateProfile(c);}catch(_e){console.warn('Profile section failed to render:',_e);}
   try{_ufPopulatePlan(cid);}catch(_e){console.warn('Plan section failed to render:',_e);}
   try{_ufPopulatePayment(cid);}catch(_e){console.warn('Payment section failed to render:',_e);}
-  /* All 3 sections COLLAPSED by default — user taps to expand what they need */
-  document.getElementById('uf-body-profile').style.display='none';
-  document.getElementById('uf-profile-arrow').textContent='▶';
-  document.getElementById('uf-body-plan').style.display='none';
-  document.getElementById('uf-plan-arrow').textContent='▶';
-  document.getElementById('uf-body-payment').style.display='none';
-  document.getElementById('uf-pay-arrow').textContent='▶';
+  /* OPEN MODAL FIRST — nothing above this line may prevent it */
   openM('m-unified');
+  /* Collapse all 3 sections (AFTER modal is open, wrapped for safety) */
+  try{
+    document.getElementById('uf-body-profile').style.display='none';
+    document.getElementById('uf-profile-arrow').textContent='▶';
+    document.getElementById('uf-body-plan').style.display='none';
+    document.getElementById('uf-plan-arrow').textContent='▶';
+    document.getElementById('uf-body-payment').style.display='none';
+    document.getElementById('uf-pay-arrow').textContent='▶';
+  }catch(_e){console.warn('Section collapse failed:',_e);}
   /* Show admin-only actions */
   const adminRow=document.getElementById('uf-admin-row');
   if(adminRow)adminRow.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin())?'':'none';
@@ -8414,6 +8404,75 @@ function ufSavePayment(){
 
   </div>
 </div>
+
+<script>
+/* ===== DIAGNOSTIC PANEL — tap version number 5 times to open ===== */
+(function(){
+  let _diagTaps=0,_diagTimer=null;
+  const ver=document.getElementById('app-ver');
+  if(!ver)return;
+  ver.removeAttribute('onclick'); /* diagnostic takes over — single tap still calls checkForUpdate */
+  ver.addEventListener('click',function(e){
+    e.stopPropagation();
+    _diagTaps++;
+    clearTimeout(_diagTimer);
+    if(_diagTaps>=5){
+      _diagTaps=0;
+      _showDiagPanel();
+    }else if(_diagTaps===1){
+      _diagTimer=setTimeout(()=>{_diagTaps=0;try{checkForUpdate();}catch(e){}},800);
+    }else{
+      _diagTimer=setTimeout(()=>{_diagTaps=0;},1500);
+    }
+  });
+  function _showDiagPanel(){
+    let panel=document.getElementById('diag-panel');
+    if(panel){panel.style.display=panel.style.display==='none'?'block':'none';_refreshDiag();return;}
+    panel=document.createElement('div');panel.id='diag-panel';
+    panel.style.cssText='position:fixed;top:0;left:0;right:0;bottom:60px;background:var(--bg);z-index:99999;overflow-y:auto;padding:16px;font-size:12px;color:var(--text);';
+    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><div id="diag-output"></div>';
+    document.body.appendChild(panel);
+    _refreshDiag();
+  }
+  window._refreshDiag=function(){
+    const out=document.getElementById('diag-output');if(!out)return;
+    const lg=document.getElementById('pp-login');
+    const cl=document.getElementById('pp-cloud');
+    const modals=document.querySelectorAll('.mo');
+    let html='<div style="margin-bottom:12px;padding:10px;background:var(--surface2);border-radius:8px;">';
+    html+='<b>Session (PPS):</b> '+(window.PPS?JSON.stringify({name:PPS.name,role:PPS.role,id:PPS.id}):'null')+'<br>';
+    html+='<b>#pp-login:</b> inline='+(lg?JSON.stringify(lg.style.display||'unset'):'MISSING')+' computed='+(lg?getComputedStyle(lg).display:'—')+'<br>';
+    html+='<b>#pp-cloud:</b> inline='+(cl?JSON.stringify(cl.style.display||'unset'):'MISSING')+' computed='+(cl?getComputedStyle(cl).display:'—')+'<br>';
+    html+='<b>_pSync:</b> '+window._pSync+' <b>_pStarted:</b> '+window._pStarted;
+    html+='</div>';
+    html+='<b style="color:var(--gold);">All Modals (.mo):</b><div style="margin:6px 0 12px;">';
+    modals.forEach(m=>{
+      const cs=getComputedStyle(m);
+      const vis=cs.display!=='none';
+      html+='<div style="padding:4px 8px;margin:2px 0;background:'+(vis?'rgba(74,222,128,0.15)':'var(--surface2)')+';border-radius:4px;font-size:11px;">';
+      html+='<b>'+m.id+'</b> hasOpen='+m.classList.contains('open')+' inline="'+( m.style.display||'')+'" computed='+cs.display+' z='+cs.zIndex;
+      html+='</div>';
+    });
+    html+='</div>';
+    html+='<b style="color:var(--gold);">Direct Modal Test:</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;">';
+    ['m-unified','m-reports','m-statement','m-plans','m-users','m-audit','m-client','m-announce','m-studio'].forEach(mid=>{
+      html+='<button onclick="openM(\''+mid+'\');setTimeout(_refreshDiag,200)" style="padding:8px;background:var(--surface3);border:1px solid var(--gold);border-radius:8px;color:var(--gold);cursor:pointer;font-size:11px;">'+mid+'</button>';
+    });
+    html+='</div>';
+    html+='<div style="margin-top:12px;"><b style="color:var(--gold);">Fixed Overlays (z>100, visible):</b></div><div style="margin-top:6px;">';
+    document.querySelectorAll('[id]').forEach(el=>{
+      const s=getComputedStyle(el);
+      if((s.position==='fixed'||s.position==='absolute')&&s.display!=='none'&&parseInt(s.zIndex)>100&&el.id!=='diag-panel'){
+        html+='<div style="padding:3px 6px;font-size:10px;background:rgba(248,113,113,0.1);margin:2px 0;border-radius:4px;">';
+        html+='<b>#'+el.id+'</b> z='+s.zIndex+' display='+s.display+' size='+el.offsetWidth+'x'+el.offsetHeight;
+        html+='</div>';
+      }
+    });
+    html+='</div>';
+    out.innerHTML=html;
+  };
+})();
+</script>
 
 </body>
 </html>
