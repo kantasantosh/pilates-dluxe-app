@@ -100,7 +100,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;right:16px;top:50%;transform:translateY(-50%);">b17</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;right:16px;top:50%;transform:translateY(-50%);">b18</div>
 </div>
 
 <div class="container">
@@ -414,7 +414,20 @@ function formatDate(d){
 }
 
 // Start
-loadData();
+/* Wait for Firebase auth to restore before loading data */
+firebase.auth().onAuthStateChanged(user=>{
+  if(user){
+    loadData();
+  }else{
+    /* Not signed in — try anonymous auth for read-only access,
+       or show the booking UI which will prompt sign-in at step 2 */
+    firebase.auth().signInAnonymously().then(()=>loadData()).catch(()=>{
+      /* Anonymous auth not enabled — load anyway, will fail gracefully
+         if Firestore rules require auth */
+      loadData();
+    });
+  }
+});
 </script>
 <script>
 if('serviceWorker' in navigator){
