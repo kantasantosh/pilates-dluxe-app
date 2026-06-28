@@ -475,7 +475,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99h</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99i</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1621,9 +1621,9 @@ function _getFilteredClients(){
     const st=getMembershipStatus(mems[c.id],c.id);
     if(_clientFilter2==='trial'&&!c.isTrial)return false;
     if(_clientFilter2==='converted'){
-      const hasTrial=c.isTrial||c.convertedFrom==='trial'||c.trialDate||(mem&&mem.history&&mem.history.some(h=>h.plan==='trial'||h.endReason&&h.endReason.includes('Converted')));
-      const boughtPlan=c.memno&&(/^PP/i).test(c.memno);
-      if(!(hasTrial&&boughtPlan))return false;
+      const hasTrial=c.trialDate||c.isTrial||c.convertedFrom==='trial';
+      const hasPaidPlan=mem&&mem.plan&&mem.plan!=='trial';
+      if(!(hasTrial&&hasPaidPlan))return false;
     }
     if(_clientFilter2==='active'&&st!=='active'&&st!=='expiring')return false;
     if(_clientFilter2==='expiring'&&st!=='expiring')return false;
@@ -1676,11 +1676,11 @@ function renderClients(){
         <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial '+fmt(c.trialDate):''} • 📅 ${c.isTrial?'':'Joined '}${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem&&!c.isTrial?' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${(()=>{
-            /* Converted = was trial (has trial date/history) AND bought a plan (memno changed from T to PP) */
-            const hasTrial=c.isTrial||c.convertedFrom==='trial'||(c.trialDate)||(mem&&mem.history&&mem.history.some(h=>h.plan==='trial'||h.endReason&&h.endReason.includes('Converted')));
-            const boughtPlan=c.memno&&(/^PP/i).test(c.memno);
-            const isConverted=hasTrial&&boughtPlan;
-            const isPureTrial=hasTrial&&!boughtPlan;
+            /* Converted = attended trial AND has a paid membership plan */
+            const hasTrial=c.trialDate||c.isTrial||c.convertedFrom==='trial';
+            const hasPaidPlan=mem&&mem.plan&&mem.plan!=='trial';
+            const isConverted=hasTrial&&hasPaidPlan;
+            const isPureTrial=hasTrial&&!hasPaidPlan;
             return isPureTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
               (isConverted?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+
               (mem&&mem.history&&mem.history.some(h=>h.endReason&&h.endReason.includes('Changed'))?`<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:10px;">🔀 PLAN CHANGED</span> `:'')+
@@ -1715,7 +1715,7 @@ function renderClients(){
   const _counts={
     all:_allC.length,
     active:_allC.filter(c=>{const m=mems[c.id];if(!m)return false;const st=getMembershipStatus(m,c.id);return st==='active'||st==='expiring';}).length,
-    converted:_allC.filter(c=>{const hasTrial=c.isTrial||c.convertedFrom==='trial'||c.trialDate;return hasTrial&&c.memno&&(/^PP/i).test(c.memno);}).length,
+    converted:_allC.filter(c=>{const m=mems[c.id];const hasTrial=c.trialDate||c.isTrial||c.convertedFrom==='trial';return hasTrial&&m&&m.plan&&m.plan!=='trial';}).length,
     trial:_allC.filter(c=>c.isTrial).length,
     expiring:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expiring';}).length,
     expired:_allC.filter(c=>{if(c.isTrial)return false;const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expired';}).length,
