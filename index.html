@@ -475,7 +475,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99j</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99q</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -863,12 +863,12 @@ window.addEventListener('load',()=>{
       <div class="fg"><label class="fl">From</label><input class="fi" id="db-from" type="date"/></div>
       <div class="fg"><label class="fl">To</label><input class="fi" id="db-to" type="date"/></div>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('today')">Today</button>
-      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('month')">This Month</button>
-      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('lastmonth')">Last Month</button>
-      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('fy')">This FY</button>
-      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('all')">All</button>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="db-quick-btns">
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('today',this)">Today</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--gold);color:var(--gold);" onclick="dbQuick('month',this)">This Month</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('lastmonth',this)">Last Month</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('fy',this)">This FY</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);" onclick="dbQuick('all',this)">All</button>
     </div>
     <div class="fg"><label class="fl">Voucher Type</label>
       <select class="fi" id="db-type">
@@ -924,7 +924,7 @@ window.addEventListener('load',()=>{
   <button class="nb" onclick="showTab('clients',this)"><span class="ni">👥</span>Clients</button>
   <button class="nb" onclick="showTab('schedule',this)"><span class="ni">📅</span>Schedule</button>
   <button class="nb" onclick="showTab('cash',this)"><span class="ni">💰</span>Cash</button>
-  <button class="nb" onclick="showTab('tns',this)"><span class="ni">📋</span>TnS</button>
+  <button class="nb" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni">📋</span>TnS</button>
   <button class="nb" onclick="showTab('credits',this)"><span class="ni">ℹ️</span>About</button>
 </div>
 
@@ -964,7 +964,7 @@ window.addEventListener('load',()=>{
     </div>
     <div class="fr">
       <div class="fg" id="c-email-row"><label class="fl">Email <span style="color:var(--text3);font-weight:400;" id="c-email-optional-tag"></span></label><input class="fi" id="c-email" type="email" placeholder="email@..." autocomplete="off" autocapitalize="none" data-1p-ignore data-lpignore="true"/></div>
-      <div class="fg"><label class="fl">Insta ID <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="c-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
+      <div class="fg"><label class="fl"><span style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:white;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;vertical-align:1px;">IG</span> Insta ID <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="c-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
     </div>
     <div class="fg" id="c-addr-row"><label class="fl">Address</label><input class="fi" id="c-addr" placeholder="Sector 15, Noida"/></div>
     <div class="fr">
@@ -973,7 +973,7 @@ window.addEventListener('load',()=>{
     </div>
     <div class="fr">
       <div class="fg" id="c-join-row"><label class="fl">Registration Date</label><input class="fi" id="c-join" type="date"/></div>
-      <div class="fg" id="c-trialdate-row" style="display:none;"><label class="fl">1st Session Date</label><input class="fi" id="c-trialdate" type="date"/></div>
+      <div class="fg" id="c-trialdate-row" style="display:none;"><label class="fl">Trial Session Date</label><input class="fi" id="c-trialdate" type="date"/></div>
     </div>
     <div class="fg">
       <label class="fl">Referred By (Member ID)</label>
@@ -1376,9 +1376,10 @@ function renderDash(){
   clients.filter(c=>!c.archived).forEach(c=>{
     const mem=mems[c.id];
     const st=getMembershipStatus(mem,c.id);
-    if(st==='active')active++;
-    else if(st==='expiring')expiring++;
-    else if(st==='expired')expired++;
+    const isPureTrial=mem&&mem.plan==='trial';
+    if((st==='active'||st==='expiring')&&!isPureTrial)active++;
+    if(st==='expiring'&&!isPureTrial)expiring++;
+    if(st==='expired'&&!isPureTrial)expired++;
     // Check payment dues
     const totalPaid=getClientTotalPaid(c.id);
     const totalCharged=getClientTotalCharged(c.id);
@@ -1587,7 +1588,7 @@ function renderDash(){
 let _clientFilter2='all';
 function setClientFilter(f,btn){
   _clientFilter2=f;
-  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#tab-clients .ftab').forEach(t=>t.classList.remove('active'));
   if(btn)btn.classList.add('active');
   renderClients();
 }
@@ -1621,12 +1622,13 @@ function _getFilteredClients(){
     const st=getMembershipStatus(mems[c.id],c.id);
     if(_clientFilter2==='trial'&&!c.isTrial)return false;
     if(_clientFilter2==='converted'){
-      const hasTrial=c.trialDate||c.isTrial||c.convertedFrom==='trial';
       const _cm=mems[c.id];
+      const hasTrial=c.trialDate||c.isTrial||c.convertedFrom==='trial'||(_cm&&_cm.history&&_cm.history.some(h=>h.plan==='trial'));
       const hasPaidPlan=_cm&&_cm.plan&&_cm.plan!=='trial';
       if(!(hasTrial&&hasPaidPlan))return false;
     }
-    if(_clientFilter2==='active'&&st!=='active'&&st!=='expiring')return false;
+    if(_clientFilter2==='active'&&(st!=='active'&&st!=='expiring'))return false;
+    if(_clientFilter2==='active'){const _am=mems[c.id];if(_am&&_am.plan==='trial')return false;}
     if(_clientFilter2==='expiring'&&st!=='expiring')return false;
     if(_clientFilter2==='expired'&&c.isTrial)return false; /* trials are one-time, not memberships */
     if(_clientFilter2==='expired'&&st!=='expired'&&st!=='none')return false;
@@ -1674,11 +1676,11 @@ function renderClients(){
       <div class="client-info">
         <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}</div>
         <div class="client-sub">${_fmtPhone(c.phone)}${plan?(()=>{const _baseS=mem.sessions||plan.sessions||0;const _bonus=mem.bonus||0;const _tot=_baseS+_bonus;return ' • <b style="color:var(--gold);">'+plan.name+'</b>'+(_tot&&_tot!==999?' ('+(_bonus>0?_baseS+'+'+_bonus:_tot)+' sess)':'');})():''}</div>
-        <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial '+fmt(c.trialDate):''} • 📅 ${c.isTrial?'':'Joined '}${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem&&!c.isTrial?' • Expires '+fmt(mem.endDate):''}</div>
+        <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial: '+fmt(c.trialDate):''}${!c.isTrial&&(c.join||c.joinDate)?' • 📅 Joined '+fmt(c.join||c.joinDate):''}${mem&&!c.isTrial&&mem.endDate?' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${(()=>{
             /* Converted = attended trial AND has a paid membership plan */
-            const hasTrial=c.trialDate||c.isTrial||c.convertedFrom==='trial';
+            const hasTrial=c.trialDate||c.isTrial||c.convertedFrom==='trial'||(mem&&mem.history&&mem.history.some(h=>h.plan==='trial'));
             const hasPaidPlan=mem&&mem.plan&&mem.plan!=='trial';
             const isConverted=hasTrial&&hasPaidPlan;
             const isPureTrial=hasTrial&&!hasPaidPlan;
@@ -1702,7 +1704,7 @@ function renderClients(){
               return '<span class="badge" style="background:rgba(52,152,219,0.15);color:#3498db;border:1px solid rgba(52,152,219,0.4);">🏖 On Leave (day '+elapsed+')</span>';
             })()+' ':'')+
             `<span class="badge ${badgeMap[st]||'badge-pending'}">${labelMap[st]||'No Plan'}</span>`})()}
-          ${mem?(mem.plan==='unlimited'||((mem.sessions||mem.sessionsTotal||0)>=999)?`<span style="font-size:12px;color:var(--teal);">Unlimited</span>`:(()=>{const _tot=(mem.sessions||mem.sessionsTotal||0)+(mem.bonus||0);const _left=getSessionsLeft(mem,c.id);return `<span style="font-size:12px;color:var(--text2);">Left ${_left} of ${_tot}</span>`;})()):''}
+          ${mem?(mem.plan==='unlimited'||((mem.sessions||mem.sessionsTotal||0)>=999)?`<span style="font-size:12px;color:var(--teal);">Unlimited</span>`:(()=>{const _tot=mem.plan==='trial'?1:((mem.sessions||mem.sessionsTotal||0)+(mem.bonus||0));const _left=getSessionsLeft(mem,c.id);return `<span style="font-size:12px;color:var(--text2);">Left ${_left} of ${_tot}</span>`;})()):''}
           ${(()=>{const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);return due>0?`<span style="font-size:12px;color:var(--red);font-weight:700;">₹${due.toLocaleString('en-IN')} due</span>`:'';})()} 
         </div>
       </div>
@@ -1715,8 +1717,8 @@ function renderClients(){
   const _allC=clients.filter(c=>!c.archived);
   const _counts={
     all:_allC.length,
-    active:_allC.filter(c=>{const m=mems[c.id];if(!m)return false;const st=getMembershipStatus(m,c.id);return st==='active'||st==='expiring';}).length,
-    converted:_allC.filter(c=>{const m=mems[c.id];const hasTrial=c.trialDate||c.isTrial||c.convertedFrom==='trial';return hasTrial&&m&&m.plan&&m.plan!=='trial';}).length,
+    active:_allC.filter(c=>{const m=mems[c.id];if(!m||!m.plan||m.plan==='trial')return false;const st=getMembershipStatus(m,c.id);return st==='active'||st==='expiring';}).length,
+    converted:_allC.filter(c=>{const m=mems[c.id];const hasTrial=c.trialDate||c.isTrial||c.convertedFrom==='trial'||(m&&m.history&&m.history.some(h=>h.plan==='trial'));return hasTrial&&m&&m.plan&&m.plan!=='trial';}).length,
     trial:_allC.filter(c=>c.isTrial).length,
     expiring:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expiring';}).length,
     expired:_allC.filter(c=>{if(c.isTrial)return false;const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expired';}).length,
@@ -2246,12 +2248,13 @@ const RSEM='10px';
    apostrophe-escaping across three nested layers of quotes. */
 function _goBookSlot(cid){
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
+  window._schedPrefillCid=cid; /* prefill when user taps a slot */
   _schedDate=td();
   showTab('schedule');
   setTimeout(()=>{
     const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
     renderSchedule();
-    toast('📅 Find an empty slot below and tap it for '+c.fname);
+    toast('📅 Tap any empty slot to book for '+c.fname);
   },80);
 }
 function pickSchedDate(val){
@@ -2436,6 +2439,15 @@ function _openBookingForm(slotIdx){
   const _bs=document.getElementById('bk-client-search');if(_bs)_bs.value='';
   const _bp=document.getElementById('bk-client-results');if(_bp)_bp.style.display='none';
   document.getElementById('bk-client').value='';
+  /* Auto-fill if coming from a member card (📅 button) */
+  if(window._schedPrefillCid){
+    const _pc=_bookClientList.find(x=>x.id===window._schedPrefillCid);
+    if(_pc){
+      document.getElementById('bk-client').value=_pc.id;
+      if(_bs)_bs.value=_pc.label;
+    }
+    window._schedPrefillCid=null;
+  }
   openM('m-booking');
 }
 let _bookClientList=[];
@@ -4155,9 +4167,9 @@ function openDaybook(){
   document.getElementById('db-type').value='all';
   openM('m-daybook');
 }
-function dbQuick(which){
+function dbQuick(which,btn){
   const now=new Date();const y=now.getFullYear(),m=now.getMonth();
-  const iso=d=>d.toISOString().slice(0,10);
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   let from='',to=iso(now);
   if(which==='today'){from=iso(now);to=iso(now);}
   else if(which==='month'){from=iso(new Date(y,m,1));to=iso(new Date(y,m+1,0));}
@@ -4166,6 +4178,9 @@ function dbQuick(which){
   else if(which==='all'){from='2020-01-01';to=iso(now);}
   document.getElementById('db-from').value=from;
   document.getElementById('db-to').value=to;
+  /* Highlight active chip */
+  document.querySelectorAll('#db-quick-btns .btn').forEach(b=>{b.style.borderColor='var(--border)';b.style.color='var(--text2)';});
+  if(btn){btn.style.borderColor='var(--gold)';btn.style.color='var(--gold)';}
 }
 function _dbFiltered(){
   const from=document.getElementById('db-from').value;
@@ -6119,7 +6134,7 @@ function _receiptHtml(pay,forPrint){
   <div style="text-align:center;border-bottom:2px solid #c9a84c;padding-bottom:10px;margin-bottom:12px;">
     <div style="font-family:'Playfair Display',Georgia,serif;font-size:23px;letter-spacing:4px;color:#1a1a1a;">${s.name}</div>
     <div style="font-size:11px;letter-spacing:2px;color:#8a7a52;text-transform:uppercase;margin-top:2px;">${s.tagline}</div>
-    <div style="font-size:11px;color:#555;margin-top:6px;">📍 ${s.addr} &nbsp; 📞 ${s.phone}${s.insta?'<br>📷 '+s.insta:''}${s.gst?'<br>GSTIN: '+s.gst:''}</div>
+    <div style="font-size:11px;color:#555;margin-top:6px;">📍 ${s.addr} &nbsp; 📞 ${s.phone}${s.insta?'<br>IG: '+s.insta:''}${s.gst?'<br>GSTIN: '+s.gst:''}</div>
   </div>
   <div style="display:flex;justify-content:space-between;font-size:12px;color:#333;margin-bottom:10px;">
     <div><b>Receipt No:</b> ${rcptNo}</div>
@@ -6140,7 +6155,7 @@ function _receiptHtml(pay,forPrint){
       ${m?`<tr style="border-top:1px solid #c9a84c;"><td style="padding:5px 0;font-weight:700;">${due>0?'Balance Due':'Balance'}</td><td style="text-align:right;font-weight:700;font-size:14px;color:${due>0?'#b00':'#2e7d32'};">${due>0?'₹'+due.toLocaleString('en-IN'):due<0?'Advance ₹'+Math.abs(due).toLocaleString('en-IN'):'✓ Settled'}</td></tr>`:''}
     </table>
   </div>
-  <div style="font-size:9px;color:#999;text-align:center;margin-bottom:8px;">Fees once paid are non-refundable. On plan change, unused value adjusts toward the new plan.</div>
+  <div style="font-size:9px;color:#999;text-align:center;margin-bottom:8px;">Fees once paid are non-refundable. On mid-term plan change, unused value is normally adjusted toward the new plan subject to owner's approval.</div>
   <div style="border-top:1px dashed #bbb;padding-top:8px;font-size:11px;color:#777;display:flex;justify-content:space-between;">
     <span>Issued by: ${PPS?PPS.name:'Studio'}</span>
     <span>${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>
@@ -7253,6 +7268,7 @@ function _ufPopulateProfile(c){
   document.getElementById('uf-lname').value=c.lname||'';
   document.getElementById('uf-phone').value=(c.phone||'').replace(/^\+91/,'');
   document.getElementById('uf-email').value=c.email||'';
+  document.getElementById('uf-insta').value=c.insta||'';
   const _bday=document.getElementById('uf-bday');
   const _anni=document.getElementById('uf-anni');
   if(c.bday){_bday.type='date';_bday.value=c.bday;}else{_bday.type='text';_bday.value='';}
@@ -7288,6 +7304,7 @@ function ufSaveProfile(){
     lname:document.getElementById('uf-lname').value.trim(),
     phone:(function(){const p=document.getElementById('uf-phone').value.replace(/\D/g,'');return p?'+91'+p:'';})(),
     email:document.getElementById('uf-email').value.trim(),
+    insta:document.getElementById('uf-insta').value.trim(),
     bday:document.getElementById('uf-bday').value,
     anni:document.getElementById('uf-anni').value,
     join:document.getElementById('uf-join').value||old.join||td(),
@@ -7410,7 +7427,6 @@ function _ufPopulatePlan(cid){
         <div class="fg"><label class="fl">Sessions</label><input class="fi" id="uf-edit-sessions" type="number"/></div>
         <div class="fg"><label class="fl">Bonus/Complimentary</label><input class="fi" id="uf-edit-bonus" type="number"/></div>
       </div>
-      <div class="fg"><label class="fl">Status</label><select class="fi" id="uf-edit-status"><option value="active">Active</option><option value="frozen">Frozen</option><option value="expired">Expired</option></select></div>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button class="sb2" id="uf-edit-save-btn" onclick="_ufSaveDates()" disabled style="flex:1;opacity:0.45;">Save Corrected Plan</button>
         <button onclick="document.getElementById('uf-edit-dates').style.display='none';window._ufEditTarget=null;" style="flex:0 0 auto;padding:0 16px;background:none;border:1px solid var(--border2);color:var(--text2);border-radius:var(--rsm);font-family:'Jost',sans-serif;cursor:pointer;">Cancel</button>
@@ -7495,7 +7511,7 @@ function _ufRenderHistory(cid){
     html+=hist.map((h,idx)=>{
       const plans=getPlans();
       const p=plans.find(x=>x.id===h.plan);
-      return '<div class="uf-history-item" style="cursor:pointer;" onclick="_ufEditHistoryEntry(\''+cid+'\','+idx+')"><b>'+(p?p.name:h.plan)+'</b> · '+fmt(h.startDate)+' → '+fmt(h.endDate)+(h.plan==='trial'?'':'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN'))+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">✏️ tap to correct</div></div>';
+      return '<div class="uf-history-item" style="cursor:pointer;" onclick="_ufEditHistoryEntry(\''+cid+'\','+idx+')"><b>'+(p?p.name:h.plan)+'</b> · '+(h.plan==='trial'?fmt(h.startDate):fmt(h.startDate)+' → '+fmt(h.endDate))+(h.plan==='trial'?'':'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN'))+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">✏️ tap to correct</div></div>';
     }).join('');
   }
   const evtItems=events.filter(e=>['freeze','resume','extend'].includes(e.type));
@@ -7567,7 +7583,7 @@ function _ufEditHistoryEntry(cid,idx){
     document.getElementById('uf-edit-disc').value=h.disc||0;
     document.getElementById('uf-edit-sessions').value=h.sessions||'';
     document.getElementById('uf-edit-bonus').value=h.bonus||0;
-    document.getElementById('uf-edit-status').value='active';
+    
     document.getElementById('uf-edit-banner').innerHTML='⚠️ Correcting a PAST plan entry (history) — for fixing a CLERICAL MISTAKE only (wrong fee, wrong date, wrong plan selected at the time). This does NOT affect the member\'s current plan. A genuine change that really happened back then should be its own new entry, not an overwrite of this one.';
     document.getElementById('uf-edit-dates').style.display='';
     document.getElementById('uf-edit-dates').scrollIntoView({behavior:'smooth',block:'center'});
@@ -7649,7 +7665,7 @@ function _ufEditDates(){
   document.getElementById('uf-edit-disc').value=m.disc||0;
   document.getElementById('uf-edit-sessions').value=m.sessions||'';
   document.getElementById('uf-edit-bonus').value=m.bonus||0;
-  document.getElementById('uf-edit-status').value=m.status||'active';
+  
   document.getElementById('uf-edit-banner').innerHTML='⚠️ Correcting a wrong entry. This rewrites the current plan record directly — no history entry is created (use "Change Plan" instead if this is a genuine mid-term upgrade/downgrade for the client).';
   document.getElementById('uf-edit-dates').style.display='';
   setTimeout(()=>armDirty('uf-edit-dates','uf-edit-save-btn'),50);
@@ -7725,7 +7741,7 @@ function _ufSaveDates(){
   const nd=parseFloat(document.getElementById('uf-edit-disc').value)||0;
   const nsess=parseInt(document.getElementById('uf-edit-sessions').value);
   const nbonus=parseInt(document.getElementById('uf-edit-bonus').value)||0;
-  const nstatus=document.getElementById('uf-edit-status').value;
+  const nstatus=m.status||'active'; /* auto-determined */
   
   if(planChanged&&newP){
     m.plan=newPid;
@@ -8388,6 +8404,7 @@ function ufSavePayment(){
         <div class="fr">
           <div class="fg"><label class="fl">Phone (WhatsApp)</label><div style="display:flex;align-items:center;gap:6px;"><span style="background:var(--surface3);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 10px;font-size:14px;color:var(--text2);font-family:'Jost',sans-serif;">+91</span><input class="fi" id="uf-phone" type="tel" inputmode="numeric" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"/></div></div>
           <div class="fg"><label class="fl">Email</label><input class="fi" id="uf-email" type="email" autocomplete="off" autocapitalize="none"/></div>
+          <div class="fg"><label class="fl"><span style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:white;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;vertical-align:1px;">IG</span> Insta ID</label><input class="fi" id="uf-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
         </div>
         <div class="fr">
           <div class="fg"><label class="fl">Birthday <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="uf-bday" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
@@ -8483,7 +8500,7 @@ function ufSavePayment(){
     <!-- Admin-only actions (small chips) -->
     <div id="uf-admin-row" style="display:none;margin-top:8px;">
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Admin</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <div style="display:flex;gap:6px;justify-content:space-between;">
         <button onclick="resetBookingPin(document.getElementById('uf-cid').value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:14px;background:none;color:var(--text3);font-size:11px;font-family:'Jost',sans-serif;cursor:pointer;">🔓 Reset PIN</button>
         <button id="uf-deactivate-btn" onclick="archiveClient(document.getElementById('uf-cid').value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:14px;background:none;color:var(--text3);font-size:11px;font-family:'Jost',sans-serif;cursor:pointer;">⏸ Deactivate</button>
         <button onclick="deleteClient(document.getElementById('uf-cid').value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:14px;background:none;color:var(--red);font-size:11px;font-family:'Jost',sans-serif;cursor:pointer;">🗑 Delete</button>
