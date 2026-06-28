@@ -403,72 +403,67 @@ document.addEventListener('visibilitychange',()=>{
   }).catch(()=>{}); /* stay quiet on failure */
 });
 window.addEventListener('load',()=>{
-  /* Offline-first: if there's no network, don't block on cloud auth —
-     start immediately with locally stored data. */
+  /* If this device was previously authenticated, start immediately with
+     local data — don't wait for Firebase auth. The cloud sync will
+     catch up in the background. This eliminates the email/password
+     prompt on every page load / SW update / deploy. */
+  const _wasAuth=localStorage.getItem('pp_cloud_ok');
+  if(_wasAuth&&!window._pStarted){
+    window._pStarted=true;
+    _pInit();
+  }
+  /* Offline-first: if there's no network, start with local data. */
   if(navigator.onLine===false){
     if(!window._pStarted){window._pStarted=true;_pInit();}
     return;
   }
-  /* Safety net: if auth doesn't respond within 15s (flaky network),
-     decide based on whether we're actually signed in. */
-  const _fallback=setTimeout(()=>{
-    if(window._pStarted)return;
-    let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(e){}
-    if(signedIn){
-      window._pStarted=true;
-      const g=document.getElementById('pp-cloud');if(g)g.style.display='none';
-      _pInit();
-    }else{
-      /* not signed in → show the cloud login gate (don't try a doomed read) */
-      if(typeof _showCloudGate==='function')_showCloudGate();
-    }
-  },15000);
+  /* Background auth: connect Firebase silently. If auth succeeds,
+     sync fresh data. If it fails on a previously-auth'd device,
+     just keep running on local data (no disruptive gate). */
   try{
-    let _authResolved=false;
     firebase.auth().onAuthStateChanged(u=>{
-      if(window._ppOfflineMode)return; /* user chose offline — don't auto-connect */
-      clearTimeout(_fallback);
+      if(window._ppOfflineMode)return;
       const g=document.getElementById('pp-cloud');
       if(u){
-        _authResolved=true;
+        localStorage.setItem('pp_cloud_ok','1');
         if(g)g.style.display='none';
         if(!window._pStarted){window._pStarted=true;_pInit();}
-      }else if(!window._pStarted&&!_authResolved){
-        /* First null can fire BEFORE Firebase restores the LOCAL session from
-           IndexedDB. On fresh deploys / SW updates, the restore can genuinely
-           take 8-12 seconds. Re-check THREE times with increasing delay. */
+        else{
+          /* Already started from local — do a silent background sync */
+          try{_pdb.collection('pilates').get().then(snap=>{
+            snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined)localStorage.setItem(d.id,dd.value);});
+            _pSync=true;_pRerenderActive();
+          }).catch(()=>{});}catch(_e){}
+        }
+      }else if(!_wasAuth){
+        /* Never authenticated on this device — need cloud gate */
         setTimeout(()=>{
           if(window._pStarted)return;
           let still=null;try{still=firebase.auth().currentUser;}catch(_e){}
           if(still){
+            localStorage.setItem('pp_cloud_ok','1');
             if(g)g.style.display='none';
-            window._pStarted=true;_pInit();
+            if(!window._pStarted){window._pStarted=true;_pInit();}
           }else{
             setTimeout(()=>{
               if(window._pStarted)return;
               let still2=null;try{still2=firebase.auth().currentUser;}catch(_e){}
               if(still2){
+                localStorage.setItem('pp_cloud_ok','1');
                 if(g)g.style.display='none';
-                window._pStarted=true;_pInit();
-              }else{
-                /* Third, final re-check */
-                setTimeout(()=>{
-                  if(window._pStarted)return;
-                  let still3=null;try{still3=firebase.auth().currentUser;}catch(_e){}
-                  if(still3){
-                    if(g)g.style.display='none';
-                    window._pStarted=true;_pInit();
-                  }else if(typeof _showCloudGate==='function'){
-                    _showCloudGate();
-                  }
-                },5000);
+                if(!window._pStarted){window._pStarted=true;_pInit();}
+              }else if(typeof _showCloudGate==='function'){
+                _showCloudGate();
               }
-            },4000);
+            },5000);
           }
         },3000);
       }
+      /* If _wasAuth but Firebase returns null: ignore silently.
+         The app is already running on local data. Firebase will
+         restore its session eventually, or user can re-auth from About. */
     });
-  }catch(e){clearTimeout(_fallback);if(!window._pStarted){window._pStarted=true;_pInit();}}
+  }catch(e){if(!window._pStarted){window._pStarted=true;_pInit();}}
 });
 </script>
 </head>
@@ -480,7 +475,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99g</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99h</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1626,8 +1621,9 @@ function _getFilteredClients(){
     const st=getMembershipStatus(mems[c.id],c.id);
     if(_clientFilter2==='trial'&&!c.isTrial)return false;
     if(_clientFilter2==='converted'){
-      const isConv=c.convertedFrom==='trial'||(c.isTrial&&mems[c.id])||(mem&&mem.history&&mem.history.some(h=>h.plan==='trial'||h.endReason&&h.endReason.includes('Converted')));
-      if(!isConv)return false;
+      const hasTrial=c.isTrial||c.convertedFrom==='trial'||c.trialDate||(mem&&mem.history&&mem.history.some(h=>h.plan==='trial'||h.endReason&&h.endReason.includes('Converted')));
+      const boughtPlan=c.memno&&(/^PP/i).test(c.memno);
+      if(!(hasTrial&&boughtPlan))return false;
     }
     if(_clientFilter2==='active'&&st!=='active'&&st!=='expiring')return false;
     if(_clientFilter2==='expiring'&&st!=='expiring')return false;
@@ -1680,9 +1676,11 @@ function renderClients(){
         <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial '+fmt(c.trialDate):''} • 📅 ${c.isTrial?'':'Joined '}${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}${mem&&!c.isTrial?' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${(()=>{
-            /* Auto-detect converted: client has isTrial flag, OR has a trial entry in plan history */
-            const isConverted=c.convertedFrom==='trial'||(c.isTrial&&mems[c.id])||(mem&&mem.history&&mem.history.some(h=>h.plan==='trial'||h.endReason&&h.endReason.includes('Converted')));
-            const isPureTrial=c.isTrial&&!mems[c.id]&&!(mem&&mem.history&&mem.history.length>1);
+            /* Converted = was trial (has trial date/history) AND bought a plan (memno changed from T to PP) */
+            const hasTrial=c.isTrial||c.convertedFrom==='trial'||(c.trialDate)||(mem&&mem.history&&mem.history.some(h=>h.plan==='trial'||h.endReason&&h.endReason.includes('Converted')));
+            const boughtPlan=c.memno&&(/^PP/i).test(c.memno);
+            const isConverted=hasTrial&&boughtPlan;
+            const isPureTrial=hasTrial&&!boughtPlan;
             return isPureTrial?'<span class="badge" style="background:rgba(155,89,182,0.2);color:#b07fd4;border:1px solid rgba(155,89,182,0.4);font-size:10px;letter-spacing:0.5px;">🎯 TRIAL</span>':
               (isConverted?`<span class="badge badge-active">✓ CONVERTED</span> `:'')+
               (mem&&mem.history&&mem.history.some(h=>h.endReason&&h.endReason.includes('Changed'))?`<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);font-size:10px;">🔀 PLAN CHANGED</span> `:'')+
@@ -1717,7 +1715,7 @@ function renderClients(){
   const _counts={
     all:_allC.length,
     active:_allC.filter(c=>{const m=mems[c.id];if(!m)return false;const st=getMembershipStatus(m,c.id);return st==='active'||st==='expiring';}).length,
-    converted:_allC.filter(c=>{const m=mems[c.id];return c.convertedFrom==='trial'||(c.isTrial&&m)||(m&&m.history&&m.history.some(h=>h.plan==='trial'||h.endReason&&h.endReason.includes('Converted')));}).length,
+    converted:_allC.filter(c=>{const hasTrial=c.isTrial||c.convertedFrom==='trial'||c.trialDate;return hasTrial&&c.memno&&(/^PP/i).test(c.memno);}).length,
     trial:_allC.filter(c=>c.isTrial).length,
     expiring:_allC.filter(c=>{const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expiring';}).length,
     expired:_allC.filter(c=>{if(c.isTrial)return false;const m=mems[c.id];return m&&getMembershipStatus(m,c.id)==='expired';}).length,
@@ -4336,7 +4334,10 @@ if(document.readyState==='loading'){
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+      reg.update().catch(()=>{});
+      if(reg.waiting)reg.waiting.postMessage('skipWaiting');
+    }).catch(()=>{});
   });
 }
 </script>
@@ -6071,6 +6072,7 @@ function cloudSignOut(){
     {label:'Cancel',color:'var(--border2)',outline:true,action:null},
     {label:'Sign Out Device',color:'var(--rose)',action:()=>{
       if(typeof AUD==='function')AUD('☁️ Cloud device signed out','');
+      localStorage.removeItem('pp_cloud_ok');
       setTimeout(()=>{firebase.auth().signOut().then(()=>location.reload()).catch(()=>location.reload());},400);
     }}
   ]);
