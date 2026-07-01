@@ -106,7 +106,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
-  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b20</div>
+  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b21</div>
 </div>
 
 <div class="container">
@@ -291,6 +291,15 @@ function renderDashboard(){
       </div>
     </div>
 
+    <!-- My Upcoming Bookings -->
+    ${(()=>{
+      const upcoming=getMyUpcomingBookings();
+      if(!upcoming.length)return '';
+      return '<div class="card" style="padding:12px 16px;"><div class="section-title">📌 My Bookings</div>'+
+        upcoming.map(u=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>'+fmtDay(u.date)+' • <b>'+u.slot+'</b></span><button onclick="selectDate(\''+u.date+'\');setTimeout(()=>cancelBooking(\''+u.slot+'\'),200)" style="background:none;border:1px solid var(--red);color:var(--red);border-radius:10px;padding:2px 8px;font-size:10px;cursor:pointer;font-family:\'Jost\',sans-serif;">Cancel</button></div>').join('')+
+        '</div>';
+    })()}
+
     <!-- Date Picker -->
     <div class="card" style="padding:14px 16px;">
       <div class="section-title"><span class="live-dot"></span> Live Schedule</div>
@@ -353,16 +362,39 @@ function slotBtn(slot){
   const avail=getSlotAvail(_selDate,slot);
   const full=avail<=0;
   const myBooking=(_bookings[_selDate]&&_bookings[_selDate][slot]||[]).some(b=>b.cid===_client.id);
+  /* Check if already booked ANY slot today */
+  const bookedToday=Object.values(_bookings[_selDate]||{}).some(arr=>(arr||[]).some(b=>b.cid===_client.id));
+  /* Block past time slots for today */
+  const isPast=_selDate===td()&&isSlotPast(slot);
+
   if(myBooking){
-    return `<div class="slot-btn" style="background:rgba(46,204,113,0.1);border-color:var(--green);cursor:default;">
+    return `<div class="slot-btn" style="background:rgba(46,204,113,0.1);border-color:var(--green);">
       <div class="slot-time">${slot}</div>
-      <div class="slot-avail" style="color:var(--green);">✓ You're booked</div>
+      <div class="slot-avail" style="color:var(--green);">✓ Booked</div>
+      <button onclick="event.stopPropagation();cancelBooking('${slot}')" style="background:none;border:1px solid var(--red);color:var(--red);border-radius:12px;padding:3px 10px;font-size:10px;margin-top:4px;cursor:pointer;font-family:'Jost',sans-serif;">Cancel</button>
     </div>`;
   }
-  return `<div class="slot-btn${full?' full':''}" onclick="${full?'':'openPopup(\''+slot+'\')'}">
+  if(isPast){
+    return `<div class="slot-btn" style="opacity:0.25;cursor:not-allowed;">
+      <div class="slot-time">${slot}</div>
+      <div class="slot-avail" style="color:var(--text3);">Past</div>
+    </div>`;
+  }
+  const blocked=full||(bookedToday&&!myBooking);
+  const reason=full?'Full':bookedToday?'1 booking/day':'';
+  return `<div class="slot-btn${blocked?' full':''}" onclick="${blocked?'':'openPopup(\''+slot+'\')'}">
     <div class="slot-time">${slot}</div>
-    <div class="slot-avail">${full?'Full':avail+' spot'+(avail>1?'s':'')+' left'}</div>
+    <div class="slot-avail">${blocked?reason:avail+' spot'+(avail>1?'s':'')+' left'}</div>
   </div>`;
+}
+
+function isSlotPast(slot){
+  const now=new Date();
+  const[time,ampm]=slot.split(' ');
+  let[h,m]=time.split(':').map(Number);
+  if(ampm==='PM'&&h!==12)h+=12;
+  if(ampm==='AM'&&h===12)h=0;
+  return now.getHours()>h||(now.getHours()===h&&now.getMinutes()>=(m||0));
 }
 
 /* ===== BOOKING POPUP ===== */
@@ -422,6 +454,37 @@ async function confirmBooking(){
     alert('Booking failed. Please try again.');
     btn.disabled=false;btn.textContent='Book Now ✓';
   }
+}
+
+async function cancelBooking(slot){
+  if(!confirm('Cancel your '+slot+' booking on '+fmtDay(_selDate)+'?'))return;
+  try{
+    const bSnap=await db.collection(COL).doc('pp_bookings').get();
+    const freshBk=bSnap.exists?JSON.parse(bSnap.data().value):{};
+    if(freshBk[_selDate]&&freshBk[_selDate][slot]){
+      freshBk[_selDate][slot]=freshBk[_selDate][slot].filter(b=>b.cid!==_client.id);
+      if(freshBk[_selDate][slot].length===0)delete freshBk[_selDate][slot];
+      if(Object.keys(freshBk[_selDate]).length===0)delete freshBk[_selDate];
+    }
+    await db.collection(COL).doc('pp_bookings').set({value:JSON.stringify(freshBk),updated:Date.now()});
+    _bookings=freshBk;
+    renderSlots();
+    showToast('Booking cancelled');
+  }catch(e){alert('Could not cancel. Please try again.');}
+}
+
+function getMyUpcomingBookings(){
+  const today=td();const results=[];
+  Object.entries(_bookings).forEach(([date,slots])=>{
+    if(date<today)return;
+    Object.entries(slots||{}).forEach(([slot,arr])=>{
+      (arr||[]).forEach(b=>{
+        if(b.cid===_client.id)results.push({date,slot});
+      });
+    });
+  });
+  results.sort((a,b)=>a.date.localeCompare(b.date)||a.slot.localeCompare(b.slot));
+  return results;
 }
 
 function showToast(msg){

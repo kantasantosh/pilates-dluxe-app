@@ -403,14 +403,15 @@ document.addEventListener('visibilitychange',()=>{
   }).catch(()=>{}); /* stay quiet on failure */
 });
 window.addEventListener('load',()=>{
-  /* If this device was previously authenticated, start immediately with
-     local data — don't wait for Firebase auth. The cloud sync will
-     catch up in the background. This eliminates the email/password
-     prompt on every page load / SW update / deploy. */
+  /* If this device was previously authenticated, start IMMEDIATELY from
+     local data — show PIN screen using cached pp_users, don't wait for
+     Firestore at all. Cloud sync happens silently in background. */
   const _wasAuth=localStorage.getItem('pp_cloud_ok');
   if(_wasAuth&&!window._pStarted){
     window._pStarted=true;
-    _pInit();
+    /* Call init() directly with local data — no Firestore wait */
+    if(typeof init==='function')init();
+    /* Background sync: _pInit will update localStorage when Firestore responds */
   }
   /* Offline-first: if there's no network, start with local data. */
   if(navigator.onLine===false){
@@ -475,7 +476,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99r</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99s</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -7115,6 +7116,7 @@ function openUnified(cid,focusSection){
      symptom as the sections below. */
   try{
     document.getElementById('uf-name').textContent=(c.fname||'')+' '+(c.lname||'');
+    document.getElementById('uf-header').dataset.cid=cid;
     document.getElementById('uf-memno').textContent=c.memNo||'';
     const _mEdit=document.getElementById('uf-memno-edit');
     if(_mEdit)_mEdit.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin())?'':'none';
@@ -7417,7 +7419,7 @@ function _ufPopulatePlan(cid){
       <div id="uf-edit-banner" style="font-size:11px;color:var(--amber);margin-bottom:8px;">⚠️ Correcting a wrong entry. This rewrites the current plan record directly — no history entry is created (use "Change Plan" instead if this is a genuine mid-term upgrade/downgrade for the client).</div>
       <div class="fg"><label class="fl">Plan</label><select class="fi" id="uf-edit-plan" onchange="_ufEditPlanChanged()"></select></div>
       <div class="fr">
-        <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-edit-start" type="date"/></div>
+        <div class="fg"><label class="fl">Start Date</label><input class="fi" id="uf-edit-start" type="date" onchange="_ufAutoEndDate()"/></div>
         <div class="fg"><label class="fl">End Date</label><input class="fi" id="uf-edit-end" type="date"/></div>
       </div>
       <div class="fr">
@@ -7680,6 +7682,22 @@ function _ufEditPlanChanged(){
   /* Auto-populate fee and sessions from the newly selected plan */
   document.getElementById('uf-edit-fee').value=p.price;
   document.getElementById('uf-edit-sessions').value=p.sessions;
+}
+function _ufAutoEndDate(){
+  const start=document.getElementById('uf-edit-start').value;
+  if(!start)return;
+  /* Get plan duration from the current membership or plan definition */
+  const cid=document.getElementById('uf-header')?.dataset?.cid;
+  if(!cid)return;
+  const m=(ld('pp_memberships',{}))[cid];
+  if(!m||!m.plan)return;
+  const plans=ld('pp_plans',[]);
+  const p=plans.find(x=>x.id===m.plan||x.name===m.plan);
+  const days=p?p.days:(m.endDate&&m.startDate?Math.round((new Date(m.endDate)-new Date(m.startDate))/(86400000)):30);
+  const sd=new Date(start);
+  sd.setDate(sd.getDate()+days);
+  const iso=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
+  document.getElementById('uf-edit-end').value=iso;
 }
 function _ufSaveDates(){
   const target=window._ufEditTarget||{kind:'live'};
