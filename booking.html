@@ -106,7 +106,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
-  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b24</div>
+  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b26</div>
 </div>
 
 <div class="container">
@@ -201,7 +201,7 @@ async function signInGoogle(){
     _googleUser=result.user;
     loadDataAndVerify();
   }catch(e){
-    alert('Sign in failed. Please try again.');
+    showAlert('Sign in failed. Please try again.','😕');
   }
 }
 
@@ -209,11 +209,12 @@ async function signInGoogle(){
 async function loadDataAndVerify(){
   document.getElementById('main-content').innerHTML='<div class="loading"><span class="spinner">⟳</span><br/><br/>Loading your profile...</div>';
   try{
+    const opts={source:'server'}; /* always fetch fresh from server */
     const [cSnap, bSnap, mSnap, cdSnap]=await Promise.all([
-      db.collection(COL).doc('pp_clients').get(),
-      db.collection(COL).doc('pp_bookings').get(),
-      db.collection(COL).doc('pp_memberships').get(),
-      db.collection(COL).doc('pp_closed_days').get()
+      db.collection(COL).doc('pp_clients').get(opts),
+      db.collection(COL).doc('pp_bookings').get(opts),
+      db.collection(COL).doc('pp_memberships').get(opts),
+      db.collection(COL).doc('pp_closed_days').get(opts)
     ]);
     _clients=cSnap.exists?JSON.parse(cSnap.data().value):[];
     _bookings=bSnap.exists?JSON.parse(bSnap.data().value):{};
@@ -407,10 +408,10 @@ function openPopup(slot){
     const used=getSessionsUsed(_client.id);
     const total=(mem.sessions||mem.sessionsTotal||0)+(mem.bonus||0);
     if(used>=total){
-      alert('No sessions remaining. Please renew your membership.');return;
+      showAlert('No sessions remaining. Please renew your membership.','⚠️');return;
     }
   }
-  if(!mem){alert('No active membership found. Please contact the studio.');return;}
+  if(!mem){showAlert('No active membership found. Please contact the studio.','⚠️');return;}
 
   document.getElementById('popup-details').innerHTML=`
     <div class="detail"><span class="dlbl">Name</span><span class="dval">${_client.fname} ${_client.lname||''}</span></div>
@@ -439,11 +440,11 @@ async function confirmBooking(){
     if(!freshBk[_selDate])freshBk[_selDate]={};
     if(!freshBk[_selDate][slot])freshBk[_selDate][slot]=[];
     if(freshBk[_selDate][slot].length>=MACHINES){
-      alert('This slot just filled up! Please choose another.');
+      showAlert('This slot just filled up! Please choose another.','😅');
       closePopup();renderSlots();return;
     }
     if(freshBk[_selDate][slot].some(b=>b.cid===_client.id)){
-      alert('You are already booked for this slot!');closePopup();return;
+      showAlert('You are already booked for this slot!','📌');closePopup();return;
     }
     /* Add booking */
     freshBk[_selDate][slot].push({cid:_client.id,notes:'Online booking',attended:false,bookedAt:new Date().toISOString()});
@@ -453,13 +454,13 @@ async function confirmBooking(){
     renderDashboard(); /* refresh entire view including My Bookings */
     showToast('🎉 Booked! '+fmtDay(_selDate)+' at '+slot);
   }catch(e){
-    alert('Booking failed. Please try again.');
+    showAlert('Booking failed. Please try again.','😕');
     btn.disabled=false;btn.textContent='Book Now ✓';
   }
 }
 
 async function cancelBooking(slot){
-  if(!confirm('Cancel your '+slot+' booking on '+fmtDay(_selDate)+'?'))return;
+  showConfirmDialog('Cancel your '+slot+' booking on '+fmtDay(_selDate)+'?',async()=>{
   try{
     const bSnap=await db.collection(COL).doc('pp_bookings').get();
     const freshBk=bSnap.exists?JSON.parse(bSnap.data().value):{};
@@ -472,7 +473,8 @@ async function cancelBooking(slot){
     _bookings=freshBk;
     renderDashboard(); /* refresh entire view including My Bookings */
     showToast('Booking cancelled');
-  }catch(e){alert('Could not cancel. Please try again.');}
+  }catch(e){showAlert('Could not cancel. Please try again.','😕');}
+  });
 }
 
 function getMyUpcomingBookings(){
@@ -491,11 +493,43 @@ function getMyUpcomingBookings(){
 
 function showToast(msg){
   let t=document.getElementById('bk-toast');
-  if(!t){t=document.createElement('div');t.id='bk-toast';t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--bg);padding:12px 24px;border-radius:30px;font-size:14px;font-weight:700;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none;';document.body.appendChild(t);}
+  if(!t){t=document.createElement('div');t.id='bk-toast';t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--bg);padding:12px 24px;border-radius:30px;font-size:14px;font-weight:700;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;';document.body.appendChild(t);}
   t.textContent=msg;t.style.opacity='1';
   setTimeout(()=>{t.style.opacity='0';},3000);
 }
+function showAlert(msg,icon){
+  const ov=document.getElementById('alert-popup');
+  document.getElementById('alert-icon').textContent=icon||'ℹ️';
+  document.getElementById('alert-msg').textContent=msg;
+  ov.classList.add('open');
+}
+function showConfirmDialog(msg,onYes){
+  const ov=document.getElementById('confirm-dialog');
+  document.getElementById('cd-msg').textContent=msg;
+  document.getElementById('cd-yes').onclick=()=>{ov.classList.remove('open');onYes();};
+  ov.classList.add('open');
+}
 </script>
+
+<!-- Alert popup -->
+<div class="popup-overlay" id="alert-popup">
+  <div class="popup" style="padding:30px 24px;">
+    <div id="alert-icon" style="font-size:40px;margin-bottom:12px;">ℹ️</div>
+    <div id="alert-msg" style="font-size:14px;color:var(--text);line-height:1.6;margin-bottom:20px;"></div>
+    <button class="btn-book" onclick="document.getElementById('alert-popup').classList.remove('open')">OK</button>
+  </div>
+</div>
+<!-- Confirm dialog -->
+<div class="popup-overlay" id="confirm-dialog">
+  <div class="popup" style="padding:30px 24px;">
+    <div style="font-size:40px;margin-bottom:12px;">🤔</div>
+    <div id="cd-msg" style="font-size:14px;color:var(--text);line-height:1.6;margin-bottom:20px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-outline" style="flex:1;" onclick="document.getElementById('confirm-dialog').classList.remove('open')">No</button>
+      <button class="btn-book" id="cd-yes" style="flex:1;margin:0;">Yes</button>
+    </div>
+  </div>
+</div>
 
 <script>
 if('serviceWorker' in navigator){
