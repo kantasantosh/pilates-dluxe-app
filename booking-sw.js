@@ -1,4 +1,4 @@
-const CACHE='booking-v21';
+const CACHE='booking-v22';
 const ASSETS=['./booking.html'];
 self.addEventListener('install', e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})));

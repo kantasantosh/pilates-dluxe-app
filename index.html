@@ -275,9 +275,10 @@ async function _pfsSave(k,v){if(!_pdb)return;try{await _pdb.collection('pilates'
 async function _pfsLoad(k){if(!_pdb)return null;try{const s=await _pdb.collection('pilates').doc(k).get();if(s.exists)return JSON.parse(s.data().value);}catch(e){}return null;}
 
 async function _pInit(){
+  const _alreadyStarted=window._pStarted;
   const el=document.createElement('div');el.id='p-sync';
   el.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#4a9eff;padding:6px 16px;border-radius:20px;font-size:11px;z-index:9999;pointer-events:none;';
-  el.textContent='⟳ Syncing...';document.body.appendChild(el);
+  el.textContent='⟳ Syncing...';if(!_alreadyStarted)document.body.appendChild(el);else{el.style.opacity='0';document.body.appendChild(el);}
   try{
     const snap=await _pdb.collection('pilates').get();
     let _gotRealData=false;
@@ -411,7 +412,8 @@ window.addEventListener('load',()=>{
     window._pStarted=true;
     /* Call init() directly with local data — no Firestore wait */
     if(typeof init==='function')init();
-    /* Background sync: _pInit will update localStorage when Firestore responds */
+    /* Start background Firestore sync + onSnapshot listener */
+    try{_pInit();}catch(_e){}
   }
   /* Offline-first: if there's no network, start with local data. */
   if(navigator.onLine===false){
@@ -476,7 +478,7 @@ window.addEventListener('load',()=>{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99s</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v99t</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -7675,29 +7677,31 @@ function _ufEditDates(){
 }
 function _ufEditPlanChanged(){
   const pid=document.getElementById('uf-edit-plan').value;
-  if(!pid)return; /* "No plan / remove" selected — leave fields as-is, handled on save */
+  if(!pid)return;
   const plans=getPlans();
   const p=plans.find(x=>x.id===pid);
   if(!p)return;
-  /* Auto-populate fee and sessions from the newly selected plan */
   document.getElementById('uf-edit-fee').value=p.price;
   document.getElementById('uf-edit-sessions').value=p.sessions;
+  /* Also recalculate end date based on new plan's duration */
+  const start=document.getElementById('uf-edit-start').value;
+  if(start&&p.days){
+    const sd=new Date(start);
+    sd.setDate(sd.getDate()+p.days);
+    document.getElementById('uf-edit-end').value=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
+  }
 }
 function _ufAutoEndDate(){
   const start=document.getElementById('uf-edit-start').value;
   if(!start)return;
-  /* Get plan duration from the current membership or plan definition */
-  const cid=document.getElementById('uf-header')?.dataset?.cid;
-  if(!cid)return;
-  const m=(ld('pp_memberships',{}))[cid];
-  if(!m||!m.plan)return;
+  /* Use the SELECTED plan's days, not the stored membership */
+  const pid=document.getElementById('uf-edit-plan').value;
   const plans=ld('pp_plans',[]);
-  const p=plans.find(x=>x.id===m.plan||x.name===m.plan);
-  const days=p?p.days:(m.endDate&&m.startDate?Math.round((new Date(m.endDate)-new Date(m.startDate))/(86400000)):30);
+  const p=plans.find(x=>x.id===pid);
+  if(!p||!p.days)return;
   const sd=new Date(start);
-  sd.setDate(sd.getDate()+days);
-  const iso=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
-  document.getElementById('uf-edit-end').value=iso;
+  sd.setDate(sd.getDate()+p.days);
+  document.getElementById('uf-edit-end').value=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
 }
 function _ufSaveDates(){
   const target=window._ufEditTarget||{kind:'live'};
