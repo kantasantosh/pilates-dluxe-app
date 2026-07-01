@@ -106,7 +106,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
-  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b22</div>
+  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b24</div>
 </div>
 
 <div class="container">
@@ -295,7 +295,7 @@ function renderDashboard(){
     ${(()=>{
       const upcoming=getMyUpcomingBookings();
       if(!upcoming.length)return '';
-      return '<div class="card" style="padding:12px 16px;"><div class="section-title" style="cursor:pointer;display:flex;justify-content:space-between;" onclick="const b=document.getElementById(\'my-bk-list\');b.style.display=b.style.display===\'none\'?\'\':\' none\';this.querySelector(\'span\').textContent=b.style.display===\'none\'?\'▶\':\'▼\';">📌 My Bookings ('+upcoming.length+')<span style="font-size:10px;">▼</span></div>'+
+      return '<div class="card" style="padding:12px 16px;"><div class="section-title" style="cursor:pointer;display:flex;justify-content:space-between;" onclick="const b=document.getElementById(\'my-bk-list\');b.style.display=b.style.display===\'none\'?\'\':\'none\';this.querySelector(\'span\').textContent=b.style.display===\'none\'?\'▶\':\'▼\';">📌 My Bookings ('+upcoming.length+')<span style="font-size:10px;">▼</span></div>'+
         '<div id="my-bk-list">'+upcoming.map(u=>{
           const isPast=u.date<td()||(u.date===td()&&isSlotPast(u.slot));
           return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>'+fmtDay(u.date)+' • <b>'+u.slot+'</b></span><span style="font-size:11px;color:'+(isPast?'var(--green)':'var(--gold)')+';">'+(isPast?'✓ Done':'Upcoming')+'</span></div>';
@@ -450,7 +450,7 @@ async function confirmBooking(){
     await db.collection(COL).doc('pp_bookings').set({value:JSON.stringify(freshBk),updated:Date.now()});
     _bookings=freshBk;
     closePopup();
-    renderSlots();
+    renderDashboard(); /* refresh entire view including My Bookings */
     showToast('🎉 Booked! '+fmtDay(_selDate)+' at '+slot);
   }catch(e){
     alert('Booking failed. Please try again.');
@@ -470,7 +470,7 @@ async function cancelBooking(slot){
     }
     await db.collection(COL).doc('pp_bookings').set({value:JSON.stringify(freshBk),updated:Date.now()});
     _bookings=freshBk;
-    renderSlots();
+    renderDashboard(); /* refresh entire view including My Bookings */
     showToast('Booking cancelled');
   }catch(e){alert('Could not cancel. Please try again.');}
 }
