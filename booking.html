@@ -41,7 +41,9 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 .sess-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;text-align:center;flex:1;}
 .sess-num{font-size:16px;font-weight:700;color:var(--gold);}
 .sess-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;}
-.qr-mini{width:50px;height:50px;border-radius:8px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:22px;}
+.qr-mini{width:50px;height:50px;border-radius:8px;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#1a1a2e;}
+.qr-mini .qr-glyph{font-size:20px;line-height:1;}
+.qr-mini .qr-label{font-size:8px;font-weight:800;letter-spacing:1px;margin-top:1px;}
 .qr-box{background:white;border-radius:12px;padding:14px;display:inline-flex;margin:6px auto 4px;}
 
 /* Date selector */
@@ -108,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
-  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b30</div>
+  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b31</div>
 </div>
 
 <div class="container">
@@ -335,9 +337,15 @@ function startBookingSync(){
   _unsubBookings=db.collection(COL).doc('pp_bookings').onSnapshot(snap=>{
     if(snap.exists){
       _bookings=JSON.parse(snap.data().value);
-      /* Re-render slots if on dashboard */
-      const slotsEl=document.getElementById('slots-area');
-      if(slotsEl)renderSlots();
+      /* THE FIX: this used to only call renderSlots(), which refreshes
+         the slot grid (so a freed/taken slot updates immediately) but
+         never touches the separate "My Bookings" card — that section
+         only ever caught up when the whole dashboard re-rendered for
+         some other reason. Booking/cancelling was always instant under
+         the hood; only this one card's redraw was being skipped. */
+      if(_client&&document.getElementById('main-content')){
+        renderDashboard();
+      }
     }
   },err=>{console.warn('Booking sync error:',err);});
 }
@@ -378,7 +386,7 @@ function renderDashboard(){
           <div class="client-name">${c.fname} ${c.lname||''}</div>
           <div class="client-plan">📋 ${planName} • Expires: ${endDate}</div>
         </div>
-        <div class="qr-mini" onclick="openMyQR()" title="Show my QR code">▦</div>
+        <div class="qr-mini" onclick="openMyQR()" title="Show my QR code"><span class="qr-glyph">▦</span><span class="qr-label">QR</span></div>
         <button class="logout-btn" onclick="firebase.auth().signOut();_googleUser=null;_client=null;" style="position:static;transform:none;">Sign Out</button>
       </div>
       <div class="client-sessions">
