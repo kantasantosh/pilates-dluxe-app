@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
-  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b31</div>
+  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b32</div>
 </div>
 
 <div class="container">
@@ -205,12 +205,24 @@ function showSignIn(){
 }
 
 async function signInGoogle(){
+  const provider=new firebase.auth.GoogleAuthProvider();
+  /* Without this, Google silently reuses whichever account is already
+     cached in the browser and never shows the account picker — so
+     switching accounts (or fixing a wrong email) looked impossible. */
+  provider.setCustomParameters({prompt:'select_account'});
+  /* Safari (especially in standalone/installed-app mode) is well known
+     to handle POPUP-based OAuth unreliably — the popup can fail to close
+     properly, leaving a blank orphaned window behind, or the sign-in can
+     simply hang. Redirect-based sign-in avoids the popup entirely and is
+     the officially recommended approach for Safari. Other browsers keep
+     the smoother in-place popup flow. */
+  const isSafari=/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+  if(isSafari){
+    try{await firebase.auth().signInWithRedirect(provider);}
+    catch(e){showAlert('Sign in failed. Please try again.','😕');}
+    return; /* page will navigate away and back; onAuthStateChanged picks up the result */
+  }
   try{
-    const provider=new firebase.auth.GoogleAuthProvider();
-    /* Without this, Google silently reuses whichever account is already
-       cached in the browser and never shows the account picker — so
-       switching accounts (or fixing a wrong email) looked impossible. */
-    provider.setCustomParameters({prompt:'select_account'});
     const result=await firebase.auth().signInWithPopup(provider);
     _googleUser=result.user;
     loadDataAndVerify();
@@ -332,6 +344,12 @@ async function _pinVerifySubmit(){
 }
 
 /* ===== REAL-TIME SYNC ===== */
+/* Restart the live listener whenever the app comes back to the foreground
+   — covers "closed completely and reopened" and general mobile/Safari
+   backgrounding, where a listener can silently die while hidden. */
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&_client)startBookingSync();
+});
 function startBookingSync(){
   if(_unsubBookings)_unsubBookings(); /* clear old listener */
   _unsubBookings=db.collection(COL).doc('pp_bookings').onSnapshot(snap=>{
@@ -347,7 +365,14 @@ function startBookingSync(){
         renderDashboard();
       }
     }
-  },err=>{console.warn('Booking sync error:',err);});
+  },err=>{
+    /* Previously this just logged a warning and left the listener dead
+       for the rest of the session — matching "can't reload data, then no
+       sync ever again until a full restart." Now it retries on its own
+       after a short pause instead of staying silently broken. */
+    console.warn('Booking sync error:',err);
+    setTimeout(()=>{if(_client)startBookingSync();},3000);
+  });
 }
 
 /* ===== MY QR CODE =====
