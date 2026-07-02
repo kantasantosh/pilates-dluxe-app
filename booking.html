@@ -14,6 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -40,7 +41,8 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 .sess-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;text-align:center;flex:1;}
 .sess-num{font-size:16px;font-weight:700;color:var(--gold);}
 .sess-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;}
-.qr-mini{width:50px;height:50px;border-radius:8px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.qr-mini{width:50px;height:50px;border-radius:8px;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:22px;}
+.qr-box{background:white;border-radius:12px;padding:14px;display:inline-flex;margin:6px auto 4px;}
 
 /* Date selector */
 .date-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
@@ -106,7 +108,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
-  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b26</div>
+  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b27</div>
 </div>
 
 <div class="container">
@@ -262,6 +264,21 @@ function startBookingSync(){
   },err=>{console.warn('Booking sync error:',err);});
 }
 
+/* ===== MY QR CODE =====
+   Payload format 'PDL:'+id MUST match _memberQRPayload() in the studio
+   app (index.html) — that's what the admin's check-in scanner reads. */
+function openMyQR(){
+  const c=_client;
+  if(!c)return;
+  const t=document.getElementById('qr-box-target');
+  t.innerHTML='';
+  try{
+    new QRCode(t,{text:'PDL:'+c.id,width:180,height:180,colorDark:'#1a1a2e',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  }catch(e){t.innerHTML='<div style="color:#a50e0e;font-size:12px;padding:20px;">QR unavailable — please tell the front desk.</div>';}
+  document.getElementById('qr-name-lbl').textContent=(c.fname||'')+' '+(c.lname||'');
+  document.getElementById('qr-popup').classList.add('open');
+}
+
 /* ===== MAIN DASHBOARD ===== */
 function renderDashboard(){
   const c=_client;
@@ -283,6 +300,7 @@ function renderDashboard(){
           <div class="client-name">${c.fname} ${c.lname||''}</div>
           <div class="client-plan">📋 ${planName} • Expires: ${endDate}</div>
         </div>
+        <div class="qr-mini" onclick="openMyQR()" title="Show my QR code">▦</div>
         <button class="logout-btn" onclick="firebase.auth().signOut();_googleUser=null;_client=null;" style="position:static;transform:none;">Sign Out</button>
       </div>
       <div class="client-sessions">
@@ -510,6 +528,17 @@ function showConfirmDialog(msg,onYes){
   ov.classList.add('open');
 }
 </script>
+
+<!-- My QR popup -->
+<div class="popup-overlay" id="qr-popup">
+  <div class="popup" style="padding:26px 22px;">
+    <h3 style="margin-bottom:10px;">Your Check-in QR</h3>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Show this at the studio to check in</div>
+    <div class="qr-box" id="qr-box-target"></div>
+    <div style="font-size:11px;color:var(--text3);margin:10px 0 16px;" id="qr-name-lbl"></div>
+    <button class="btn-book" style="margin:0;" onclick="document.getElementById('qr-popup').classList.remove('open')">Close</button>
+  </div>
+</div>
 
 <!-- Alert popup -->
 <div class="popup-overlay" id="alert-popup">
