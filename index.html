@@ -417,7 +417,8 @@ document.addEventListener('visibilitychange',()=>{
 function _ppBoot(){
   if(window._pStarted)return;
   const wasAuth=localStorage.getItem('pp_cloud_ok');
-  if(navigator.onLine===false||wasAuth){
+  const chosenOffline=localStorage.getItem('pp_offline_choice');
+  if(navigator.onLine===false||wasAuth||chosenOffline){
     /* Trusted device, OR no network: start immediately with whatever
        local data exists — PIN screen appears instantly. Cloud sync (if
        online) happens silently in the background afterward. */
@@ -437,6 +438,7 @@ try{
     const g=document.getElementById('pp-cloud');
     if(u){
       localStorage.setItem('pp_cloud_ok','1');
+      localStorage.removeItem('pp_offline_choice');
       if(g)g.style.display='none';
       if(!window._pStarted){window._pStarted=true;_pInit();}
       else{
@@ -463,7 +465,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v100</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v102</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1458,11 +1460,11 @@ function renderDash(){
         <div class="dash-label">Overdue from Leave</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">${overdueNames.slice(0,2).join(', ')}${overdueLeave>2?' +'+(overdueLeave-2)+' more':''}</div>
       </div>`:''}
-      <div class="dash-card teal" style="cursor:pointer;" onclick="openReports&&ppIsAdmin&&ppIsAdmin()?openReports():showTab('clients',document.querySelector('.nb:nth-child(2)'))">
+      ${ppIsAdmin()?`<div class="dash-card teal" style="cursor:pointer;" onclick="openReports&&ppIsAdmin&&ppIsAdmin()?openReports():showTab('clients',document.querySelector('.nb:nth-child(2)'))">
         <div class="dash-num">${convPct}%</div>
         <div class="dash-label">Trial Conversion</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">${convAll}/${trialsAll} →</div>
-      </div>
+      </div>`:''}
       <div class="dash-card gold dash-wide" style="padding:16px;cursor:pointer;" onclick="showTab('cash',document.querySelector('.nb:nth-child(4)'))">
         <div class="dash-label" style="margin-bottom:4px;">Membership Revenue</div>
         <div class="dash-num" style="font-size:28px;">₹${monthRevenue.toLocaleString('en-IN')}</div>
@@ -4673,7 +4675,8 @@ function ppAuthGate(){
        cache clear). Try pulling pp_users from the cloud — retry a few times
        before ever concluding it's a genuine first-time studio. */
     window._gateTries=(window._gateTries||0);
-    if(window._gateTries<8 && typeof _pdb!=='undefined' && navigator.onLine!==false){
+    const _offline=window._ppOfflineMode||localStorage.getItem('pp_offline_choice');
+    if(window._gateTries<8 && typeof _pdb!=='undefined' && navigator.onLine!==false && !_offline){
       window._gateTries++;
       if(lg){
         lg.style.display='flex';
@@ -4889,7 +4892,14 @@ const _TRAINER_BLOCKED_TABS=['dashboard','clients','cash','credits'];
 function AUD(action,detail){
   try{
     const arr=ld('pp_audit',[]);
-    arr.unshift({ts:Date.now(),u:PPS?PPS.name:'system',a:action,d:detail||''});
+    /* Guard against duplicate entries — e.g. a double-tap, or two code
+       paths logging the same event a moment apart. Only blocks an EXACT
+       repeat (same user, action, detail) within 2 seconds; anything
+       genuinely new still logs normally. */
+    const last=arr[0];
+    const uName=PPS?PPS.name:'system';
+    if(last&&last.u===uName&&last.a===action&&last.d===(detail||'')&&(Date.now()-last.ts)<2000)return;
+    arr.unshift({ts:Date.now(),u:uName,a:action,d:detail||''});
     if(arr.length>600)arr.length=600;
     sv('pp_audit',arr);
   }catch(e){}
@@ -5841,7 +5851,7 @@ function printProfile(cid){
     html+=`<h2>📋 Previous Plans (${m.history.length})</h2><table><tr><th>Plan</th><th>Period</th><th>Fee</th><th>Outcome</th></tr>`+
       m.history.map(h=>{
         const hp=allPlans.find(x=>x.id===h.plan);
-        return `<tr><td>${_esc(hp?hp.name:h.plan)}</td><td>${fmt(h.startDate)} → ${fmt(h.endDate)}</td><td>₹${(h.fee||0).toLocaleString('en-IN')}</td><td>${_esc(h.endReason||'—')}</td></tr>`;
+        return `<tr><td>${_esc(hp?hp.name:h.plan)}</td><td>${h.plan==='trial'?fmt(h.startDate):fmt(h.startDate)+' → '+fmt(h.endDate)}</td><td>₹${(h.fee||0).toLocaleString('en-IN')}</td><td>${_esc(h.endReason||'—')}</td></tr>`;
       }).join('')+'</table>';
   }
   if(pays.length){
@@ -6042,6 +6052,14 @@ function _showCloudGate(){
 }
 function _cloudOffline(){
   window._ppOfflineMode=true;
+  window._pStarted=true;
+  /* PERSIST this choice — without it, the very next reload (which
+     doLogin() itself triggers after a successful PIN entry) forgets the
+     choice was ever made, sees neither pp_cloud_ok nor an in-memory flag
+     (that resets on every reload by definition), and shows the Studio
+     Cloud gate all over again. This was the exact cause of "enter PIN,
+     kicked back to email/password screen." */
+  localStorage.setItem('pp_offline_choice','1');
   const g=document.getElementById('pp-cloud');
   if(g)g.style.display='none';
   /* Skip Firebase entirely — go straight to PIN login */
@@ -6073,6 +6091,7 @@ function cloudSignOut(){
     {label:'Sign Out Device',color:'var(--rose)',action:()=>{
       if(typeof AUD==='function')AUD('☁️ Cloud device signed out','');
       localStorage.removeItem('pp_cloud_ok');
+      localStorage.removeItem('pp_offline_choice');
       setTimeout(()=>{firebase.auth().signOut().then(()=>location.reload()).catch(()=>location.reload());},400);
     }}
   ]);
@@ -8414,7 +8433,7 @@ function ufSavePayment(){
           <div class="fg"><label class="fl">Anniversary <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="uf-anni" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
         </div>
         <div class="fr">
-          <div class="fg"><label class="fl">Joining Date</label><input class="fi" id="uf-join" type="date"/></div>
+          <div class="fg"><label class="fl">Registration Date</label><input class="fi" id="uf-join" type="date"/></div>
           <div class="fg"><label class="fl">Trial Date <span style="color:var(--text3);font-weight:400;">(if any)</span></label><input class="fi" id="uf-trialdate" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
         </div>
         <div class="fr">
