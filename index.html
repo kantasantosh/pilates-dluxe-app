@@ -471,16 +471,40 @@ async function pdlSyncNow(){
 }
 /* auto-pull whenever the app comes back to the foreground (covers mobile waking).
    SILENT: never pops the cloud-login here — that would interrupt data entry. */
+/* CONSOLIDATED: this used to be two separate, uncoordinated listeners —
+   one refreshing cloud data, one restoring tab UI state — both firing
+   independently on the same event. Merged into one clear, ordered flow:
+   sync first, then restore/re-render the tab. (The idle-lock's own
+   listener stays separate — it manages private state via closure
+   variables that don't merge cleanly, but its dangerous side effect, the
+   full-page reload, is already removed above.) */
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden||!_pSync||navigator.onLine===false)return;
-  let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(e){}
-  if(!signedIn||!_pdb)return; /* not signed in → don't nag; user can tap Sync when ready */
-  _pdb.collection('pilates').get().then(snap=>{
-    snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){localStorage.setItem(d.id,dd.value);_pLast[d.id]=dd.updated||Date.now();}});
-    _pRerenderActive();
-    if(typeof _startLiveSync==='function')_startLiveSync();
-  }).catch(()=>{}); /* stay quiet on failure */
+  if(document.visibilityState!=='visible')return;
+  /* 1) Sync fresh data from the cloud, if signed in */
+  if(_pSync&&navigator.onLine!==false){
+    let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(e){}
+    if(signedIn&&_pdb){
+      _pdb.collection('pilates').get().then(snap=>{
+        snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){localStorage.setItem(d.id,dd.value);_pLast[d.id]=dd.updated||Date.now();}});
+        _restoreTabAndRender();
+        if(typeof _startLiveSync==='function')_startLiveSync();
+      }).catch(()=>{_restoreTabAndRender();}); /* still restore the UI even if the sync fetch failed */
+      return;
+    }
+  }
+  /* 2) Not signed in / offline / sync not started yet — just restore tab UI */
+  _restoreTabAndRender();
 });
+function _restoreTabAndRender(){
+  const savedTab=sessionStorage.getItem('pp_activeTab');
+  if(savedTab&&savedTab!==_activeTab){
+    const btn=document.querySelector(`.nb[data-tab="${savedTab}"]`);
+    if(btn){btn.click();return;} /* showTab() already re-renders the target tab */
+  }
+  if(_activeTab==='dashboard')renderDash();
+  else if(_activeTab==='clients')renderClients();
+  else if(_activeTab==='schedule')renderSchedule();
+}
 /* ================= SINGLE DETERMINISTIC APP BOOT =================
    REPLACES the old dual-path logic where ppAuthGate()'s own internal
    pp_users retry loop AND this listener's separate cloud-gate timers
@@ -546,7 +570,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v123</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v124</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -3452,25 +3476,9 @@ function copyToClipboard(text){
 }
 
 // ===== PWA STATE FIX =====
-// Prevent app reload when returning from another app
-// Store app state in sessionStorage so it persists across visibility changes
-document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'){
-    // App came back to foreground - restore state without full reload
-    const savedTab=sessionStorage.getItem('pp_activeTab');
-    if(savedTab&&savedTab!==_activeTab){
-      // Just re-render current tab, don't reload
-      const btn=document.querySelector(`.nb[data-tab="${savedTab}"]`);
-      if(btn)btn.click();
-    }
-    // Refresh current view
-    if(_activeTab==='dashboard')renderDash();
-    else if(_activeTab==='clients')renderClients();
-    else if(_activeTab==='schedule')renderSchedule();
-  }
-});
-// Save current tab on change
-const _origShowTab=showTab;
+// (Tab-restore logic merged into the single consolidated visibilitychange
+// handler near the top of the file — this used to be a second, separate
+// listener doing the same job independently.)
 // Track active tab in session storage
 window.addEventListener('pageshow',(e)=>{
   // pageshow fires on back navigation too
@@ -6695,15 +6703,25 @@ function _updateModeBalance(){
   }else if(cb){cb.style.display='none';}
 }
 
-/* ===== AUTO-LOCK (30 min idle or long absence) ===== */
+/* ===== AUTO-LOCK (15 min idle or long absence) =====
+   FIXED: this used to end with location.reload() — meaning any time the
+   tab was hidden for 15+ minutes (extremely easy during normal use —
+   checking something else, switching apps), the ENTIRE app would force-
+   reload and re-run the full boot sequence from scratch, repeatedly
+   re-exposing it to timing-sensitive auth-restoration races. This is very
+   likely the actual reason the cloud sign-in screen kept reappearing
+   despite the sync fixes — a separate, older mechanism kept resetting
+   the board. Now uses the same safe pattern already proven in doLogout():
+   clear the session and show the PIN screen directly, no reload at all. */
 (function(){
   let t=null;
   const LOCK_MS=15*60*1000; /* 15 min idle */
   function doLock(){
     if(typeof PPS==='undefined'||!PPS)return;
     if(typeof firebase!=='undefined'&&firebase.auth&&!firebase.auth().currentUser)return; /* offline mode, skip */
+    if(typeof doLogout==='function'){doLogout();return;}
+    /* Fallback, only if doLogout somehow isn't available yet */
     localStorage.removeItem('pp_session');
-    location.reload();
   }
   function reset(){clearTimeout(t);t=setTimeout(doLock,LOCK_MS);}
   ['click','keydown','touchstart','mousemove','scroll'].forEach(ev=>document.addEventListener(ev,reset,{passive:true}));
