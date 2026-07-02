@@ -308,7 +308,7 @@ async function _pInit(){
          cloud gate instead of proceeding, rather than letting init() run
          on data that was never really there. */
       el.remove();
-      if(typeof _showCloudGate==='function'){_showCloudGate();return;}
+      if(typeof _showCloudGate==='function'){_showCloudGate('bulk-fetch-empty-not-signed-in');return;}
     }
     _pSync=true;el.textContent='✓ Synced';el.style.color='#2ecc71';
     window._pInitRetried=false;
@@ -359,7 +359,7 @@ async function _pInit(){
       /* online but read failed → not properly signed in → show cloud gate */
       el.textContent='☁️ Please sign in to the cloud';
       el.style.color='#f39c12';setTimeout(()=>el.remove(),3000);
-      if(typeof _showCloudGate==='function'){_showCloudGate();return;}
+      if(typeof _showCloudGate==='function'){_showCloudGate('bulk-fetch-failed-after-retry');return;}
       if(typeof init==='function')init();
       _startLiveSync();
     }
@@ -448,10 +448,10 @@ async function pdlSyncNow(){
       let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(_e){}
       if(!signedIn){
         toast('☁️ This device is not signed in to the cloud');
-        if(typeof _showCloudGate==='function')_showCloudGate();
+        if(typeof _showCloudGate==='function')_showCloudGate('manual-sync-no-currentuser');
       }else{
         toast('☁️ Cloud session expired — please sign in again');
-        if(typeof _showCloudGate==='function')_showCloudGate();
+        if(typeof _showCloudGate==='function')_showCloudGate('manual-sync-read-failed-but-signed-in');
       }
     }
   }
@@ -495,7 +495,7 @@ function _ppBoot(){
   /* Untrusted device, online: show ONLY the Studio Cloud sign-in gate.
      Do NOT call init()/ppAuthGate() yet — that is what used to race
      against this gate and sometimes win, showing the dead-end screen. */
-  if(typeof _showCloudGate==='function')_showCloudGate();
+  if(typeof _showCloudGate==='function')_showCloudGate('untrusted-device-fresh-boot');
 }
 try{
   firebase.auth().onAuthStateChanged(u=>{
@@ -533,7 +533,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v121</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v122</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -6405,9 +6405,27 @@ function injectPrintButtons(){
 
 <script>
 /* ================= CLOUD AUTH ================= */
-function _showCloudGate(){
+function _showCloudGate(reason){
   const g=document.getElementById('pp-cloud');
   if(g)g.style.display='flex';
+  /* DIAGNOSTIC: record exactly why this screen appeared, so if it shows
+     up unexpectedly again, the real cause is visible instead of guessed
+     at. Shown as a small line on the sign-in screen itself — no digging
+     required, just screenshot it. */
+  try{
+    const wasTrusted=localStorage.getItem('pp_cloud_ok');
+    const entry=(reason||'unspecified')+' | pp_cloud_ok='+(wasTrusted||'missing')+' | '+new Date().toLocaleString();
+    localStorage.setItem('pp_debug_lastgate',entry);
+    const sub=document.querySelector('#pp-cloud div[style*="ONE-TIME SETUP"], #pp-cloud .logo-sub, #pp-cloud');
+    let dbgEl=document.getElementById('pp-cloud-debug');
+    if(!dbgEl&&g){
+      dbgEl=document.createElement('div');
+      dbgEl.id='pp-cloud-debug';
+      dbgEl.style.cssText='position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:9px;color:rgba(255,255,255,0.25);padding:0 12px;';
+      g.appendChild(dbgEl);
+    }
+    if(dbgEl)dbgEl.textContent='debug: '+entry;
+  }catch(_e){}
 }
 function _cloudOffline(){
   window._ppOfflineMode=true;
