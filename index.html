@@ -401,11 +401,21 @@ function _startLiveSync(){
     if(changed)_pRerenderActive();
   },err=>{
     /* If the live connection itself drops (e.g. a real auth/permission
-       problem), allow a fresh attempt later instead of staying wedged
-       in the "already active" state forever. */
+       problem), don't just wait for some OTHER trigger (tab switch, app
+       resume) to notice — actively retry on its own after a short pause,
+       same self-healing pattern used on the booking page. */
     window._liveSyncActive=false;
+    setTimeout(()=>{if(typeof _startLiveSync==='function')_startLiveSync();},3000);
   });
 }
+/* Watchdog: independent of any user action (tab switch, app resume, an
+   error firing) — just periodically confirms the live listener is
+   actually running, and restarts it if not. This is what actually closes
+   the gap for sitting still on one screen with no trigger of any kind,
+   which is exactly how this was tested and still found broken. */
+setInterval(()=>{
+  if(!window._liveSyncActive&&typeof _startLiveSync==='function'&&localStorage.getItem('pp_cloud_ok'))_startLiveSync();
+},8000);
 function _pRerenderActive(){
   try{
     const t=_activeTab;
@@ -523,7 +533,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v119</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v121</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1506,7 +1516,7 @@ function renderDash(){
     todayCount+=slotBookings.length;
     slotBookings.forEach(bk=>{
       const c=clients.find(cl=>cl.id===bk.cid);
-      if(c)todayBookingDetails.push({slot:s,name:c.fname+' '+c.lname+(c.isTrial?' 🎯':''),attended:bk.attended});
+      if(c)todayBookingDetails.push({slot:s,name:c.fname+' '+c.lname+(c.isTrial?' 🎯':'')+(c.isStaffDemo?' 🎓 DEMO':''),attended:bk.attended});
     });
   });
 
@@ -1653,7 +1663,7 @@ function renderDash(){
           const allClients=ld('pp_clients',[]);
           const names=bks.map(bk=>{
             const cl=allClients.find(c=>c.id===bk.cid)||{};
-            return `<span style="display:inline-flex;align-items:center;gap:3px;background:${cl.isTrial?'rgba(155,89,182,0.15)':'rgba(201,168,76,0.1)'};border:1px solid ${cl.isTrial?'rgba(155,89,182,0.4)':'rgba(201,168,76,0.3)'};border-radius:16px;padding:3px 10px;font-size:12px;font-weight:600;color:${cl.isTrial?'#b07fd4':'var(--gold)'};">${cl.fname||'?'}${cl.isTrial?' 🎯':''}</span>`;
+            return `<span style="display:inline-flex;align-items:center;gap:3px;background:${cl.isTrial?'rgba(155,89,182,0.15)':'rgba(201,168,76,0.1)'};border:1px solid ${cl.isTrial?'rgba(155,89,182,0.4)':'rgba(201,168,76,0.3)'};border-radius:16px;padding:3px 10px;font-size:12px;font-weight:600;color:${cl.isTrial?'#b07fd4':'var(--gold)'};">${cl.fname||'?'}${cl.isTrial?' 🎯':''}${cl.isStaffDemo?' 🎓 DEMO':''}</span>`;
           }).join('');
           return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);flex-wrap:wrap;">
             <div style="font-size:11px;color:var(--text3);min-width:52px;font-weight:700;">${s.replace(' AM','').replace(' PM','')} ${s.includes('AM')?'AM':'PM'}</div>
@@ -2587,7 +2597,7 @@ function renderSchedule(){
           const _hay=((c.memNo||'')+' '+(c.fname||'')+' '+(c.lname||'')).toLowerCase();
           const _isMatch=!_sq||_hay.includes(_sq);
           html+=`<div style="flex:1;min-width:80px;background:${bk.attended?'rgba(74,222,128,0.15)':'rgba(201,168,76,0.1)'};border:${_sq&&_isMatch?'2px solid var(--gold)':'1px solid '+(bk.attended?'rgba(74,222,128,0.4)':'rgba(201,168,76,0.3)')};border-radius:${RSEM};padding:8px;cursor:pointer;text-align:center;opacity:${_sq&&!_isMatch?'0.35':'1'};" onclick="cycleSlot(${slotIdx},${m})">
-            <div style="font-size:12px;font-weight:700;color:var(--gold);">${c.fname||'?'}${c.isTrial?' 🎯':''}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--gold);">${c.fname||'?'}${c.isTrial?' 🎯':''}${c.isStaffDemo?' 🎓 DEMO':''}</div>
             <div style="font-size:9px;color:${bk.attended?'var(--green)':'var(--gold)'};">${bk.attended?'✓ Present':'⏳ Booked'}</div>
             <div style="font-size:8px;color:var(--text3);">${bk.attended?'tap=remove':'tap=present'}</div>
           </div>`;
