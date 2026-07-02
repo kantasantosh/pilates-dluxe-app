@@ -570,7 +570,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v124</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v125</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1553,7 +1553,7 @@ function renderDash(){
     todayCount+=slotBookings.length;
     slotBookings.forEach(bk=>{
       const c=clients.find(cl=>cl.id===bk.cid);
-      if(c)todayBookingDetails.push({slot:s,name:c.fname+' '+c.lname+(c.isTrial?' 🎯':'')+(c.isStaffDemo?' 🎓 DEMO':''),attended:bk.attended});
+      if(c)todayBookingDetails.push({slot:s,name:c.fname+' '+c.lname+(c.isTrial?' 🎯':'')+(c.isStaffDemo?' <span style="color:var(--teal);font-weight:800;">🎓 DEMO</span>':''),attended:bk.attended});
     });
   });
 
@@ -1700,7 +1700,7 @@ function renderDash(){
           const allClients=ld('pp_clients',[]);
           const names=bks.map(bk=>{
             const cl=allClients.find(c=>c.id===bk.cid)||{};
-            return `<span style="display:inline-flex;align-items:center;gap:3px;background:${cl.isTrial?'rgba(155,89,182,0.15)':'rgba(201,168,76,0.1)'};border:1px solid ${cl.isTrial?'rgba(155,89,182,0.4)':'rgba(201,168,76,0.3)'};border-radius:16px;padding:3px 10px;font-size:12px;font-weight:600;color:${cl.isTrial?'#b07fd4':'var(--gold)'};">${cl.fname||'?'}${cl.isTrial?' 🎯':''}${cl.isStaffDemo?' 🎓 DEMO':''}</span>`;
+            return `<span style="display:inline-flex;align-items:center;gap:3px;background:${cl.isTrial?'rgba(155,89,182,0.15)':'rgba(201,168,76,0.1)'};border:1px solid ${cl.isTrial?'rgba(155,89,182,0.4)':'rgba(201,168,76,0.3)'};border-radius:16px;padding:3px 10px;font-size:12px;font-weight:600;color:${cl.isTrial?'#b07fd4':'var(--gold)'};">${cl.fname||'?'}${cl.isTrial?' 🎯':''}${cl.isStaffDemo?' <span style="color:var(--teal);font-weight:800;">🎓 DEMO</span>':''}</span>`;
           }).join('');
           return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);flex-wrap:wrap;">
             <div style="font-size:11px;color:var(--text3);min-width:52px;font-weight:700;">${s.replace(' AM','').replace(' PM','')} ${s.includes('AM')?'AM':'PM'}</div>
@@ -1882,7 +1882,7 @@ function renderClients(){
     return `<div class="client-card" onclick="openUnified('${c.id}')">
       <div class="client-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
       <div class="client-info">
-        <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}${c.isStaffDemo?' <span style="font-size:12px;color:var(--gold);background:rgba(201,168,76,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(201,168,76,0.3);">🎓 STAFF DEMO</span>':''}</div>
+        <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}${c.isStaffDemo?' <span style="font-size:12px;color:var(--teal);background:rgba(127,166,154,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(127,166,154,0.4);font-weight:800;">🎓 STAFF DEMO</span>':''}</div>
         <div class="client-sub">${_fmtPhone(c.phone)}${plan?(()=>{const _baseS=mem.sessions||plan.sessions||0;const _bonus=mem.bonus||0;const _tot=_baseS+_bonus;return ' • <b style="color:var(--gold);">'+plan.name+'</b>'+(_tot>=999?' (Unlimited)':_tot?' ('+(_bonus>0?_baseS+'+'+_bonus:_tot)+' sess)':'');})():''}</div>
         <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial: '+fmt(c.trialDate):''}${!c.isTrial&&(c.join||c.joinDate)?' • 📅 Joined '+fmt(c.join||c.joinDate):''}${mem&&!c.isTrial&&mem.endDate?' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -2634,7 +2634,7 @@ function renderSchedule(){
           const _hay=((c.memNo||'')+' '+(c.fname||'')+' '+(c.lname||'')).toLowerCase();
           const _isMatch=!_sq||_hay.includes(_sq);
           html+=`<div style="flex:1;min-width:80px;background:${bk.attended?'rgba(74,222,128,0.15)':'rgba(201,168,76,0.1)'};border:${_sq&&_isMatch?'2px solid var(--gold)':'1px solid '+(bk.attended?'rgba(74,222,128,0.4)':'rgba(201,168,76,0.3)')};border-radius:${RSEM};padding:8px;cursor:pointer;text-align:center;opacity:${_sq&&!_isMatch?'0.35':'1'};" onclick="cycleSlot(${slotIdx},${m})">
-            <div style="font-size:12px;font-weight:700;color:var(--gold);">${c.fname||'?'}${c.isTrial?' 🎯':''}${c.isStaffDemo?' 🎓 DEMO':''}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--gold);">${c.fname||'?'}${c.isTrial?' 🎯':''}${c.isStaffDemo?' <span style="color:var(--teal);font-weight:800;">🎓 DEMO</span>':''}</div>
             <div style="font-size:9px;color:${bk.attended?'var(--green)':'var(--gold)'};">${bk.attended?'✓ Present':'⏳ Booked'}</div>
             <div style="font-size:8px;color:var(--text3);">${bk.attended?'tap=remove':'tap=present'}</div>
           </div>`;
@@ -6207,16 +6207,24 @@ function printProfile(cid){
   const totalPaid=getClientTotalPaid(cid);
   const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-totalPaid:0;
   const refBy=c.refId?(ld('pp_clients',[]).find(x=>x.id===c.refId)||{}).fname||'':'';
+  const isTrialClient=m&&m.plan==='trial';
   let html=`<h2>👤 Profile — ${_esc(c.fname+' '+(c.lname||''))} (${_esc(c.memNo)})</h2>
     <table><tr><th style="width:28%">Phone</th><td>${_esc(c.phone)||'—'}</td></tr>
     <tr><th>Email</th><td>${_esc(c.email)||'—'}</td></tr>
     <tr><th>Address</th><td>${_esc(c.addr||c.address)||'—'}</td></tr>
+    ${c.insta?`<tr><th>Instagram</th><td>${_esc(c.insta)}</td></tr>`:''}
     ${c.bday?`<tr><th>Birthday</th><td>${fmt(c.bday)}</td></tr>`:''}
     ${c.anni?`<tr><th>Anniversary</th><td>${fmt(c.anni)}</td></tr>`:''}
-    <tr><th>Joined / Registered</th><td>${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}</td></tr>
+    <tr><th>Joined / Registered</th><td>${isTrialClient?'NA':((c.join||c.joinDate)?fmt(c.join||c.joinDate):'—')}</td></tr>
     ${refBy?`<tr><th>Referred By</th><td>${_esc(refBy)}</td></tr>`:''}
     ${c.notes?`<tr><th>Notes</th><td>${_esc(c.notes)}</td></tr>`:''}</table>`;
-  if(m){
+  if(m&&isTrialClient){
+    html+=`<h2>🎯 Trial Session</h2>
+    <table><tr><th style="width:28%">Period</th><td>${fmt(m.startDate)}</td></tr>
+    <tr><th>Sessions</th><td>Before: 1/1 &nbsp;&nbsp;→&nbsp;&nbsp; After: 0/1</td></tr>
+    <tr><th>Fee</th><td>NA</td></tr>
+    <tr><th>Paid / Due</th><td>NA</td></tr></table>`;
+  }else if(m){
     html+=`<h2>🎟 Current Membership</h2>
     <table><tr><th style="width:28%">Plan</th><td>${_esc(plan)}</td></tr>
     <tr><th>Period</th><td>${fmt(m.startDate)} → ${fmt(m.endDate)} (${getMembershipStatus(m,cid)})</td></tr>
@@ -7520,7 +7528,6 @@ function _validateEmail(email,currentCid){
 let _ufReturnTab=''; /* remember which tab to return to on close */
 
 function openUnified(cid,focusSection){
-  console.log('[openUnified called] cid=',cid,' PPS exists:',!!PPS);
   /* Same hard safety net as ppIsAdmin() — if we're genuinely here with a
      valid session, the full-screen login overlay must never still be
      covering the screen and silently blocking this very click. */
@@ -7529,10 +7536,8 @@ function openUnified(cid,focusSection){
     if(_lg&&_lg.style.display!=='none')_lg.style.display='none';
   }
   const clients=ld('pp_clients',[]);
-  console.log('[openUnified] clients loaded from storage, count=',clients.length);
   const c=clients.find(x=>x.id===cid);
-  if(!c){console.log('[openUnified] CLIENT NOT FOUND for cid',cid);toast('Client not found');return;}
-  console.log('[openUnified] client found:',c.fname,'- proceeding to open modal');
+  if(!c){toast('Client not found');return;}
   _ufReturnTab=document.querySelector('.tab.active')?.id||'tab-clients';
   /* Header — also wrapped now. These were unguarded even after the fix
      to the three section-populate calls below; any ONE of these four
