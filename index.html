@@ -383,7 +383,15 @@ async function _pInit(){
 function _startLiveSync(){
   if(window._liveSyncActive)return;
   if(!_pdb)return;
+  /* THE FIX: never even attempt this if we're not actually authenticated
+     — a device with a lost session will fail this every single time no
+     matter how many times it's retried, since the real fix is signing in
+     again, not hammering Firestore. Retrying a doomed request in a loop
+     was exactly what ran up 7,000+ errors in a single day. */
+  let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(_e){}
+  if(!signedIn)return;
   window._liveSyncActive=true;
+  window._liveSyncRetries=0;
   _pdb.collection('pilates').onSnapshot({includeMetadataChanges:false},qs=>{
     let changed=false;
     qs.docChanges().forEach(ch=>{
@@ -399,20 +407,25 @@ function _startLiveSync(){
       }
     });
     if(changed)_pRerenderActive();
+    window._liveSyncRetries=0; /* a real successful update — reset the backoff */
   },err=>{
-    /* If the live connection itself drops (e.g. a real auth/permission
-       problem), don't just wait for some OTHER trigger (tab switch, app
-       resume) to notice — actively retry on its own after a short pause,
-       same self-healing pattern used on the booking page. */
+    /* Capped, backing-off retry instead of an unlimited loop every 3s.
+       Max 4 attempts (3s, 10s, 30s, 60s), then stop entirely and wait for
+       a genuine trigger (sign-in, tab switch, app resume) — not blind
+       repetition against a problem retrying can't fix. */
     window._liveSyncActive=false;
-    setTimeout(()=>{if(typeof _startLiveSync==='function')_startLiveSync();},3000);
+    window._liveSyncRetries=(window._liveSyncRetries||0)+1;
+    if(window._liveSyncRetries>4)return;
+    const delay=[3000,10000,30000,60000][window._liveSyncRetries-1]||60000;
+    setTimeout(()=>{if(typeof _startLiveSync==='function')_startLiveSync();},delay);
   });
 }
 /* Watchdog: independent of any user action (tab switch, app resume, an
    error firing) — just periodically confirms the live listener is
-   actually running, and restarts it if not. This is what actually closes
-   the gap for sitting still on one screen with no trigger of any kind,
-   which is exactly how this was tested and still found broken. */
+   actually running, and restarts it if not. Only attempts this while
+   genuinely signed in — see the auth check inside _startLiveSync itself,
+   which prevents this from becoming another source of repeated failed
+   attempts when the real issue is a lost sign-in. */
 setInterval(()=>{
   if(!window._liveSyncActive&&typeof _startLiveSync==='function'&&localStorage.getItem('pp_cloud_ok'))_startLiveSync();
 },8000);
@@ -533,7 +546,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v122</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v123</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
