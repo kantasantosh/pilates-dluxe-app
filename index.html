@@ -311,6 +311,7 @@ async function _pInit(){
       if(typeof _showCloudGate==='function'){_showCloudGate();return;}
     }
     _pSync=true;el.textContent='✓ Synced';el.style.color='#2ecc71';
+    window._pInitRetried=false;
     setTimeout(()=>el.remove(),2000);
     if(typeof init==='function')init();
     /* If the login screen is showing (cloud just connected), make sure the
@@ -323,25 +324,66 @@ async function _pInit(){
         if(typeof ppAuthGate==='function')ppAuthGate();
       }
     }catch(_e){}
+    _startLiveSync();
   }catch(e){
     /* Read failed. On mobile this is almost always a lost/absent cloud
        sign-in (Firestore rejects the read), NOT a real network problem.
-       Show the cloud sign-in gate so the user can reconnect in one step. */
+       Show the cloud sign-in gate so the user can reconnect in one step.
+       BUT: for a device that WAS already trusted (pp_cloud_ok set), a
+       failure right after a reload — which doLogin() triggers after
+       every single PIN entry — can simply be Firebase's auth session not
+       finished restoring from IndexedDB yet. That's a timing race, not a
+       real sign-out, and punishing it with a cloud-login prompt on a
+       routine PIN reload defeats the entire point of having a PIN. Give
+       a trusted device one retry after a short pause before concluding
+       the cloud connection is genuinely gone. */
     const offline=(navigator.onLine===false);
     let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(_e){}
+    const wasTrusted=localStorage.getItem('pp_cloud_ok');
+    if(!offline&&wasTrusted&&!window._pInitRetried){
+      window._pInitRetried=true;
+      setTimeout(()=>{try{_pInit();}catch(_e){}},1500);
+      if(typeof init==='function')init(); /* show PIN/dashboard from local data immediately, don't make them wait */
+      return;
+    }
     if(offline){
       el.textContent='⚠ No internet — using saved data';
       el.style.color='#f39c12';setTimeout(()=>el.remove(),3500);
       if(typeof init==='function')init();
+      /* Register anyway — Firestore's SDK queues this and connects
+         automatically the moment the network comes back, instead of
+         leaving the app with no live listener for the rest of the
+         session just because THIS load happened to start offline. */
+      _startLiveSync();
     }else{
       /* online but read failed → not properly signed in → show cloud gate */
       el.textContent='☁️ Please sign in to the cloud';
       el.style.color='#f39c12';setTimeout(()=>el.remove(),3000);
       if(typeof _showCloudGate==='function'){_showCloudGate();return;}
       if(typeof init==='function')init();
+      _startLiveSync();
     }
   }
-  if(!_pdb)return; /* Firebase truly unavailable — already started in offline mode above, nothing more to do here */
+}
+/* ================= LIVE SYNC (extracted, idempotent) =================
+   REAL BUG FIXED HERE: this used to be inline at the end of _pInit(),
+   reachable ONLY via the one lucky path where the very first bulk fetch
+   succeeded. Any transient hiccup on that first fetch — a slow network
+   moment, a brief connection blip, completely normal on mobile — sent
+   execution through a different branch that returned early, and the
+   live listener was NEVER registered for the rest of that session. From
+   then on the admin app only ever saw fresh data on a manual refresh,
+   a tab switch, or a reload — never automatically. This is very likely
+   why booking→admin sync felt slow/unreliable while admin→booking (which
+   goes through booking.html's own, separately-registered listener) felt
+   fast and fine. Pulling this into its own guarded function and calling
+   it from EVERY success path (including the offline-fallback and
+   please-sign-in paths) means one bad first attempt can no longer
+   silently disable real-time sync for the whole session. */
+function _startLiveSync(){
+  if(window._liveSyncActive)return;
+  if(!_pdb)return;
+  window._liveSyncActive=true;
   _pdb.collection('pilates').onSnapshot({includeMetadataChanges:false},qs=>{
     let changed=false;
     qs.docChanges().forEach(ch=>{
@@ -357,6 +399,11 @@ async function _pInit(){
       }
     });
     if(changed)_pRerenderActive();
+  },err=>{
+    /* If the live connection itself drops (e.g. a real auth/permission
+       problem), allow a fresh attempt later instead of staying wedged
+       in the "already active" state forever. */
+    window._liveSyncActive=false;
   });
 }
 function _pRerenderActive(){
@@ -374,26 +421,28 @@ function _pRerenderActive(){
 /* manual pull — force a fresh fetch from the cloud */
 async function pdlSyncNow(){
   if(window._ppOfflineMode){toast('Working offline — sync disabled');return;}
-  // If this device isn't signed into the cloud, syncing will always fail.
-  // Detect that and offer the cloud sign-in instead of blaming the internet.
-  let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(e){}
-  if(!signedIn){
-    toast('☁️ This device is not signed in to the cloud');
-    if(typeof _showCloudGate==='function')_showCloudGate();
-    return;
-  }
   toast('🔄 Syncing…');
   try{
     const snap=await _pdb.collection('pilates').get();
     snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){localStorage.setItem(d.id,dd.value);_pLast[d.id]=dd.updated||Date.now();}});
     _pRerenderActive();
+    if(typeof _startLiveSync==='function')_startLiveSync();
     toast('✓ Synced with cloud');
   }catch(e){
-    // read failed despite being "signed in" → session likely expired
+    /* Read genuinely failed — NOW it's safe to conclude the cloud session
+       really is missing/expired, rather than guessing from currentUser
+       alone (which can read null for a moment even when truly signed in,
+       since Firebase fills it in asynchronously on startup). */
     if(navigator.onLine===false){toast('⚠ No internet connection');}
     else{
-      toast('☁️ Cloud session expired — please sign in again');
-      if(typeof _showCloudGate==='function')_showCloudGate();
+      let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(_e){}
+      if(!signedIn){
+        toast('☁️ This device is not signed in to the cloud');
+        if(typeof _showCloudGate==='function')_showCloudGate();
+      }else{
+        toast('☁️ Cloud session expired — please sign in again');
+        if(typeof _showCloudGate==='function')_showCloudGate();
+      }
     }
   }
 }
@@ -406,6 +455,7 @@ document.addEventListener('visibilitychange',()=>{
   _pdb.collection('pilates').get().then(snap=>{
     snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){localStorage.setItem(d.id,dd.value);_pLast[d.id]=dd.updated||Date.now();}});
     _pRerenderActive();
+    if(typeof _startLiveSync==='function')_startLiveSync();
   }).catch(()=>{}); /* stay quiet on failure */
 });
 /* ================= SINGLE DETERMINISTIC APP BOOT =================
@@ -447,10 +497,13 @@ try{
       if(g)g.style.display='none';
       if(!window._pStarted){window._pStarted=true;_pInit();}
       else{
-        /* Already running on local data — silent background resync */
+        /* Already running on local data — silent background resync,
+           plus make sure the live listener is actually on (it may never
+           have started if the very first load hit a transient hiccup). */
         try{_pdb.collection('pilates').get().then(snap=>{
           snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined)localStorage.setItem(d.id,dd.value);});
           _pSync=true;_pRerenderActive();
+          _startLiveSync();
         }).catch(()=>{});}catch(_e){}
       }
     }
@@ -470,7 +523,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v113</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v117</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -698,6 +751,7 @@ try{
     </div>
     <div class="fr">
       <div class="fg"><label class="fl">Phone</label><input class="fi" id="sf-phone" type="tel" placeholder="Phone number" autocomplete="off"/></div>
+      <div class="fg"><label class="fl">Email (for booking-page demo access)</label><input class="fi" id="sf-email" type="email" placeholder="staff@example.com" autocomplete="off"/></div>
       <div class="fg"><label class="fl">Monthly Salary (₹)</label><input class="fi" id="sf-sal" type="number" placeholder="0"/></div>
     <div class="fg"><label class="fl">Effective From</label><input class="fi" id="sf-sal-from" type="date"/></div>
     </div>
@@ -1371,6 +1425,46 @@ function markDirty(modalId){const m=document.getElementById(modalId);if(m&&m._ma
 function closeM(id){const el=document.getElementById(id);if(el){el.classList.remove('open');el.style.display='none';}}
 
 // ===== DASHBOARD =====
+/* Daily quote for Dashboard tile #6. Tries a live fetch once per calendar
+   day (cached so it's not re-fetched on every render); falls back to a
+   small built-in rotating list if offline or the API is unreachable —
+   never leaves the tile blank or broken. */
+const _QUOTE_FALLBACK=[
+  {text:"The only way to do great work is to love what you do.",author:"Steve Jobs"},
+  {text:"Success is not final, failure is not fatal: it is the courage to continue that counts.",author:"Winston Churchill"},
+  {text:"Believe you can and you're halfway there.",author:"Theodore Roosevelt"},
+  {text:"The future belongs to those who believe in the beauty of their dreams.",author:"Eleanor Roosevelt"},
+  {text:"It does not matter how slowly you go as long as you do not stop.",author:"Confucius"},
+  {text:"Discipline is the bridge between goals and accomplishment.",author:"Jim Rohn"},
+  {text:"What you get by achieving your goals is not as important as what you become by achieving them.",author:"Zig Ziglar"},
+  {text:"Well done is better than well said.",author:"Benjamin Franklin"},
+  {text:"The body achieves what the mind believes.",author:"Napoleon Hill"},
+  {text:"Take care of your body. It's the only place you have to live.",author:"Jim Rohn"}
+];
+async function _loadDailyQuote(){
+  const el=document.getElementById('dash-quote-text');
+  const elA=document.getElementById('dash-quote-author');
+  if(!el)return;
+  const today=td();
+  const cached=ld('pp_daily_quote',null);
+  if(cached&&cached.date===today){
+    el.textContent='"'+cached.text+'"';elA.textContent='— '+cached.author;return;
+  }
+  try{
+    const res=await fetch('https://api.quotable.io/random?maxLength=100');
+    if(!res.ok)throw 0;
+    const data=await res.json();
+    if(!data||!data.content)throw 0;
+    const q={date:today,text:data.content,author:data.author||'Unknown'};
+    sv('pp_daily_quote',q);
+    if(document.getElementById('dash-quote-text')){el.textContent='"'+q.text+'"';elA.textContent='— '+q.author;}
+  }catch(e){
+    const idx=new Date().getDate()%_QUOTE_FALLBACK.length;
+    const q={date:today,..._QUOTE_FALLBACK[idx]};
+    sv('pp_daily_quote',q);
+    el.textContent='"'+q.text+'"';elA.textContent='— '+q.author;
+  }
+}
 function renderDash(){
   const clients=ld('pp_clients',[]);
   const payments=ld('pp_payments',[]);
@@ -1379,7 +1473,7 @@ function renderDash(){
 
   let active=0,expiring=0,expired=0,due=0,overdueLeave=0;
   const overdueNames=[];
-  clients.filter(c=>!c.archived).forEach(c=>{
+  clients.filter(c=>!c.archived&&!c.isStaffDemo).forEach(c=>{
     const mem=mems[c.id];
     const st=getMembershipStatus(mem,c.id);
     const isPureTrial=mem&&mem.plan==='trial';
@@ -1459,7 +1553,11 @@ function renderDash(){
   });
   const _todosAll=ld('pp_todos',[]);
   const _overdueTasks=_todosAll.filter(t=>!t.done&&t.due&&t.due<td());
-  _overdueTasks.forEach(t=>_alerts.push({icon:'⏰',text:'Overdue task: '+t.task,action:"showTab('tns');setTnsView('tasks',document.querySelector('#tns-subtabs .ftab:nth-child(2)'))"}));
+  const _staffAll=ld('pp_staff',[]);
+  _overdueTasks.forEach(t=>{
+    const assignee=t.assignedTo?(_staffAll.find(s=>s.id===t.assignedTo)||{}).name:'';
+    _alerts.push({icon:'⏰',text:'Overdue task: '+t.task+(assignee?' — assigned to '+assignee:''),action:"showTab('tns');setTnsView('tasks',document.querySelector('#tns-subtabs .ftab:nth-child(2)'))"});
+  });
   const _billsAll=ld('pp_bills',[]);
   const _billsDue=_billsAll.filter(b=>b.status==='due'&&b.due<=td());
   _billsDue.forEach(b=>_alerts.push({icon:b.due<td()?'🔴':'💰',text:(b.due<td()?'Overdue bill: ':'Due today: ')+b.name+' (₹'+(b.amt||0).toLocaleString('en-IN')+')',action:"showTab('tns');setTnsView('bills',document.querySelector('#tns-subtabs .ftab:nth-child(1)'))"}));
@@ -1513,6 +1611,11 @@ function renderDash(){
         <div class="dash-label">Trial Conversion</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">${convAll}/${trialsAll} →</div>
       </div>`:''}
+      <div class="dash-card dash-wide" id="dash-quote-card" style="padding:14px 16px;background:rgba(201,168,76,0.06);border-color:rgba(201,168,76,0.25);">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">💭 Today's Thought</div>
+        <div id="dash-quote-text" style="font-size:13px;color:var(--text);line-height:1.5;font-style:italic;">Loading…</div>
+        <div id="dash-quote-author" style="font-size:11px;color:var(--gold);margin-top:6px;text-align:right;"></div>
+      </div>
       <div class="dash-card gold dash-wide" style="padding:16px;cursor:pointer;" onclick="showTab('cash',document.querySelector('.nb:nth-child(4)'))">
         <div class="dash-label" style="margin-bottom:4px;">Membership Revenue</div>
         <div class="dash-num" style="font-size:28px;">₹${monthRevenue.toLocaleString('en-IN')}</div>
@@ -1620,6 +1723,7 @@ function renderDash(){
     </div>`:''}
 
   `;
+  _loadDailyQuote();
 }
 
 // ===== CLIENTS =====
@@ -1731,7 +1835,7 @@ function renderClients(){
     return `<div class="client-card" onclick="openUnified('${c.id}')">
       <div class="client-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
       <div class="client-info">
-        <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}</div>
+        <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}${c.isStaffDemo?' <span style="font-size:12px;color:var(--gold);background:rgba(201,168,76,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(201,168,76,0.3);">🎓 STAFF DEMO</span>':''}</div>
         <div class="client-sub">${_fmtPhone(c.phone)}${plan?(()=>{const _baseS=mem.sessions||plan.sessions||0;const _bonus=mem.bonus||0;const _tot=_baseS+_bonus;return ' • <b style="color:var(--gold);">'+plan.name+'</b>'+(_tot>=999?' (Unlimited)':_tot?' ('+(_bonus>0?_baseS+'+'+_bonus:_tot)+' sess)':'');})():''}</div>
         <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial: '+fmt(c.trialDate):''}${!c.isTrial&&(c.join||c.joinDate)?' • 📅 Joined '+fmt(c.join||c.joinDate):''}${mem&&!c.isTrial&&mem.endDate?' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -3100,6 +3204,40 @@ function getClientTotalCharged(cid){
 // Owner must explicitly renew — no auto-expiry changes status in UI
 
 // ===== STAFF =====
+/* Demo booking access — auto-creates a lightweight, clearly-labeled client
+   entry so ANY logged-in user (admin, staff, trainer, view-only — per
+   Santosh: "by staff I meant all users including admins") can sign into
+   the booking page with their own email to give clients a live demo.
+   Uses an 'unlimited' plan at ₹0 so it never runs into real session-count
+   limits — it's not a real membership. */
+function ensureDemoAccess(name,email,srcLabel){
+  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  if(!email){toast('Add an email first, then try again');return;}
+  const clients=ld('pp_clients',[]);
+  const already=clients.find(c=>c.email&&c.email.toLowerCase()===email.toLowerCase());
+  if(already){
+    toast(already.isStaffDemo?'✓ Demo access already exists for '+name:'⚠️ This email is already a real client — cannot also be a demo account');
+    return;
+  }
+  const mems=ld('pp_memberships',{});
+  const id='demo_'+Date.now();
+  clients.push({id,fname:name,lname:'(Demo)',email,phone:'',isStaffDemo:true,createdAt:td(),join:td()});
+  mems[id]={cid:id,plan:'unlimited',startDate:td(),endDate:'2099-12-31',fee:0,isStaffDemo:true};
+  sv('pp_clients',clients);
+  sv('pp_memberships',mems);
+  if(typeof AUD==='function')AUD('🎓 Demo booking access created',name+' ('+email+')'+(srcLabel?' — '+srcLabel:''));
+  toast('✓ Demo booking access created for '+name);
+}
+function ensureUserDemoAccess(userId){
+  const u=ppUsers().find(x=>x.id===userId);
+  if(!u){toast('User not found');return;}
+  ensureDemoAccess(u.name,(u.email||'').trim(),u.role);
+}
+function ensureStaffDemoAccess(staffId){
+  const staff=ld('pp_staff',[]).find(s=>s.id===staffId);
+  if(!staff){toast('Staff not found');return;}
+  ensureDemoAccess(staff.fname,(staff.email||'').trim(),staff.role);
+}
 function openAddStaff(id){
   document.getElementById('staff-modal-title').textContent=id?'Edit Staff':'Add Staff';
   document.getElementById('sf-id').value=id||'';
@@ -3109,6 +3247,7 @@ function openAddStaff(id){
     document.getElementById('sf-lname').value=s.lname||'';
     document.getElementById('sf-role').value=s.role||'Lead Trainer';
     document.getElementById('sf-phone').value=s.phone||'';
+    document.getElementById('sf-email').value=s.email||'';
     document.getElementById('sf-sal').value=s.salary||'';
     document.getElementById('sf-photo').value=s.photo||'';
     document.getElementById('sf-offday').value=s.offday!==undefined?s.offday:'';
@@ -3117,7 +3256,7 @@ function openAddStaff(id){
     document.getElementById('sf-join').value=s.join||'';
     document.getElementById('sf-notes').value=s.notes||'';
   } else {
-    ['sf-fname','sf-lname','sf-phone','sf-notes'].forEach(x=>document.getElementById(x).value='');
+    ['sf-fname','sf-lname','sf-phone','sf-email','sf-notes'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('sf-sal').value='';
     document.getElementById('sf-sal-from').value='';
     document.getElementById('sf-offday').value='';
@@ -3167,6 +3306,7 @@ function saveStaff(){
     id,fname,lname:document.getElementById('sf-lname').value.trim(),
     role:document.getElementById('sf-role').value,
     phone:document.getElementById('sf-phone').value.trim(),
+    email:document.getElementById('sf-email').value.trim(),
     salary:newSal,salFrom:newSalFrom,salaryHistory:hist,
     offday:offdayVal!==''?parseInt(offdayVal):undefined,
     join:document.getElementById('sf-join').value,
@@ -3538,6 +3678,7 @@ function renderStaff(){
         </div>
         <div style="display:flex;gap:6px;">
           <button onclick="openAddStaff('${s.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
+          ${s.email?`<button onclick="ensureStaffDemoAccess('${s.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--gold);cursor:pointer;font-size:12px;" title="Create booking-page demo access">🎓</button>`:''}
           <button onclick="printStaffAtt('${s.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--gold);cursor:pointer;font-size:12px;" title="Print salary slip">🖨</button>
           <button onclick="delStaff('${s.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;">🗑</button>
         </div>
@@ -5152,6 +5293,7 @@ function renderUsersList(){
         <div style="font-size:12px;color:var(--text3);">ID: ${u.uid}${u.staffId?' • 🔗 '+_staffName(u.staffId):''}</div>
       </div>
       <button onclick="openUserEdit('${u.id}')" style="background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:6px 9px;color:var(--text2);cursor:pointer;">✏️</button>
+      ${u.email?`<button onclick="ensureUserDemoAccess('${u.id}')" style="background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:6px 9px;color:var(--gold);cursor:pointer;" title="Create booking-page demo access">🎓</button>`:''}
     </div>`).join(''):'<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No users yet</div>';
 }
 function openUserEdit(id){
@@ -5373,6 +5515,13 @@ try{
   window.renderBillsTasks=function(){
     ppRefresh();
     if(!ppIsStaff()&&!ppIsTrainer())return _oBT.apply(this,arguments);
+    /* THE FIX: this used to unconditionally render the task list into
+       #bills-list no matter which sub-tab was active — so a receptionist
+       saw the same "My Assigned Tasks" list whether she tapped Bills or
+       Tasks. Only take over for the Tasks view; let Bills render normally
+       (creating/editing bills is separately blocked for staff below, so
+       this stays view-only for her either way). */
+    if(_btFilter==='bills')return _oBT.apply(this,arguments);
     const container=document.getElementById('bills-list');
     if(!container)return;
     const sid=ppMyStaffId();
@@ -5824,25 +5973,31 @@ function renderReports(){
   const pctAll=trialsAll.length?Math.round(convAll.length/trialsAll.length*100):0;
   const trialsM=clients.filter(c=>c.trialDate&&_inMonth(c.trialDate,y,m));
   const convM=clients.filter(c=>c.conversionDate&&_inMonth(c.conversionDate,y,m));
-  /* This-month RATE must use the same cohort as "Trials (month)" — of the
-     trials that STARTED this month, how many have converted so far (as of
-     today, regardless of which month the conversion itself landed in).
-     The old code showed pctAll here a second time, duplicating the
-     all-time figure below it, and separately "Converted (month)" mixes in
-     conversions of EARLIER months' trials — which is why it could show a
-     bigger number than "Trials (month)" and look inconsistent. */
-  const convMCohort=trialsM.filter(c=>c.convertedFrom==='trial').length;
-  const pctM=trialsM.length?Math.round(convMCohort/trialsM.length*100):0;
+  /* This-month RATE and "Converted (month)" must use the SAME cohort as
+     "Trials (month)" — of the trials that STARTED this month, how many
+     have converted so far (as of today, regardless of which month the
+     conversion itself landed in). The old code mixed two different
+     cohorts: "Trials (month)" = trials that started this month, but
+     "Converted (month)" = conversions that LANDED this month (which can
+     include much older trials from May/June finally converting in July).
+     Displaying those side by side implied a relationship that didn't
+     actually hold — e.g. "31 trials, 28 converted" looked like it should
+     be ~90%, but the rate was correctly computed from a much smaller,
+     genuinely-matching cohort (trials that already converted THIS month),
+     producing a seemingly-nonsensical 23%. Making both tiles use the same
+     cohort removes the contradiction entirely. */
+  const convMCohort=trialsM.filter(c=>c.convertedFrom==='trial');
+  const pctM=trialsM.length?Math.round(convMCohort.length/trialsM.length*100):0;
   html+=`<div class="div-section">🎯 Trial Conversion</div>
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:12px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--text);">${trialsM.length}</div><div style="font-size:11px;color:var(--text2);">Trials (month)</div></div>
-        <div><div style="font-size:17px;font-weight:800;color:var(--green);">${convM.length}</div><div style="font-size:11px;color:var(--text2);">Converted (month)</div></div>
+        <div><div style="font-size:17px;font-weight:800;color:var(--green);">${convMCohort.length}</div><div style="font-size:11px;color:var(--text2);">Converted (month)</div></div>
         <div><div style="font-size:17px;font-weight:800;color:var(--gold);">${pctM}%</div><div style="font-size:11px;color:var(--text2);">This Month Rate</div></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:2px;"><span>All-time: ${convAll.length} converted of ${trialsAll.length} trials</span><span style="font-weight:700;color:var(--text);">${pctAll}%</span></div>
       <div style="height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${pctAll}%;background:var(--gold);border-radius:4px;"></div></div>
-      ${convM.length?'<div style="font-size:12px;color:var(--text2);margin-top:8px;">This month: '+convM.map(c=>c.fname).join(', ')+'</div>':''}
+      ${convMCohort.length?'<div style="font-size:12px;color:var(--text2);margin-top:8px;">This month: '+convMCohort.map(c=>c.fname).join(', ')+'</div>':''}
     </div>`;
 
   /* ===== Complimentary Reports (pending note #26) ===== */
