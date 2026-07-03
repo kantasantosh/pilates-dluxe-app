@@ -570,7 +570,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v126</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v127</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -4514,7 +4514,16 @@ function _dbAllEntries(){
 function openDaybook(){
   dbQuick('month');
   const all=_dbAllEntries();
-  const cats=Array.from(new Set(all.map(e=>e.cat).filter(Boolean))).sort();
+  /* THE FIX: this used to only list categories that ALREADY had at least
+     one saved entry — so a brand-new category (like the two just added)
+     could never be selected here until something was recorded against
+     it first, even though it worked fine in the voucher form itself.
+     Day Book should let you filter by any configured category, used or
+     not — combine the full credit + debit lists with whatever else shows
+     up in older/legacy entries, so nothing is missed either way. */
+  const configured=[...getCreditCats(),...getDebitCats()];
+  const usedInEntries=all.map(e=>e.cat).filter(Boolean);
+  const cats=Array.from(new Set([...configured,...usedInEntries])).sort();
   document.getElementById('db-cat').innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option value="${_esc(c)}">${_esc(c)}</option>`).join('');
   document.getElementById('db-type').value='all';
   openM('m-daybook');
