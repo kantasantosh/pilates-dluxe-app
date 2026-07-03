@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div class="logo">Pilates D'Luxe<small>Book a Session</small></div>
-  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b32</div>
+  <div style="font-size:9px;color:rgba(255,255,255,0.25);position:absolute;left:12px;bottom:4px;">b33</div>
 </div>
 
 <div class="container">
@@ -170,9 +170,19 @@ function getSlotAvail(date,slot){
   return MACHINES-bks.length;
 }
 
-function getSessionsUsed(cid){
+/* Mirror of the studio app's _sessUsedInPlan fix: only count attendance
+   that falls WITHIN the current membership's period (startDate..endDate).
+   Without this, a renewed client's old-plan attendance kept counting
+   against the fresh plan — and once it reached the plan total, the
+   booking page wrongly BLOCKED her ("No sessions remaining") despite a
+   brand-new, fully-paid plan. Legacy guard: no startDate → count all. */
+function getSessionsUsed(cid,mem){
+  const s=mem&&mem.startDate?mem.startDate:null;
+  const e=mem&&mem.endDate?mem.endDate:null;
   let used=0;
-  Object.values(_bookings).forEach(day=>{
+  Object.entries(_bookings).forEach(([dt,day])=>{
+    if(s&&dt<s)return;
+    if(e&&dt>e)return;
     Object.values(day||{}).forEach(arr=>{
       (arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)used++;});
     });
@@ -396,7 +406,7 @@ function renderDashboard(){
   const mem=_mems[c.id];
   const plan=mem?mem.plan:'none';
   const sessTotal=plan==='trial'?1:(plan==='unlimited'?'∞':(mem?(mem.sessions||mem.sessionsTotal||0)+(mem.bonus||0):0));
-  const sessUsed=getSessionsUsed(c.id);
+  const sessUsed=getSessionsUsed(c.id,mem);
   const sessLeft=plan==='unlimited'?'∞':(typeof sessTotal==='number'?Math.max(0,sessTotal-sessUsed):0);
   const planName=plan==='trial'?'Trial Session':plan==='unlimited'?'Unlimited':(mem?mem.plan:'No Plan');
   const endDate=mem&&mem.endDate?fmt(mem.endDate):'—';
@@ -534,7 +544,7 @@ function openPopup(slot){
   const mem=_mems[_client.id];
   /* Check sessions */
   if(mem&&mem.plan!=='unlimited'){
-    const used=getSessionsUsed(_client.id);
+    const used=getSessionsUsed(_client.id,mem);
     const total=mem.plan==='trial'?1:((mem.sessions||mem.sessionsTotal||0)+(mem.bonus||0));
     if(used>=total){
       showAlert('No sessions remaining. Please renew your membership.','⚠️');return;

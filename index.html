@@ -570,7 +570,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v130</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v133</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1325,13 +1325,33 @@ function toast(msg){
    historical attendance). It must NEVER be trusted for display or for
    blocking a booking. Real attendance records are recounted fresh, every
    time, everywhere this is needed. */
+/* SINGLE SOURCE OF TRUTH for "sessions used": counts attended bookings
+   ONLY within the current membership's period (startDate..endDate).
+   THE RULE (owner-specified): a plan has two limits — sessions AND
+   duration; whichever finishes first, the other lapses automatically.
+   No carry-forward without explicit owner action. Previously every
+   counter scanned ALL attendance ever, so after a renewal the OLD
+   plan's attendance silently ate the NEW plan's sessions (real case:
+   Pragya, 11 old attendances → "1 left of 12" on a brand-new plan).
+   Date-windowing fixes renewal, plan-change and trial-conversion in
+   one stroke. Legacy guard: a record with no startDate falls back to
+   counting everything (old behaviour), so malformed old data cannot
+   show negative or broken numbers. */
+function _sessUsedInPlan(cid,mem){
+  const bookings=ld('pp_bookings',{});
+  const s=mem&&mem.startDate?mem.startDate:null;
+  const e=mem&&mem.endDate?mem.endDate:null;
+  let n=0;
+  Object.entries(bookings).forEach(([dt,slots])=>{
+    if(s&&dt<s)return;
+    if(e&&dt>e)return;
+    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)n++;});});
+  });
+  return n;
+}
 function getSessionsLeft(mem,cid){
   if(!mem||mem.plan==='unlimited')return Infinity;
-  const bookings=ld('pp_bookings',{});
-  let sessUsed=0;
-  Object.values(bookings).forEach(slots=>{
-    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
-  });
+  let sessUsed=_sessUsedInPlan(cid,mem);
   /* Two different storage conventions exist in real data, NOT interchangeable:
      - mem.sessions (current field): base plan sessions ONLY — bonus is stored
        separately in mem.bonus and must be added at read-time.
@@ -7854,13 +7874,7 @@ function _ufPopulatePlan(cid){
     const isActive=st==='active'||st==='expiring';
     const isFrozen=m.status==='frozen';
     /* Count sessions used */
-    const bookings=ld('pp_bookings',{});
-    let sessUsed=0;
-    Object.entries(bookings).forEach(([dt,slots])=>{
-      Object.values(slots).forEach(arr=>{
-        (arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});
-      });
-    });
+    let sessUsed=_sessUsedInPlan(cid,m);
     const sessTotal=m.plan==='trial'?1:(m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(p?.sessions||0)+(m.bonus||0)));
     const sessLeft=Math.max(0,sessTotal-sessUsed);
     /* Days info */
@@ -8293,9 +8307,7 @@ function _ufSaveDates(){
      bookings, exactly like getSessionsLeft() — this was previously counting
      every booking regardless of whether the member actually showed up,
      silently disagreeing with every other screen that shows this number. */
-  const bookings=ld('pp_bookings',{});
-  let sessUsed=0;
-  Object.values(bookings).forEach(slots=>{Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});});
+  let sessUsed=_sessUsedInPlan(cid,m);
   const newTotal=(isNaN(nsess)?m.sessions:nsess)+nbonus;
   m.sessionsLeft=Math.max(0,newTotal-sessUsed);
   if(nstatus)m.status=nstatus;
@@ -8346,11 +8358,7 @@ function ufPlanAction(action){
   const totalDays=Math.round((endDt-startDt)/(86400000))+1;
   const daysUsed=Math.max(0,Math.min(totalDays,Math.round((today-startDt)/(86400000))));
   const daysLeft=totalDays-daysUsed;
-  const bookings=ld('pp_bookings',{});
-  let sessUsed=0;
-  Object.entries(bookings).forEach(([dt,slots])=>{
-    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
-  });
+  let sessUsed=_sessUsedInPlan(cid,m);
   const sessTotal=m.plan==='trial'?1:(m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(p?.sessions||0)+(m.bonus||0)));
   const sessLeft=Math.max(0,sessTotal-sessUsed);
 
@@ -8450,11 +8458,7 @@ function ufCalcChange(){
   /* Subtract ACTUAL frozen days from consumption (freeze is accounting-neutral) */
   const frozenDays=m.frozenDays||0;
   const activeDays=Math.max(0,calendarDays-frozenDays);
-  const bookings=ld('pp_bookings',{});
-  let sessUsed=0;
-  Object.entries(bookings).forEach(([dt,slots])=>{
-    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
-  });
+  let sessUsed=_sessUsedInPlan(cid,m);
   const sessTotal=m.plan==='trial'?1:(m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(oldP?.sessions||0)+(m.bonus||0)));
   const sessLeft=Math.max(0,sessTotal-sessUsed);
   
@@ -8705,11 +8709,7 @@ function ufDoChange(){
   const calendarDays=Math.max(0,Math.min(totalDays,Math.round((today-startDt)/(86400000))));
   const frozenDays=m.frozenDays||0;
   const activeDays=Math.max(0,calendarDays-frozenDays);
-  const bookings=ld('pp_bookings',{});
-  let sessUsed=0;
-  Object.entries(bookings).forEach(([dt,slots])=>{
-    Object.values(slots).forEach(arr=>{(arr||[]).forEach(b=>{if(b.cid===cid&&b.attended)sessUsed++;});});
-  });
+  let sessUsed=_sessUsedInPlan(cid,m);
   const sessTotal=m.plan==='trial'?1:(m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(oldP?.sessions||0)+(m.bonus||0)));
   const sessLeft=Math.max(0,sessTotal-sessUsed);
   const origDays=oldP?oldP.days:(totalDays-frozenDays);
