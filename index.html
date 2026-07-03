@@ -570,7 +570,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v133</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v134</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -3297,14 +3297,23 @@ function getClientTotalPaid(cid){
   return pays+cash;
 }
 function getClientTotalCharged(cid){
-  /* Sum ALL plan fees ever: current plan + all history entries */
+  /* Sum plan fees: current plan + history — but DEDUPED. Real data
+     already contains duplicate history entries from past double-taps
+     (the same plan+dates archived twice, or the current plan also
+     sitting in history). Counting by unique plan+startDate+endDate
+     means those duplicates no longer inflate the total, so affected
+     clients' balances self-heal without any manual data repair. */
   const mems=ld('pp_memberships',{});
   const m=mems[cid];
   if(!m)return 0;
+  const seen=new Set();
+  const key=x=>(x.plan||'')+'|'+(x.startDate||'')+'|'+(x.endDate||'');
   let total=(m.fee||0)-(m.disc||0);
+  seen.add(key(m));
   if(m.history&&m.history.length){
     m.history.forEach(h=>{
-      if(h.plan&&h.plan!=='trial'){
+      if(h.plan&&h.plan!=='trial'&&!seen.has(key(h))){
+        seen.add(key(h));
         total+=(h.fee||0)-(h.disc||0);
       }
     });
@@ -6632,9 +6641,36 @@ function _receiptHtml(pay,forPrint){
   const s=getStudio();
   const c=ld('pp_clients',[]).find(x=>x.id===pay.cid)||{};
   const mems=ld('pp_memberships',{});const m=mems[pay.cid];
-  const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:'';
-  const totalPaid=getClientTotalPaid(pay.cid);
-  const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-totalPaid:0;
+  /* MATCH THE PAYMENT TO ITS OWN PLAN, not today's live plan. Receipts
+     used to regenerate everything from the CURRENT membership — so after
+     a renewal, an old receipt silently changed to show the NEW plan's
+     period, and its balance compared one plan's fee against ALL-TIME
+     payments (producing nonsense like "Advance ₹8,000" on a settled
+     plan). Now: build a deduped list of all plans (history + current),
+     pick the one whose period contains the payment date (fallback: the
+     latest plan that had started by then), and compute everything —
+     period, fee, discount, balance — from THAT plan and the payments
+     made within ITS period alone. Known limit: a renewal paid BEFORE the
+     new plan's start date allocates to the old period by date. */
+  const _key=x=>(x.plan||'')+'|'+(x.startDate||'')+'|'+(x.endDate||'');
+  const _seen=new Set();const _plansAll=[];
+  if(m){
+    (m.history||[]).forEach(h=>{if(h.plan&&h.plan!=='trial'&&!_seen.has(_key(h))){_seen.add(_key(h));_plansAll.push(h);}});
+    if(m.plan&&m.plan!=='trial'&&!_seen.has(_key(m))){_seen.add(_key(m));_plansAll.push(m);}
+    _plansAll.sort((a,b)=>(a.startDate||'')<(b.startDate||'')?-1:1);
+  }
+  const _pd=pay.date||td();
+  let mp=_plansAll.find(h=>_pd>=(h.startDate||'')&&_pd<=(h.endDate||''))||
+         [..._plansAll].reverse().find(h=>(h.startDate||'')<=_pd)||
+         (_plansAll.length?_plansAll[_plansAll.length-1]:m);
+  const _isFirstPaidPlan=_plansAll.length&&mp===_plansAll[0];
+  const plan=mp?(getPlans().find(p=>p.id===mp.plan)||{}).name||mp.plan:'';
+  /* Payments belonging to THIS plan's period only */
+  const _paidInWin=(mp&&mp.startDate)?(
+    ld('pp_payments',[]).filter(p=>p.cid===pay.cid&&(p.date||'')>=mp.startDate&&(p.date||'')<=(mp.endDate||'9999')).reduce((t,p)=>t+p.amt,0)+
+    ld('pp_cash',[]).filter(e=>e.cid===pay.cid&&e.type==='in'&&(e.date||'')>=mp.startDate&&(e.date||'')<=(mp.endDate||'9999')).reduce((t,e)=>t+e.amt,0)
+  ):getClientTotalPaid(pay.cid);
+  const due=mp?((mp.fee||0)-(mp.disc||0))-_paidInWin:0;
   const rcptNo='PDL-'+(pay.id||'').toString().slice(-8);
   const dt=new Date((pay.date||td())+'T00:00:00');
   const txt=forPrint?'#111':'#111';
@@ -6652,16 +6688,16 @@ function _receiptHtml(pay,forPrint){
     <tr><td style="padding:4px 0;color:#666;width:38%;">Received From</td><td style="padding:4px 0;font-weight:700;">${c.fname||''} ${c.lname||''}</td></tr>
     <tr><td style="padding:4px 0;color:#666;">Membership ID</td><td style="padding:4px 0;">${c.memNo||'—'}</td></tr>
     ${c.phone?`<tr><td style="padding:4px 0;color:#666;">Phone</td><td style="padding:4px 0;">${c.phone}</td></tr>`:''}
-    ${plan?`<tr><td style="padding:4px 0;color:#666;">Plan</td><td style="padding:4px 0;">${plan} (${m?(m.plan==='unlimited'?'Unlimited':((m.sessions||m.sessionsTotal||0)+(m.bonus&&m.sessions?'+'+m.bonus:'')+' sessions')):''})<br>${c&&c.trialDate?'<span style="font-size:11px;color:#777;">Trial: '+fmt(c.trialDate)+' · </span>':''}${m?'<span style="font-size:11px;color:#777;">Regular: '+fmt(m.startDate)+' → '+fmt(m.endDate)+'</span>':''}</td></tr>`:''}
+    ${plan?`<tr><td style="padding:4px 0;color:#666;">Plan</td><td style="padding:4px 0;">${plan} (${mp?(mp.plan==='unlimited'?'Unlimited':((mp.sessions||mp.sessionsTotal||0)+(mp.bonus&&mp.sessions?'+'+mp.bonus:'')+' sessions')):''})<br>${c&&c.trialDate&&_isFirstPaidPlan?'<span style="font-size:11px;color:#777;">Trial: '+fmt(c.trialDate)+' · </span>':''}${mp?'<span style="font-size:11px;color:#777;">Period: '+fmt(mp.startDate)+' → '+fmt(mp.endDate)+'</span>':''}</td></tr>`:''}
     <tr><td style="padding:4px 0;color:#666;">Payment For</td><td style="padding:4px 0;">${pay.desc||pay.payType||'Membership Fee'}</td></tr>
     <tr><td style="padding:4px 0;color:#666;">Mode</td><td style="padding:4px 0;">${pay.mode||''}</td></tr>
   </table>
   <div style="background:#f3edd9;border-radius:8px;padding:12px;margin:12px 0;">
     <table style="width:100%;font-size:13px;color:#333;border-collapse:collapse;">
-      ${m?`<tr><td style="padding:3px 0;color:#666;">Total Plan Fee</td><td style="text-align:right;font-weight:700;">₹${(m.fee||0).toLocaleString('en-IN')}</td></tr>`:''}
-      ${m&&(m.disc||0)>0?`<tr><td style="padding:3px 0;color:#2e7d32;">Complimentary Discount</td><td style="text-align:right;color:#2e7d32;">− ₹${(m.disc||0).toLocaleString('en-IN')}</td></tr>`:''}
+      ${mp?`<tr><td style="padding:3px 0;color:#666;">Total Plan Fee</td><td style="text-align:right;font-weight:700;">₹${(mp.fee||0).toLocaleString('en-IN')}</td></tr>`:''}
+      ${mp&&(mp.disc||0)>0?`<tr><td style="padding:3px 0;color:#2e7d32;">Complimentary Discount</td><td style="text-align:right;color:#2e7d32;">− ₹${(mp.disc||0).toLocaleString('en-IN')}</td></tr>`:''}
       <tr><td style="padding:3px 0;color:#666;">Amount Received</td><td style="text-align:right;font-weight:700;font-size:18px;color:#1a1a1a;">₹${(pay.amt||0).toLocaleString('en-IN')}</td></tr>
-      ${m?`<tr style="border-top:1px solid #c9a84c;"><td style="padding:5px 0;font-weight:700;">${due>0?'Balance Due':'Balance'}</td><td style="text-align:right;font-weight:700;font-size:14px;color:${due>0?'#b00':'#2e7d32'};">${due>0?'₹'+due.toLocaleString('en-IN'):due<0?'Advance ₹'+Math.abs(due).toLocaleString('en-IN'):'✓ Settled'}</td></tr>`:''}
+      ${mp?`<tr style="border-top:1px solid #c9a84c;"><td style="padding:5px 0;font-weight:700;">${due>0?'Balance Due':'Balance'}</td><td style="text-align:right;font-weight:700;font-size:14px;color:${due>0?'#b00':'#2e7d32'};">${due>0?'₹'+due.toLocaleString('en-IN'):due<0?'Advance ₹'+Math.abs(due).toLocaleString('en-IN'):'✓ Settled'}</td></tr>`:''}
     </table>
   </div>
   <div style="font-size:9px;color:#999;text-align:center;margin-bottom:8px;">Fees once paid are non-refundable. On mid-term plan change, unused value is normally adjusted toward the new plan subject to owner's approval.</div>
@@ -8640,8 +8676,14 @@ function ufAssignPlan(){
   const isTrialConvert=!!(c&&c.isTrial);
   const eventType=(!existing||!existing.plan||isTrialConvert)?'assign':'renew';
   
-  /* Push current plan to history if it exists */
-  if(existing&&existing.plan){
+  /* Push current plan to history if it exists.
+     GUARD (root cause of Pragya's ₹29,000): a double-tap on "Confirm
+     Renewal" ran this twice — the second run archived the brand-new plan
+     into history AND recreated it, so its fee counted twice. If the
+     "existing" plan is IDENTICAL to what we're about to create (same
+     plan + same dates), this is a duplicate save: skip archiving. */
+  const _identicalResave=existing&&existing.plan===pid&&existing.startDate===startDate&&existing.endDate===endDate;
+  if(existing&&existing.plan&&!_identicalResave){
     if(!existing.history)existing.history=[];
     let _endReason='Renewed';
     if(existing.plan==='trial'||isTrialConvert)_endReason='Converted to '+p.name;
