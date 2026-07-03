@@ -570,7 +570,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v127</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v128</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -2080,12 +2080,18 @@ function saveClient(){
   if(category!=='trial'&&_em&&!_validateEmail(_em,document.getElementById('c-id').value||''))return;
   const clients=ld('pp_clients',[]);
   const existing=document.getElementById('c-id').value;
-  const refId=document.getElementById('c-ref').value;
-  const oldData=existing?clients.find(c=>c.id===existing)||{}:{};
   const _lname=document.getElementById('c-lname').value.trim();
 
   /* DUPLICATE NAME CHECK (pending note #5) — only for genuinely new
-     entries; editing an existing client should never warn about itself. */
+     entries; editing an existing client should never warn about itself.
+     THE FIX: this used to use the native confirm() dialog, which is
+     UNRELIABLE inside installed PWAs — on some devices/contexts it never
+     actually shows a popup and silently auto-resolves to "true", meaning
+     the duplicate check appeared to run but the "continue anyway?"
+     question was being auto-answered yes with nothing ever visible on
+     screen. Switched to the app's own themed confirm modal, which is
+     real HTML/CSS — not a native browser dialog — so it can't be
+     silently skipped the same way. */
   if(!existing){
     const nameDupes=clients.filter(cl=>(cl.fname||'').trim().toLowerCase()===fname.toLowerCase());
     if(nameDupes.length){
@@ -2096,13 +2102,31 @@ function saveClient(){
         const sameEmail=_em&&match.email&&match.email.toLowerCase()===_em.toLowerCase();
         const distinguishable=(match.phone&&!samePhone)||(match.email&&!sameEmail);
         if(!distinguishable){
-          if(!confirm('⚠️ A client named "'+fname+(_lname?' '+_lname:'')+'" already exists (Member ID: '+match.memNo+').\n\nPhone/email don\'t clearly tell them apart — please double-check before continuing.\n\nContinue anyway?'))return;
+          showConfirm('⚠️','Possible Duplicate','A client named "'+_esc(fname+(_lname?' '+_lname:''))+'" already exists (Member ID: '+_esc(match.memNo)+').<br><br>Phone/email don\'t clearly tell them apart — please double-check before continuing.',[
+            {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+            {label:'Continue Anyway',color:'var(--gold)',action:()=>_doSaveClient(category)}
+          ]);
+          return;
         }
       }else{
-        if(!confirm('⚠️ A client named "'+fname+'" already exists (Member ID: '+nameDupes[0].memNo+').\n\nConsider adding a surname to tell them apart.\n\nContinue anyway?'))return;
+        showConfirm('⚠️','Possible Duplicate','A client named "'+_esc(fname)+'" already exists (Member ID: '+_esc(nameDupes[0].memNo)+').<br><br>Consider adding a surname to tell them apart.',[
+          {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+          {label:'Continue Anyway',color:'var(--gold)',action:()=>_doSaveClient(category)}
+        ]);
+        return;
       }
     }
   }
+  _doSaveClient(category);
+}
+function _doSaveClient(category){
+  const fname=document.getElementById('c-fname').value.trim();
+  const _ph=document.getElementById('c-phone').value.replace(/\D/g,'');
+  const _em=document.getElementById('c-email').value.trim();
+  const clients=ld('pp_clients',[]);
+  const existing=document.getElementById('c-id').value;
+  const refId=document.getElementById('c-ref').value;
+  const oldData=existing?clients.find(c=>c.id===existing)||{}:{};
 
   /* Trial category: only meaningful for a NEW registration (existing client
      edits never offer this choice — see openEditClient, which hides the
