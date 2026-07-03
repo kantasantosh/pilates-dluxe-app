@@ -570,7 +570,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v128</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v130</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1994,7 +1994,7 @@ function _crefFilter(){
     return nm.includes(q)||id.includes(q);
   }).slice(0,8);
   if(!matches.length){box.innerHTML='<div style="padding:8px 10px;font-size:12px;color:var(--text3);">No match</div>';box.style.display='block';return;}
-  box.innerHTML=matches.map(c=>`<div style="padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);" onmousedown="_crefPick('${c.id}','${_esc((c.fname+' '+(c.lname||'')).trim())}','${_esc(c.memNo||'')}')">${c.memNo?_esc(c.memNo)+' — ':''}${_esc(c.fname)} ${_esc(c.lname||'')}</div>`).join('');
+  box.innerHTML=matches.map(c=>`<div style="padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);" onmousedown="_crefPick('${c.id}','${_esc((c.fname+' '+(c.lname||'')).trim())}','${_esc(c.memNo||'')}')">${c.memNo?_esc(c.memNo)+' — ':''}${_esc(c.fname)} ${_esc(c.lname||'')}${c.phone?' <span style="color:var(--text3);">('+_esc(c.phone.replace('+91','').slice(-4))+')</span>':''}</div>`).join('');
   box.style.display='block';
 }
 function _crefPick(id,name,memNo){
@@ -2084,32 +2084,25 @@ function saveClient(){
 
   /* DUPLICATE NAME CHECK (pending note #5) — only for genuinely new
      entries; editing an existing client should never warn about itself.
-     THE FIX: this used to use the native confirm() dialog, which is
-     UNRELIABLE inside installed PWAs — on some devices/contexts it never
-     actually shows a popup and silently auto-resolves to "true", meaning
-     the duplicate check appeared to run but the "continue anyway?"
-     question was being auto-answered yes with nothing ever visible on
-     screen. Switched to the app's own themed confirm modal, which is
-     real HTML/CSS — not a native browser dialog — so it can't be
-     silently skipped the same way. */
+     ALWAYS warns on a matching first name now — phone/email are
+     requirements for trial follow-up and booking-page access, not
+     signals that two same-named people are "different enough" to skip
+     the warning. The real day-to-day need is telling clients with the
+     same first name apart during booking/lookup, which a matching phone
+     number does nothing to solve. */
   if(!existing){
     const nameDupes=clients.filter(cl=>(cl.fname||'').trim().toLowerCase()===fname.toLowerCase());
     if(nameDupes.length){
       const surnameDupes=nameDupes.filter(cl=>(cl.lname||'').trim().toLowerCase()===_lname.toLowerCase());
       if(surnameDupes.length){
         const match=surnameDupes[0];
-        const samePhone=_ph&&match.phone&&match.phone.replace(/\D/g,'')===_ph;
-        const sameEmail=_em&&match.email&&match.email.toLowerCase()===_em.toLowerCase();
-        const distinguishable=(match.phone&&!samePhone)||(match.email&&!sameEmail);
-        if(!distinguishable){
-          showConfirm('⚠️','Possible Duplicate','A client named "'+_esc(fname+(_lname?' '+_lname:''))+'" already exists (Member ID: '+_esc(match.memNo)+').<br><br>Phone/email don\'t clearly tell them apart — please double-check before continuing.',[
-            {label:'Cancel',color:'var(--border2)',outline:true,action:null},
-            {label:'Continue Anyway',color:'var(--gold)',action:()=>_doSaveClient(category)}
-          ]);
-          return;
-        }
+        showConfirm('⚠️','Possible Duplicate','A client named "'+_esc(fname+(_lname?' '+_lname:''))+'" already exists (Member ID: '+_esc(match.memNo)+', Phone: '+_esc(match.phone?match.phone.replace('+91','').slice(-4):'—')+').<br><br>Please add a distinguishing nickname or detail so staff can tell them apart during booking.',[
+          {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+          {label:'Continue Anyway',color:'var(--gold)',action:()=>_doSaveClient(category)}
+        ]);
+        return;
       }else{
-        showConfirm('⚠️','Possible Duplicate','A client named "'+_esc(fname)+'" already exists (Member ID: '+_esc(nameDupes[0].memNo)+').<br><br>Consider adding a surname to tell them apart.',[
+        showConfirm('⚠️','Possible Duplicate','A client named "'+_esc(fname)+'" already exists (Member ID: '+_esc(nameDupes[0].memNo)+', Phone: '+_esc(nameDupes[0].phone?nameDupes[0].phone.replace('+91','').slice(-4):'—')+').<br><br>Consider adding a surname or nickname to tell them apart.',[
           {label:'Cancel',color:'var(--border2)',outline:true,action:null},
           {label:'Continue Anyway',color:'var(--gold)',action:()=>_doSaveClient(category)}
         ]);
@@ -2735,7 +2728,8 @@ function _openBookingForm(slotIdx){
     const st=getMembershipStatus(mems[c.id],c.id);
     const stLabel=st==='active'?'✓':st==='expiring'?'⚠':st==='expired'?'✗':'—';
     const mn=c.memNo?c.memNo+' — ':'';
-    return {id:c.id,label:`${mn}${c.fname} ${c.lname||''} ${stLabel}`,search:`${mn}${c.fname} ${c.lname||''}`.toLowerCase()};
+    const ph=c.phone?' ('+c.phone.replace('+91','').slice(-4)+')':'';
+    return {id:c.id,label:`${mn}${c.fname} ${c.lname||''}${ph} ${stLabel}`,search:`${mn}${c.fname} ${c.lname||''} ${c.phone||''}`.toLowerCase()};
   });
   const _bs=document.getElementById('bk-client-search');if(_bs)_bs.value='';
   const _bp=document.getElementById('bk-client-results');if(_bp)_bp.style.display='none';
@@ -4343,8 +4337,8 @@ function openCashEntry(id,prefillCid){
   const clients=ld('pp_clients',[]);
   _ceClientList=clients.filter(c=>!c.archived).map(c=>({
     id:c.id,
-    label:`${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname||''}`,
-    search:`${c.memNo||''} ${c.fname} ${c.lname||''}`.toLowerCase()
+    label:`${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname||''}${c.phone?' ('+c.phone.replace('+91','').slice(-4)+')':''}`,
+    search:`${c.memNo||''} ${c.fname} ${c.lname||''} ${c.phone||''}`.toLowerCase()
   }));
   /* reset picker */
   document.getElementById('ce-cid').value='';
