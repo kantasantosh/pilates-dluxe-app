@@ -589,10 +589,9 @@ try{
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-logo">
-    <div class="logo-mark" style="overflow:hidden;padding:0;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
+    <div class="logo-mark" style="overflow:hidden;padding:0;width:72px;height:72px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div>
-      <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v136</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v139</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -2705,7 +2704,7 @@ function renderSchedule(){
     slots.forEach((slot,_si)=>{
       const slotIdx=SLOTS.indexOf(slot);
       const booked=daySlots[slot]||[];
-      html+=`<div style="margin-bottom:10px;background:${_si%2===0?'#241f16':'#141210'};border:1px solid ${_si%2===0?'rgba(201,168,76,0.25)':'var(--border)'};border-radius:var(--rsm);padding:8px 6px;">
+      html+=`<div style="margin-bottom:10px;background:${_si%2===0?'rgba(201,168,76,0.09)':'var(--bg)'};border:1px solid ${_si%2===0?'rgba(201,168,76,0.35)':'var(--border)'};border-radius:var(--rsm);padding:8px 6px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div style="font-size:13px;font-weight:700;color:var(--gold);">${slot}</div>
           <div style="font-size:13px;color:var(--text2);">${booked.length}/${MACHINES} spots</div>
@@ -3474,7 +3473,7 @@ function renderCredits(){
         <button onclick="sendFeedback()" style="width:100%;background:#25D366;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;color:white;">💬 Feedback via WhatsApp</button>
     </div>
     <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
-      <div style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
+      <div style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
       <div style="font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
       <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 12px;">Studio Admin</div>
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Built with</div>
@@ -6526,7 +6525,7 @@ function injectPrintButtons(){
 <!-- ================= PHASE 5: CLOUD AUTHENTICATION GATE ================= -->
 <div id="pp-cloud" style="position:fixed;inset:0;background:var(--bg);z-index:9100;display:none;align-items:center;justify-content:center;padding:20px;">
   <div class="lg-box">
-    <div class="lg-mark">☁️</div>
+    <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Studio Cloud Sign-in</div>
     <div class="lg-sub">One-time setup for this device</div>
     <input class="lg-fi" id="cl-email" type="email" placeholder="Studio email" autocapitalize="none" autocomplete="username"/>
