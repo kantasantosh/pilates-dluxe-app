@@ -570,7 +570,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v134</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v135</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -2379,10 +2379,13 @@ function saveMembership(){
       const prev=history[history.length-1];
       payType=(prev&&prev.plan===pid)?'Renewal':'Plan Change';
     }
-    const ce={id:Date.now().toString()+'_m',type:'in',desc:payType+' — '+(plan?plan.name:''),cid,amt:paid,date:td(),mode,mode2:'',cat:payType==='Renewal'?'Renewal':'Membership Fee',payType,date2:'',notes:''};
-    const cash=ld('pp_cash',[]);cash.push(ce);sv('pp_cash',cash);
+    /* HARMONIZED (Parul's double-count root cause): this old path used
+       to auto-create a pp_cash entry here, while the receptionist ALSO
+       recorded the same payment via the Receipts section — two doors,
+       one rupee, counted twice. Money now has ONE door: the Receipts
+       section. This flow only reminds; it records nothing. */
+    toast('⚠️ Payment NOT auto-recorded — please record ₹'+paid.toLocaleString('en-IN')+' in the Receipts section');
     renderDash();renderClients();
-    if(typeof offerReceiptCash==='function')setTimeout(()=>offerReceiptCash(ce.id),300);
   }
 }
 const DEF_PAY_MODES=['💵 Cash','📱 UPI/GPay','📱 PhonePe','🏦 Bank Transfer','💳 Card'];
@@ -7985,7 +7988,7 @@ planInfo.innerHTML=`${_staleTrialFlag?`<div style="background:rgba(231,76,60,0.1
         <div class="fg"><label class="fl">Bonus/Complimentary</label><input class="fi" id="uf-edit-bonus" type="number"/></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="sb2" id="uf-edit-save-btn" onclick="_ufSaveDates()" disabled style="flex:1;opacity:0.45;">Save Corrected Plan</button>
+        <button class="sb2" id="uf-edit-save-btn" onclick="_ufSaveDates()" disabled style="flex:1;opacity:0.45;">Save Corrected Plan</button><button class="sb2" onclick="_ufDeleteHistoryEntry()" title="Delete this history entry" style="flex:0 0 auto;background:none;border:1.5px solid var(--rose);color:var(--rose);">🗑</button>
         <button onclick="document.getElementById('uf-edit-dates').style.display='none';window._ufEditTarget=null;" style="flex:0 0 auto;padding:0 16px;background:none;border:1px solid var(--border2);color:var(--text2);border-radius:var(--rsm);font-family:'Jost',sans-serif;cursor:pointer;">Cancel</button>
       </div>
     </div>`;
@@ -8255,6 +8258,29 @@ function _ufAutoEndDate(){
   const sd=new Date(start);
   sd.setDate(sd.getDate()+p.days);
   document.getElementById('uf-edit-end').value=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
+}
+function _ufDeleteHistoryEntry(){
+  /* Deletes the HISTORY entry currently open in the correction panel —
+     needed to remove phantom entries created by past double-taps (e.g.
+     Pragya's duplicate 02 Jul plan, archived seconds after creation,
+     which inflated her fee total). Admin-only, confirmed, audited.
+     Refuses to act on the LIVE current plan. */
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const t=window._ufEditTarget||{};
+  if(t.kind!=='history'||typeof t.idx==='undefined'){toast('Only saved HISTORY entries can be deleted here');return;}
+  const cid=t.cid||document.getElementById('uf-cid').value;
+  const mems=ld('pp_memberships',{});const m=mems[cid];
+  if(!m||!m.history||!m.history[t.idx]){toast('Entry not found');return;}
+  const h=m.history[t.idx];
+  showConfirm('🗑','Delete this history entry?',(h.plan||'')+' · '+fmt(h.startDate)+(h.endDate&&h.endDate!==h.startDate?' → '+fmt(h.endDate):'')+'<br><br>This permanently removes it from history and from all fee totals. Payments and receipts are NOT touched.',[
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+    {label:'Delete Entry',color:'var(--rose)',action:()=>{
+      m.history.splice(t.idx,1);sv('pp_memberships',mems);
+      if(typeof AUD==='function')AUD('🗑 History entry deleted',(h.plan||'')+' '+(h.startDate||''));
+      toast('✓ History entry deleted');
+      openUnified(cid,'plan');
+    }}
+  ]);
 }
 function _ufSaveDates(){
   const target=window._ufEditTarget||{kind:'live'};
@@ -8958,7 +8984,7 @@ function ufSavePayment(){
 
     <!-- ===== SECTION 1: PROFILE ===== -->
     <div class="uf-section" id="uf-sec-profile">
-      <div class="uf-sec-hdr" onclick="ufToggle('profile')">
+      <div class="uf-sec-hdr" style="background:rgba(90,130,200,0.14);border-left:3px solid #5a82c8;" onclick="ufToggle('profile')">
         <span>👤 Profile</span>
         <span id="uf-profile-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
         <span id="uf-profile-arrow" style="font-size:12px;margin-left:auto;">▼</span>
@@ -9004,7 +9030,7 @@ function ufSavePayment(){
 
     <!-- ===== SECTION 2: PLAN ===== -->
     <div class="uf-section" id="uf-sec-plan">
-      <div class="uf-sec-hdr" onclick="ufToggle('plan')">
+      <div class="uf-sec-hdr" style="background:rgba(201,168,76,0.14);border-left:3px solid var(--gold);" onclick="ufToggle('plan')">
         <span>📋 Current Plan & History</span>
         <span id="uf-plan-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
         <span id="uf-plan-arrow" style="font-size:12px;margin-left:auto;">▶</span>
@@ -9038,7 +9064,7 @@ function ufSavePayment(){
 
     <!-- ===== SECTION 3: RECEIPTS ===== -->
     <div class="uf-section" id="uf-sec-payment">
-      <div class="uf-sec-hdr" onclick="ufToggle('payment')">
+      <div class="uf-sec-hdr" style="background:rgba(46,160,90,0.14);border-left:3px solid #2ea05a;" onclick="ufToggle('payment')">
         <span>🧾 Receipts</span>
         <span id="uf-pay-summary" style="font-size:11px;margin-left:auto;text-align:right;"></span>
         <span id="uf-pay-arrow" style="font-size:12px;margin-left:auto;">▶</span>
