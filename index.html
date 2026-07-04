@@ -100,10 +100,13 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 
 /* CLIENT CARD */
 .client-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:border-color 0.2s;}
-/* Alternate row shading — 1-2 shades lighter, base colours unchanged */
+/* Alternate row shading — full block, clearly visible, base colours unchanged */
+#client-list>.client-card:nth-child(odd){background:var(--surface2);}
 #client-list>.client-card:nth-child(even){background:var(--surface3);}
-#cash-list>.card:nth-child(even){background:var(--surface2);}
-#bills-list>.card:nth-child(even){background:var(--surface2);}
+#cash-list>.card:nth-child(odd){background:var(--surface);}
+#cash-list>.card:nth-child(even){background:var(--surface3);}
+#bills-list>.card:nth-child(odd){background:var(--surface);}
+#bills-list>.card:nth-child(even){background:var(--surface3);}
 .client-card:hover{border-color:var(--border2);}
 .client-avatar{width:46px;height:46px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,var(--gold),var(--rose));display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:18px;color:#1a1a2e;}
 .client-info{flex:1;min-width:0;}
@@ -234,6 +237,13 @@ input[type="date"],input[type="date"].fi{color-scheme:dark;}
 .uf-sec-hdr{display:flex;align-items:center;padding:12px 14px;background:var(--surface2);cursor:pointer;font-family:'Jost',sans-serif;font-weight:700;font-size:14px;color:var(--text);user-select:none;}
 .uf-sec-hdr:active{background:var(--surface3);}
 .uf-sec-body{padding:14px;border-top:1px solid var(--border);}
+/* Section body tinted in its own header colour (stronger, visible); inputs
+   punched darker so they stand out clearly against the tinted background */
+#uf-body-profile{background:rgba(90,130,200,0.10);}
+#uf-body-plan{background:rgba(201,168,76,0.10);}
+#uf-body-payment{background:rgba(46,160,90,0.10);}
+#uf-body-profile .fi,#uf-body-plan .fi,#uf-body-payment .fi,
+#uf-body-profile select.fi,#uf-body-plan select.fi,#uf-body-payment select.fi{background:var(--surface);}
 .uf-act-btn{padding:10px 8px;border:2px solid var(--border2);border-radius:var(--rsm);background:none;color:var(--text);font-family:'Jost',sans-serif;font-weight:700;font-size:12px;cursor:pointer;text-align:center;min-width:80px;}
 .uf-act-btn:active{background:var(--surface3);border-color:var(--gold);}
 .uf-plan-info{background:var(--surface2);border-radius:var(--rsm);padding:12px;margin-bottom:8px;font-size:13px;line-height:1.8;}
@@ -315,7 +325,7 @@ async function _pInit(){
       if(typeof _showCloudGate==='function'){_showCloudGate('bulk-fetch-empty-not-signed-in');return;}
     }
     _pSync=true;el.textContent='✓ Synced';el.style.color='#2ecc71';
-    window._pInitRetried=false;
+    window._pInitRetries=0;
     setTimeout(()=>el.remove(),2000);
     if(typeof init==='function')init();
     /* If the login screen is showing (cloud just connected), make sure the
@@ -344,9 +354,16 @@ async function _pInit(){
     const offline=(navigator.onLine===false);
     let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(_e){}
     const wasTrusted=localStorage.getItem('pp_cloud_ok');
-    if(!offline&&wasTrusted&&!window._pInitRetried){
-      window._pInitRetried=true;
-      setTimeout(()=>{try{_pInit();}catch(_e){}},1500);
+    /* Was a single retry (1.5s). On an occasional slow network moment that
+       wasn't always enough — auth was still restoring from IndexedDB when
+       the retry itself ran, and the app fell through to demanding a full
+       email+password login even on a fully trusted device. Two attempts
+       with a longer second wait gives slow-network cases a real chance
+       before concluding the cloud connection is genuinely gone. */
+    window._pInitRetries=window._pInitRetries||0;
+    if(!offline&&wasTrusted&&window._pInitRetries<2){
+      window._pInitRetries++;
+      setTimeout(()=>{try{_pInit();}catch(_e){}},window._pInitRetries===1?1500:3000);
       if(typeof init==='function')init(); /* show PIN/dashboard from local data immediately, don't make them wait */
       return;
     }
@@ -2687,7 +2704,7 @@ function renderSchedule(){
     slots.forEach((slot,_si)=>{
       const slotIdx=SLOTS.indexOf(slot);
       const booked=daySlots[slot]||[];
-      html+=`<div style="margin-bottom:10px;background:${_si%2===0?'var(--surface2)':'transparent'};border-radius:var(--rsm);padding:${_si%2===0?'8px 6px':'0'};">
+      html+=`<div style="margin-bottom:10px;background:${_si%2===0?'var(--surface2)':'var(--surface)'};border:1px solid var(--border);border-radius:var(--rsm);padding:8px 6px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div style="font-size:13px;font-weight:700;color:var(--gold);">${slot}</div>
           <div style="font-size:13px;color:var(--text2);">${booked.length}/${MACHINES} spots</div>
@@ -8967,7 +8984,7 @@ function ufSavePayment(){
         <span id="uf-profile-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
         <span id="uf-profile-arrow" style="font-size:12px;margin-left:auto;">▼</span>
       </div>
-      <div class="uf-sec-body" id="uf-body-profile" style="background:rgba(90,130,200,0.05);">
+      <div class="uf-sec-body" id="uf-body-profile">
         <input type="hidden" id="uf-cid"/>
         <input type="hidden" id="uf-photo-data"/>
         <div class="fr">
@@ -9013,7 +9030,7 @@ function ufSavePayment(){
         <span id="uf-plan-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
         <span id="uf-plan-arrow" style="font-size:12px;margin-left:auto;">▶</span>
       </div>
-      <div class="uf-sec-body" id="uf-body-plan" style="display:none;background:rgba(201,168,76,0.05);">
+      <div class="uf-sec-body" id="uf-body-plan" style="display:none;">
         <!-- Current plan info (read-only when active) -->
         <div id="uf-plan-current"></div>
         <!-- Action buttons (only when plan is active) -->
@@ -9047,7 +9064,7 @@ function ufSavePayment(){
         <span id="uf-pay-summary" style="font-size:11px;margin-left:auto;text-align:right;"></span>
         <span id="uf-pay-arrow" style="font-size:12px;margin-left:auto;">▶</span>
       </div>
-      <div class="uf-sec-body" id="uf-body-payment" style="display:none;background:rgba(46,160,90,0.05);">
+      <div class="uf-sec-body" id="uf-body-payment" style="display:none;">
         <div id="uf-pay-balance" style="text-align:center;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:12px;"></div>
         <div class="fr">
           <div class="fg"><label class="fl">Amount Received (₹)</label><input class="fi" id="uf-pay-amt" type="number" placeholder="0" oninput="document.getElementById('uf-pay-btn').disabled=!(parseFloat(this.value)>0);document.getElementById('uf-pay-btn').style.opacity=parseFloat(this.value)>0?'':'0.45'"/></div>
