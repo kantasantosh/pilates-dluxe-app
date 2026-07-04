@@ -50,6 +50,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .logo-sub{font-size:10px;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;margin-top:-1px;font-family:'Jost',sans-serif;font-weight:300;}
 .topbar-date{font-size:10px;color:var(--text3);text-align:right;opacity:0.75;}
 .tb-mini{background:none;border:1px solid var(--border2);border-radius:14px;padding:2px 10px;font-size:10px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
+.tb-chiprow{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:5px;flex-wrap:wrap;}
 .np-area::placeholder{color:var(--text3);opacity:0.35;}
 .np-area::-webkit-input-placeholder{color:var(--text3);opacity:0.35;}
 .topbar-date strong{display:block;color:var(--text2);font-size:11px;font-weight:600;}
@@ -100,13 +101,13 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 
 /* CLIENT CARD */
 .client-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:border-color 0.2s;}
-/* Alternate row shading — full block, clearly visible, base colours unchanged */
-#client-list>.client-card:nth-child(odd){background:var(--surface2);}
-#client-list>.client-card:nth-child(even){background:var(--surface3);}
-#cash-list>.card:nth-child(odd){background:var(--surface);}
-#cash-list>.card:nth-child(even){background:var(--surface3);}
-#bills-list>.card:nth-child(odd){background:var(--surface);}
-#bills-list>.card:nth-child(even){background:var(--surface3);}
+/* Alternate row shading — strong, clearly visible contrast, base hues kept */
+#client-list>.client-card:nth-child(odd){background:#1d1a16;}
+#client-list>.client-card:nth-child(even){background:#2a251d;}
+#cash-list>.card:nth-child(odd){background:#161310;}
+#cash-list>.card:nth-child(even){background:#252017;}
+#bills-list>.card:nth-child(odd){background:#161310;}
+#bills-list>.card:nth-child(even){background:#252017;}
 .client-card:hover{border-color:var(--border2);}
 .client-avatar{width:46px;height:46px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,var(--gold),var(--rose));display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:18px;color:#1a1a2e;}
 .client-info{flex:1;min-width:0;}
@@ -600,7 +601,7 @@ try{
       <span id="top-day" style="font-size:10px;"></span>
     </div>
     <div style="font-size:11px;color:var(--gold);margin-top:1px;" id="top-clock"></div>
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:3px;">
+    <div class="tb-chiprow" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-mini">🔄 Sync</button>
       <button onclick="openNotepad()" title="Notepad" class="tb-mini">📝 Notes</button>
     </div>
@@ -2704,7 +2705,7 @@ function renderSchedule(){
     slots.forEach((slot,_si)=>{
       const slotIdx=SLOTS.indexOf(slot);
       const booked=daySlots[slot]||[];
-      html+=`<div style="margin-bottom:10px;background:${_si%2===0?'var(--surface2)':'var(--surface)'};border:1px solid var(--border);border-radius:var(--rsm);padding:8px 6px;">
+      html+=`<div style="margin-bottom:10px;background:${_si%2===0?'#241f16':'#141210'};border:1px solid ${_si%2===0?'rgba(201,168,76,0.25)':'var(--border)'};border-radius:var(--rsm);padding:8px 6px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div style="font-size:13px;font-weight:700;color:var(--gold);">${slot}</div>
           <div style="font-size:13px;color:var(--text2);">${booked.length}/${MACHINES} spots</div>
@@ -4790,8 +4791,8 @@ if('serviceWorker' in navigator){
 .lg-err{color:var(--red);font-size:13px;min-height:18px;margin-bottom:8px;}
 .lg-fi{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--rsm);padding:12px;color:var(--text);font-size:15px;font-family:'Jost',sans-serif;outline:none;margin-bottom:10px;}
 .tb-user{display:flex;align-items:center;gap:6px;}
-.tb-uname{font-size:11px;color:var(--gold);font-weight:700;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.tb-lout{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:4px 8px;font-size:13px;cursor:pointer;color:var(--text2);}
+.tb-uname{font-size:10px;color:var(--gold);font-weight:700;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--border2);border-radius:14px;padding:2px 10px;}
+.tb-lout{background:none;border:1px solid var(--border2);border-radius:14px;padding:2px 8px;font-size:11px;cursor:pointer;color:var(--text2);}
 .usr-row{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 12px;margin-bottom:8px;}
 .aud-row{padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);margin-bottom:6px;}
 .aud-meta{font-size:11px;color:var(--text3);margin-bottom:2px;}
@@ -5071,7 +5072,7 @@ function ppIsAdmin(){
   if(PPS&&PPS.id){
     const _lg=document.getElementById('pp-login');
     if(_lg&&_lg.style.display!=='none')_lg.style.display='none';
-    const _tb=document.querySelector('.topbar');
+    const _tb=document.getElementById('tb-chiprow');
     if(_tb&&!document.getElementById('tb-user')){
       const _d=document.createElement('div');_d.className='tb-user';_d.id='tb-user';
       _d.innerHTML=`<div class="tb-uname">${PPS.role==='admin'?'👑':'👤'} ${PPS.name}</div><button class="tb-lout" onclick="doLogout()" title="Logout">⎋</button>`;
@@ -5279,7 +5280,7 @@ function applyRole(){
   const _lg=document.getElementById('pp-login');
   if(_lg)_lg.style.display='none';
   /* topbar user chip + logout */
-  const tb=document.querySelector('.topbar');
+  const tb=document.getElementById('tb-chiprow');
   if(tb&&!document.getElementById('tb-user')){
     const d=document.createElement('div');d.className='tb-user';d.id='tb-user';
     d.innerHTML=`<div class="tb-uname">${PPS.role==='admin'?'👑':'👤'} ${PPS.name}</div><button class="tb-lout" onclick="doLogout()" title="Logout">⎋</button>`;
@@ -7770,6 +7771,27 @@ window.addEventListener('popstate',function(){
   if(uf&&uf.classList.contains('open')){
     closeUnified();
     history.pushState(null,'',''); /* prevent actual back navigation */
+    return;
+  }
+  /* GENERAL TO-AND-FRO (pending item #10): any other open modal/popup
+     closes on Back/swipe, same one-consume-per-press pattern already
+     proven above for the unified form — extended here to cover every
+     modal in the app instead of just that one screen. */
+  const _openModal=document.querySelector('.mo.open');
+  if(_openModal){
+    closeM(_openModal.id);
+    history.pushState(null,'','');
+    return;
+  }
+  /* No modal open → step back one tab, if we have somewhere to go. Only
+     ONE level of history is kept (not a full multi-tab stack) — this
+     is the low-risk version: it reliably returns to "the tab you were
+     just on" without touching showTab's internals or every call site
+     that invokes it, which would be far riskier to get right. */
+  if(window._tabBackStack&&window._tabBackStack.length){
+    const _prev=window._tabBackStack.pop();
+    _origShowTab(_prev);
+    history.pushState(null,'','');
   }
 });
 /* Push a history entry when unified form opens so back button works */
@@ -7777,6 +7799,19 @@ const _origOpenUnified=openUnified;
 openUnified=function(){
   history.pushState(null,'','');
   return _origOpenUnified.apply(this,arguments);
+};
+/* Track one-level tab history + push a state so Back has something to
+   consume, without touching showTab's internals or any of its callers. */
+window._tabBackStack=[];
+const _origShowTab=showTab;
+showTab=function(n){
+  const _from=_activeTab;
+  if(_from&&_from!==n){
+    window._tabBackStack.push(_from);
+    if(window._tabBackStack.length>10)window._tabBackStack.shift(); /* cap, avoid unbounded growth */
+    history.pushState(null,'','');
+  }
+  return _origShowTab.apply(this,arguments);
 };
 
 function ufToggle(section){

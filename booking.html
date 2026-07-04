@@ -189,7 +189,24 @@ function getSessionsUsed(cid,mem){
   return used;
 }
 
-/* ===== AUTH FLOW ===== */
+/* ===== AUTH FLOW =====
+   THE FIX (Safari Gmail loop): persistence was never explicitly set here
+   (unlike index.html, which sets it at boot). Safari's storage partitioning
+   for installed/standalone PWAs can lose an implicit redirect-auth state
+   across the full-page trip to accounts.google.com and back — the SDK
+   then has nothing to hand to onAuthStateChanged, so it fires with no
+   user and the app silently shows Sign-In again, looking like an
+   infinite loop. Setting persistence explicitly before any redirect is
+   attempted, and separately draining getRedirectResult() with a visible
+   error on failure (instead of trusting onAuthStateChanged alone), gives
+   Safari the best chance to complete the round-trip and, if it still
+   fails, tells us why instead of failing silently. */
+try{firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);}catch(_e){}
+firebase.auth().getRedirectResult().then(result=>{
+  if(result&&result.user){_googleUser=result.user;}
+}).catch(err=>{
+  console.error('Redirect sign-in error:',err&&err.code,err&&err.message);
+});
 firebase.auth().onAuthStateChanged(user=>{
   if(user){
     _googleUser=user;
