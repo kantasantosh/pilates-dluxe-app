@@ -100,6 +100,10 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 
 /* CLIENT CARD */
 .client-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:border-color 0.2s;}
+/* Alternate row shading — 1-2 shades lighter, base colours unchanged */
+#client-list>.client-card:nth-child(even){background:var(--surface3);}
+#cash-list>.card:nth-child(even){background:var(--surface2);}
+#bills-list>.card:nth-child(even){background:var(--surface2);}
 .client-card:hover{border-color:var(--border2);}
 .client-avatar{width:46px;height:46px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,var(--gold),var(--rose));display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:18px;color:#1a1a2e;}
 .client-info{flex:1;min-width:0;}
@@ -570,7 +574,7 @@ try{
     <div class="logo-mark"><svg viewBox="0 0 100 100" width="24" height="24" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="30" r="8" fill="var(--gold)" stroke="none"/><path d="M44 64 C40 52 44 42 52 36 C60 30 66 24 70 14"/><path d="M44 64 C38 60 32 58 26 59"/><path d="M44 64 C44 52 40 44 36 38"/><path d="M36 38 C44 31 54 27 64 25"/><path d="M36 38 C30 44 27 52 26 60"/></svg></div>
     <div>
       <div class="logo-text">Pilates D'Luxe</div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v135</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v136</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -1885,6 +1889,7 @@ function _getFilteredClients(){
     }
     if(_clientFilter2==='active'&&(st!=='active'&&st!=='expiring'))return false;
     if(_clientFilter2==='active'){const _am=mems[c.id];if(_am&&_am.plan==='trial')return false;}
+    if(_clientFilter2==='expiring'&&c.isTrial)return false; /* trials are one-time, not memberships */
     if(_clientFilter2==='expiring'&&st!=='expiring')return false;
     if(_clientFilter2==='expired'&&c.isTrial)return false; /* trials are one-time, not memberships */
     if(_clientFilter2==='expired'&&st!=='expired'&&st!=='none')return false;
@@ -2259,13 +2264,6 @@ function updateMemPayable(){
     const b=_modeBalance(mode);
     mb.innerHTML=`${mode} balance: <b style="color:${b>=0?'var(--green)':'var(--red)'};">₹${b.toLocaleString('en-IN')}</b>`;
   }
-}
-function renderPlanChips(selected){
-  const plans=getPlans().filter(p=>p.id!=='trial');
-  document.getElementById('plan-chips').innerHTML=plans.map(p=>`
-    <button class="plan-chip${selected===p.id?' active':''}" onclick="selectPlan('${p.id}')">
-      ${p.name}<br><small style="font-weight:400;opacity:0.7;">${p.sessions===999?'Unlimited':p.sessions+' sessions'} • ${!p.days?'':p.days===1?'1 day':p.days===7?'1 week':p.days===30?'1 month':p.days===90?'3 months':p.days===180?'6 months':p.days+' days'} • ₹${(p.price||0).toLocaleString('en-IN')}</small>
-    </button>`).join('');
 }
 function selectPlan(pid){
   document.getElementById('m-plan').value=pid;
@@ -2686,10 +2684,10 @@ function renderSchedule(){
   ['Morning','Evening'].forEach((period,pi)=>{
     const slots=pi===0?morning:evening;
     html+=`<div class="div-section">${period}</div>`;
-    slots.forEach(slot=>{
+    slots.forEach((slot,_si)=>{
       const slotIdx=SLOTS.indexOf(slot);
       const booked=daySlots[slot]||[];
-      html+=`<div style="margin-bottom:10px;">
+      html+=`<div style="margin-bottom:10px;background:${_si%2===0?'var(--surface2)':'transparent'};border-radius:var(--rsm);padding:${_si%2===0?'8px 6px':'0'};">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div style="font-size:13px;font-weight:700;color:var(--gold);">${slot}</div>
           <div style="font-size:13px;color:var(--text2);">${booked.length}/${MACHINES} spots</div>
@@ -4223,12 +4221,6 @@ function saveNewPlan(){
   toast('✓ Plan added!');
   setTimeout(()=>armDirty('np-section','np-save-btn'),50);
 }
-function delPlan(idx){
-  const plans=getPlans();
-  plans.splice(idx,1);sv('pp_plans',plans);
-  renderPlansList();renderPlanChips(document.getElementById('m-plan').value);
-}
-
 // ===== CASH CATEGORIES =====
 const DEF_CREDIT_CATS=['Membership Fee','Renewal','Drop-in Session','Complimentary / Referral','Deposit Refund / Capital','Other Receipts (Liabilities)','Other Income'];
 const DEF_DEBIT_CATS=['Rent','Electricity','Staff Salary','Equipment','Supplies','Maintenance','Marketing','Security Deposit (Asset)','Loan Given / Repaid','Other Debits (Assets)','Other Expense'];
@@ -7407,20 +7399,6 @@ function clearAnnounce(){
 <script>
 /* ===== QR ID CARD (Phase 1) ===== */
 function _memberQRPayload(c){return 'PDL:'+c.id;} /* compact, studio-specific token */
-function resetBookingPin(cid){
-  if(typeof ppIsTrainer==='function'&&ppIsTrainer()){toast('🔒 Not allowed');return;}
-  const c=ld('pp_clients',[]).find(x=>x.id===cid)||{};
-  const mems=ld('pp_memberships',{});
-  if(!mems[cid]||!mems[cid].bookPin){toast('This member has no booking PIN set yet.');return;}
-  showConfirm('🔓','Reset Booking PIN?','Clear '+(c.fname||'this member')+'\'s booking PIN? They will be asked to set a new one the next time they book online.',[
-    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
-    {label:'Reset PIN',color:'var(--gold)',action:()=>{
-      delete mems[cid].bookPin;sv('pp_memberships',mems);
-      if(typeof AUD==='function')AUD('🔓 Booking PIN reset',(c.fname+' '+(c.lname||'')).trim());
-      toast('✓ Booking PIN cleared');
-    }}
-  ]);
-}
 function showMemberQR(cid){
   const c=ld('pp_clients',[]).find(x=>x.id===cid);
   if(!c){toast('Member not found');return;}
@@ -8989,7 +8967,7 @@ function ufSavePayment(){
         <span id="uf-profile-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
         <span id="uf-profile-arrow" style="font-size:12px;margin-left:auto;">▼</span>
       </div>
-      <div class="uf-sec-body" id="uf-body-profile">
+      <div class="uf-sec-body" id="uf-body-profile" style="background:rgba(90,130,200,0.05);">
         <input type="hidden" id="uf-cid"/>
         <input type="hidden" id="uf-photo-data"/>
         <div class="fr">
@@ -9035,7 +9013,7 @@ function ufSavePayment(){
         <span id="uf-plan-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
         <span id="uf-plan-arrow" style="font-size:12px;margin-left:auto;">▶</span>
       </div>
-      <div class="uf-sec-body" id="uf-body-plan" style="display:none;">
+      <div class="uf-sec-body" id="uf-body-plan" style="display:none;background:rgba(201,168,76,0.05);">
         <!-- Current plan info (read-only when active) -->
         <div id="uf-plan-current"></div>
         <!-- Action buttons (only when plan is active) -->
@@ -9069,7 +9047,7 @@ function ufSavePayment(){
         <span id="uf-pay-summary" style="font-size:11px;margin-left:auto;text-align:right;"></span>
         <span id="uf-pay-arrow" style="font-size:12px;margin-left:auto;">▶</span>
       </div>
-      <div class="uf-sec-body" id="uf-body-payment" style="display:none;">
+      <div class="uf-sec-body" id="uf-body-payment" style="display:none;background:rgba(46,160,90,0.05);">
         <div id="uf-pay-balance" style="text-align:center;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:12px;"></div>
         <div class="fr">
           <div class="fg"><label class="fl">Amount Received (₹)</label><input class="fi" id="uf-pay-amt" type="number" placeholder="0" oninput="document.getElementById('uf-pay-btn').disabled=!(parseFloat(this.value)>0);document.getElementById('uf-pay-btn').style.opacity=parseFloat(this.value)>0?'':'0.45'"/></div>
