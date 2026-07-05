@@ -6676,10 +6676,15 @@ function _receiptHtml(pay,forPrint){
          (_plansAll.length?_plansAll[_plansAll.length-1]:m);
   const _isFirstPaidPlan=_plansAll.length&&mp===_plansAll[0];
   const plan=mp?(getPlans().find(p=>p.id===mp.plan)||{}).name||mp.plan:'';
-  /* Payments belonging to THIS plan's period only */
-  const _paidInWin=(mp&&mp.startDate)?(
-    ld('pp_payments',[]).filter(p=>p.cid===pay.cid&&(p.date||'')>=mp.startDate&&(p.date||'')<=(mp.endDate||'9999')).reduce((t,p)=>t+p.amt,0)+
-    ld('pp_cash',[]).filter(e=>e.cid===pay.cid&&e.type==='in'&&(e.date||'')>=mp.startDate&&(e.date||'')<=(mp.endDate||'9999')).reduce((t,e)=>t+e.amt,0)
+  /* Payments belonging to THIS plan's period only.
+     Window starts AFTER the previous plan ended (not at this plan's start),
+     so payments made in the gap (e.g. pay on Jul 4 for a plan starting Jul 6)
+     are correctly attributed. For the first plan, all payments count. */
+  const _mpIdx=_plansAll.indexOf(mp);
+  const _winStart=_mpIdx>0?_plansAll[_mpIdx-1].endDate:'';
+  const _paidInWin=(mp)?(
+    ld('pp_payments',[]).filter(p=>p.cid===pay.cid&&(p.date||'')>_winStart&&(p.date||'')<=(mp.endDate||'9999')).reduce((t,p)=>t+p.amt,0)+
+    ld('pp_cash',[]).filter(e=>e.cid===pay.cid&&e.type==='in'&&(e.date||'')>_winStart&&(e.date||'')<=(mp.endDate||'9999')).reduce((t,e)=>t+e.amt,0)
   ):getClientTotalPaid(pay.cid);
   const due=mp?((mp.fee||0)-(mp.disc||0))-_paidInWin:0;
   const rcptNo='PDL-'+(pay.id||'').toString().slice(-8);
