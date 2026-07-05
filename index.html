@@ -591,7 +591,7 @@ try{
   <div class="topbar-logo">
     <div class="logo-mark" style="overflow:hidden;padding:0;width:72px;height:72px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v139</span></div>
+      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v140</span></div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -4346,8 +4346,7 @@ function _cePick(cid){
   /* Show client balance immediately */
   const cd=document.getElementById('ce-client-due');
   if(cd&&cid){
-    const _m=ld('pp_memberships',{})[cid];
-    const _fee=_m?((_m.fee||0)-(_m.disc||0)):0;
+    const _fee=getClientTotalCharged(cid);
     const _paid=getClientTotalPaid(cid);
     const _due=_fee-_paid;
     cd.innerHTML=_due>0?'<span style="color:var(--amber);">Balance due: <b>₹'+_due.toLocaleString('en-IN')+'</b></span>':_due<0?'<span style="color:var(--green);">Advance: <b>₹'+Math.abs(_due).toLocaleString('en-IN')+'</b></span>':'<span style="color:var(--green);">✓ Settled</span>';
@@ -6310,7 +6309,7 @@ function printProfile(cid){
   const _seenP=new Set();
   const pays=[..._legPays,..._cashPays].filter(p=>{const k=p.date+'_'+p.amt;if(_seenP.has(k))return false;_seenP.add(k);return true;}).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const totalPaid=getClientTotalPaid(cid);
-  const due=m?Math.max(0,(m.fee||0)-(m.disc||0))-totalPaid:0;
+  const due=m?getClientTotalCharged(cid)-totalPaid:0;
   const refBy=c.refId?(ld('pp_clients',[]).find(x=>x.id===c.refId)||{}).fname||'':'';
   const isTrialClient=m&&m.plan==='trial';
   let html=`<h2>👤 Profile — ${_esc(c.fname+' '+(c.lname||''))} (${_esc(c.memNo)})</h2>
