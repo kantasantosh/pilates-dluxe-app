@@ -591,7 +591,7 @@ try{
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-logo">
-    <div class="logo-mark" style="overflow:hidden;padding:0;width:96px;height:96px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
+    <div class="logo-mark" style="overflow:hidden;padding:0;width:112px;height:112px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div>
       <div class="logo-sub">Studio Admin</div>
     </div>
@@ -1050,7 +1050,7 @@ try{
 
 <!-- BOTTOM NAV -->
 <div style="position:fixed;bottom:48px;left:0;right:0;text-align:center;z-index:99;pointer-events:none;padding-bottom:env(safe-area-inset-bottom);">
-  <span id="app-ver" onclick="checkForUpdate()" style="pointer-events:auto;cursor:pointer;font-size:9px;color:var(--text3);opacity:0.5;letter-spacing:1px;text-decoration:underline;">v140l</span>
+  <span id="app-ver" onclick="checkForUpdate()" style="pointer-events:auto;cursor:pointer;font-size:9px;color:var(--text3);opacity:0.5;letter-spacing:1px;text-decoration:underline;">v141a</span>
 </div>
 <div class="bnav">
   <button class="nb active" onclick="showTab('dashboard',this)"><span class="ni">🏠</span>Home</button>
@@ -3027,17 +3027,19 @@ function _updateFloatingNav(n){
   if(!box||!boxR)return;
   const scoped=['clients','cash','tns','schedule'];
   if(!scoped.includes(n)){box.classList.remove('show');box.innerHTML='';boxR.classList.remove('show');boxR.innerHTML='';return;}
-  /* Right side: scroll up/down (all scoped tabs) */
-  boxR.innerHTML=`<button class="float-nav-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">▲</button>
+  /* Right side: scroll up/down (all scoped tabs) — on LEFT for non-schedule */
+  const scrollTarget=n==='schedule'?boxR:box;
+  const clearTarget=n==='schedule'?box:boxR;
+  scrollTarget.innerHTML=`<button class="float-nav-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">▲</button>
       <button class="float-nav-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
-  boxR.classList.add('show');
+  scrollTarget.classList.add('show');
   /* Left side: day nav (schedule only) */
   if(n==='schedule'){
     box.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day">◀</button>
         <button class="float-nav-btn" onclick="chDay(1)" title="Next day">▶</button>`;
     box.classList.add('show');
   }else{
-    box.classList.remove('show');box.innerHTML='';
+    clearTarget.classList.remove('show');clearTarget.innerHTML='';
   }
 }
 function renderPlanChips(selected){
@@ -3479,7 +3481,7 @@ function renderCredits(){
         <button onclick="sendFeedback()" style="width:100%;background:#25D366;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;color:white;">💬 Feedback via WhatsApp</button>
     </div>
     <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
-      <div style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
+      <div style="width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
       <div style="font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
       <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 12px;">Studio Admin</div>
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Built with</div>
@@ -4780,7 +4782,7 @@ if('serviceWorker' in navigator){
 <style id="pp-auth-css">
 #pp-login{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;}
 .lg-box{width:100%;max-width:360px;text-align:center;}
-.lg-mark{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-family:'Playfair Display',serif;font-size:30px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
+.lg-mark{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-family:'Playfair Display',serif;font-size:30px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
 .lg-title{font-family:'Playfair Display',serif;font-size:24px;color:var(--text);}
 .lg-sub{font-size:12px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin:4px 0 22px;}
 .lg-users{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:18px;}
@@ -8561,12 +8563,14 @@ function ufCalcChange(){
   const frozenDays=m.frozenDays||0;
   const activeDays=Math.max(0,calendarDays-frozenDays);
   let sessUsed=_sessUsedInPlan(cid,m);
-  const sessTotal=m.plan==='trial'?1:(m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(oldP?.sessions||0)+(m.bonus||0)));
+  /* Paid sessions only (exclude complimentary bonus) for consumption calc */
+  const sessPaid=m.sessions!=null?m.sessions:(m.sessionsTotal!=null?m.sessionsTotal:(oldP?.sessions||0));
+  const sessTotal=sessPaid+(m.bonus||0);
   const sessLeft=Math.max(0,sessTotal-sessUsed);
   
   /* Use ORIGINAL plan days for consumption (not extended), active days only */
   const origDays=oldP?oldP.days:(totalDays-frozenDays);
-  const consumed=_ufConsumed(m.fee||0,origDays,activeDays,sessTotal,sessUsed);
+  const consumed=_ufConsumed(m.fee||0,origDays,activeDays,sessPaid,sessUsed);
   
   /* Carry-forward = what member PAID minus consumed (not fee minus consumed!) */
   const totalPaid=getClientTotalPaid(cid);
@@ -8579,7 +8583,7 @@ function ufCalcChange(){
     <div style="font-weight:700;color:var(--gold);margin-bottom:6px;">${isUpgrade?'⬆️ UPGRADE':'⬇️ DOWNGRADE'}</div>
     <div>Old plan fee: ₹${(m.fee||0).toLocaleString('en-IN')}</div>
     <div>Active days used: ${activeDays} of ${origDays}${frozenDays?' ('+frozenDays+' frozen)':''} = ${origDays>0?Math.round(activeDays/origDays*100):0}%</div>
-    <div>Sessions used: ${sessUsed} of ${sessTotal} = ${sessTotal>0?Math.round(sessUsed/sessTotal*100):0}%</div>
+    <div>Sessions used: ${sessUsed} of ${sessPaid} paid = ${sessPaid>0?Math.round(sessUsed/sessPaid*100):0}%${(m.bonus||0)>0?' <span style="color:var(--text3);">('+sessTotal+' incl. '+(m.bonus||0)+' comp. — ignored)</span>':''}</div>
     <div>Consumed (MAX rule): ₹${consumed.toLocaleString('en-IN')}</div>
     <div style="border-top:1px solid var(--border);margin:6px 0;padding-top:6px;">
       Total paid so far: ₹${totalPaid.toLocaleString('en-IN')}<br/>
@@ -8591,7 +8595,7 @@ function ufCalcChange(){
       Less credit: −₹${carryForward.toLocaleString('en-IN')}<br/>
       <b style="font-size:15px;">Net to charge: ₹${netCharge.toLocaleString('en-IN')}</b>
     </div>
-    <div style="margin-top:6px;font-size:11px;color:var(--text3);">Sessions carried forward: ${sessLeft} (goodwill)</div>
+    <div style="margin-top:6px;font-size:11px;color:var(--text3);">New plan sessions: ${newP.sessions} (old plan sessions do not carry forward)</div>
   `;
   calcDiv.style.display='';
 }
@@ -8818,10 +8822,12 @@ function ufDoChange(){
   const frozenDays=m.frozenDays||0;
   const activeDays=Math.max(0,calendarDays-frozenDays);
   let sessUsed=_sessUsedInPlan(cid,m);
-  const sessTotal=m.plan==='trial'?1:(m.sessions!=null?(m.sessions+(m.bonus||0)):(m.sessionsTotal!=null?m.sessionsTotal:(oldP?.sessions||0)+(m.bonus||0)));
+  /* Paid sessions only (exclude complimentary bonus) for consumption calc */
+  const sessPaid=m.sessions!=null?m.sessions:(m.sessionsTotal!=null?m.sessionsTotal:(oldP?.sessions||0));
+  const sessTotal=sessPaid+(m.bonus||0);
   const sessLeft=Math.max(0,sessTotal-sessUsed);
   const origDays=oldP?oldP.days:(totalDays-frozenDays);
-  const consumed=_ufConsumed(m.fee||0,origDays,activeDays,sessTotal,sessUsed);
+  const consumed=_ufConsumed(m.fee||0,origDays,activeDays,sessPaid,sessUsed);
   /* Carry-forward = what member PAID minus consumed (you can't carry forward unpaid money) */
   const totalPaid=getClientTotalPaid(cid);
   const carryForward=Math.max(0,totalPaid-consumed);
@@ -8834,7 +8840,7 @@ function ufDoChange(){
     ...m,history:undefined,events:undefined,
     endReason:'Changed to '+newP.name+(isUpgrade?' (upgrade)':' (downgrade)'),
     adjustmentAmt:carryForward,
-    adjustmentNote:'Paid ₹'+totalPaid.toLocaleString('en-IN')+', consumed ₹'+consumed.toLocaleString('en-IN')+'. ₹'+carryForward.toLocaleString('en-IN')+' carried forward. '+sessLeft+' sessions carried (goodwill).'
+    adjustmentNote:'Paid ₹'+totalPaid.toLocaleString('en-IN')+', consumed ₹'+consumed.toLocaleString('en-IN')+'. ₹'+carryForward.toLocaleString('en-IN')+' carried forward. Sessions not carried (monetary adjustment only).'
   });
   
   /* Calculate new end date */
@@ -8851,12 +8857,12 @@ function ufDoChange(){
   const newMem={
     plan:newPid,startDate,endDate:_localDate(nEndDt),
     fee:netCharge,disc:0,bonus:0,
-    sessions:newP.sessions+sessLeft, /* carry forward sessions (goodwill) */
-    sessionsLeft:newP.sessions+sessLeft, /* booking app reads this */
+    sessions:newP.sessions, /* NO carry forward — monetary adjustment only */
+    sessionsLeft:newP.sessions, /* booking app reads this */
     status:'active',
     history:m.history,
     events:[...(m.events||[]),{type:'change',date:td(),details:{
-      from:m.plan,to:newPid,consumed,carryForward,netCharge,isUpgrade,sessCarried:sessLeft
+      from:m.plan,to:newPid,consumed,carryForward,netCharge,isUpgrade
     }}],
   };
   mems[cid]=newMem;
