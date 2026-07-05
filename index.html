@@ -6679,12 +6679,14 @@ function _receiptHtml(pay,forPrint){
   /* Payments belonging to THIS plan's period only.
      Window starts AFTER the previous plan ended (not at this plan's start),
      so payments made in the gap (e.g. pay on Jul 4 for a plan starting Jul 6)
-     are correctly attributed. For the first plan, all payments count. */
+     are correctly attributed. For the first plan, all payments count.
+     Capped at the receipt's own date so future payments don't inflate it. */
   const _mpIdx=_plansAll.indexOf(mp);
   const _winStart=_mpIdx>0?_plansAll[_mpIdx-1].endDate:'';
+  const _winEnd=_pd<(mp&&mp.endDate||'9999')?_pd:(mp&&mp.endDate||'9999');
   const _paidInWin=(mp)?(
-    ld('pp_payments',[]).filter(p=>p.cid===pay.cid&&(p.date||'')>_winStart&&(p.date||'')<=(mp.endDate||'9999')).reduce((t,p)=>t+p.amt,0)+
-    ld('pp_cash',[]).filter(e=>e.cid===pay.cid&&e.type==='in'&&(e.date||'')>_winStart&&(e.date||'')<=(mp.endDate||'9999')).reduce((t,e)=>t+e.amt,0)
+    ld('pp_payments',[]).filter(p=>p.cid===pay.cid&&(p.date||'')>_winStart&&(p.date||'')<=_winEnd).reduce((t,p)=>t+p.amt,0)+
+    ld('pp_cash',[]).filter(e=>e.cid===pay.cid&&e.type==='in'&&(e.date||'')>_winStart&&(e.date||'')<=_winEnd).reduce((t,e)=>t+e.amt,0)
   ):getClientTotalPaid(pay.cid);
   const due=mp?((mp.fee||0)-(mp.disc||0))-_paidInWin:0;
   const rcptNo='PDL-'+(pay.id||'').toString().slice(-8);
@@ -6712,6 +6714,7 @@ function _receiptHtml(pay,forPrint){
     <table style="width:100%;font-size:13px;color:#333;border-collapse:collapse;">
       ${mp?`<tr><td style="padding:3px 0;color:#666;">Total Plan Fee</td><td style="text-align:right;font-weight:700;">₹${(mp.fee||0).toLocaleString('en-IN')}</td></tr>`:''}
       ${mp&&(mp.disc||0)>0?`<tr><td style="padding:3px 0;color:#2e7d32;">Complimentary Discount</td><td style="text-align:right;color:#2e7d32;">− ₹${(mp.disc||0).toLocaleString('en-IN')}</td></tr>`:''}
+      ${(_paidInWin-(pay.amt||0))>0?`<tr><td style="padding:3px 0;color:#666;">Paid Earlier</td><td style="text-align:right;">₹${(_paidInWin-(pay.amt||0)).toLocaleString('en-IN')}</td></tr>`:''}
       <tr><td style="padding:3px 0;color:#666;">Amount Received</td><td style="text-align:right;font-weight:700;font-size:18px;color:#1a1a1a;">₹${(pay.amt||0).toLocaleString('en-IN')}</td></tr>
       ${mp?`<tr style="border-top:1px solid #c9a84c;"><td style="padding:5px 0;font-weight:700;">${due>0?'Balance Due':'Balance'}</td><td style="text-align:right;font-weight:700;font-size:14px;color:${due>0?'#b00':'#2e7d32'};">${due>0?'₹'+due.toLocaleString('en-IN'):due<0?'Advance ₹'+Math.abs(due).toLocaleString('en-IN'):'✓ Settled'}</td></tr>`:''}
     </table>
