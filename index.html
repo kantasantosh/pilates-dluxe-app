@@ -49,7 +49,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .logo-text{font-family:'Playfair Display',serif;font-size:18px;color:var(--text);letter-spacing:1px;font-weight:400;font-style:italic;}
 .logo-sub{font-size:10px;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;margin-top:-1px;font-family:'Jost',sans-serif;font-weight:300;}
 .topbar-date{font-size:10px;color:var(--text3);text-align:right;opacity:0.75;}
-.tb-mini{background:none;border:1px solid var(--border2);border-radius:14px;padding:2px 10px;font-size:10px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
+.tb-mini{background:none;border:1px solid var(--border2);border-radius:16px;padding:4px 12px;font-size:11px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
 .tb-chiprow{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:5px;flex-wrap:wrap;}
 .np-area::placeholder{color:var(--text3);opacity:0.35;}
 .np-area::-webkit-input-placeholder{color:var(--text3);opacity:0.35;}
@@ -145,7 +145,8 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 /* FORMS */
 .fg{margin-bottom:14px;}
 .fl{display:block;font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;font-weight:600;}
-.fi{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 14px;color:var(--text);font-family:'Jost',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.fi{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 14px;color:var(--gold);font-family:'Jost',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+input,select,textarea{color:var(--gold);}
 .fi::placeholder{color:var(--text3);opacity:0.55;font-weight:400;}
 .fi:focus{border-color:var(--gold);}
 .fi option{background:var(--surface2);padding:6px;}
@@ -156,6 +157,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 /* FAB */
 .fab{position:fixed;bottom:76px;right:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(201,168,76,0.4);z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
 .float-nav{position:fixed;left:16px;bottom:84px;display:none;flex-direction:column;gap:8px;z-index:85;}
+.float-nav.float-nav-right{left:auto;right:16px;}
 .float-nav.show{display:flex;}
 .float-nav-row{display:flex;gap:8px;}
 .float-nav-btn{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--gold);color:var(--gold);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.3);opacity:0.9;padding:0;}
@@ -589,9 +591,9 @@ try{
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-logo">
-    <div class="logo-mark" style="overflow:hidden;padding:0;width:72px;height:72px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
+    <div class="logo-mark" style="overflow:hidden;padding:0;width:96px;height:96px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v140c</span></div>
+      <div class="logo-sub">Studio Admin</div>
     </div>
   </div>
   <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
@@ -616,7 +618,8 @@ try{
 
 <!-- CLIENTS -->
 <div class="tab" id="tab-clients">
-  <div class="sh"><div class="st">Clients<small>Member Directory</small></div>
+  <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding-bottom:4px;">
+  <div class="sh" style="padding-top:8px;padding-bottom:6px;"><div class="st" style="font-size:15px;">Clients<small>Clients Directory</small></div>
     <button class="btn btn-outline btn-sm" onclick="openAttendanceLookup()" title="Look up a member's attendance and validity">🔍 Attendance</button>
   </div>
   <div style="margin-bottom:8px;display:flex;gap:8px;">
@@ -646,12 +649,13 @@ try{
     <span style="color:var(--text3);font-size:16px;">🔍</span>
     <input id="client-search" placeholder="🔍 Search by name, ID, phone, email, plan..." oninput="renderClients()"/>
   </div>
+  </div>
   <div id="client-list"></div>
 </div>
 
 <!-- SCHEDULE -->
 <div class="tab" id="tab-schedule">
-  <div class="sh">
+  <div class="sh" style="position:sticky;top:0;z-index:10;background:var(--bg);padding-top:8px;padding-bottom:8px;">
     <div class="st">Schedule<small id="sched-label"></small></div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="btn btn-outline btn-sm" onclick="pdlSyncNow()" title="Force refresh from cloud">🔄</button>
@@ -677,11 +681,6 @@ try{
       <div class="st">Tasks & Bills<small>One-time & Recurring</small></div>
       <button class="btn btn-gold btn-sm" onclick="openAddBillTodo()">+ Add</button>
     </div>
-    <!-- Sub-tabs for Tasks vs Bills filtering -->
-    <div class="ftabs" id="bt-filter-tabs">
-      <button class="ftab active" onclick="setBTFilter('todo',this)">✅ Tasks</button>
-      <button class="ftab" onclick="setBTFilter('bills',this)">💡 Bills</button>
-    </div>
     <div id="bills-list"></div>
   </div>
 
@@ -706,7 +705,8 @@ try{
 
 <!-- CASH BOOK -->
 <div class="tab" id="tab-cash">
-  <div class="sh">
+  <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding-bottom:4px;">
+  <div class="sh" style="padding-top:8px;padding-bottom:6px;">
     <div class="st">Cash Book<small>Credits & Debits</small></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-gold btn-sm" onclick="openCashEntry()">+ New Entry</button>
@@ -725,6 +725,7 @@ try{
     <select id="cash-catfilter" onchange="renderCash()" style="flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">All categories</option>
     </select>
+  </div>
   </div>
   <div id="cash-list"></div>
 </div>
@@ -1045,8 +1046,12 @@ try{
 <!-- FAB -->
 <button class="fab" id="fab-btn" onclick="fabAction()">＋</button>
 <div class="float-nav" id="float-nav"></div>
+<div class="float-nav float-nav-right" id="float-nav-r"></div>
 
 <!-- BOTTOM NAV -->
+<div style="position:fixed;bottom:48px;left:0;right:0;text-align:center;z-index:99;pointer-events:none;padding-bottom:env(safe-area-inset-bottom);">
+  <span id="app-ver" onclick="checkForUpdate()" style="pointer-events:auto;cursor:pointer;font-size:9px;color:var(--text3);opacity:0.5;letter-spacing:1px;text-decoration:underline;">v140l</span>
+</div>
 <div class="bnav">
   <button class="nb active" onclick="showTab('dashboard',this)"><span class="ni">🏠</span>Home</button>
   <button class="nb" onclick="showTab('clients',this)"><span class="ni">👥</span>Clients</button>
@@ -1114,7 +1119,7 @@ try{
   </div>
 </div>
 <script>
-function _cSetCategory(cat){
+function _cSetCategory(cat,lock){
   document.getElementById('c-category').value=cat;
   const trialBtn=document.getElementById('c-cat-trial');
   const regBtn=document.getElementById('c-cat-regular');
@@ -1125,18 +1130,15 @@ function _cSetCategory(cat){
   regBtn.style.background=isTrial?'none':'var(--gold)';
   regBtn.style.borderColor=isTrial?'var(--border2)':'var(--gold)';
   regBtn.style.color=isTrial?'var(--text)':'#1a1a2e';
-  /* Trial registration is a quick walk-in capture. Email is now OPTIONAL
-     (not required) but stays fully enterable — younger clients are often
-     happy to share an email or Insta handle even at a quick trial signup,
-     and disabling the field removed that option entirely. Address/Notes
-     genuinely aren't needed yet for a trial, so those stay de-emphasized;
-     she gets the rest later, through this same form, when she converts. */
+  /* Lock: disable the OTHER tab so user can't switch */
+  if(lock){
+    trialBtn.disabled=!isTrial;trialBtn.style.opacity=!isTrial?'0.3':'';
+    regBtn.disabled=isTrial;regBtn.style.opacity=isTrial?'0.3':'';
+  }else{
+    trialBtn.disabled=false;trialBtn.style.opacity='';
+    regBtn.disabled=false;regBtn.style.opacity='';
+  }
   document.getElementById('c-email-optional-tag').textContent=isTrial?'(optional)':'';
-  ['c-addr-row','c-notes-row'].forEach(id=>{
-    const row=document.getElementById(id);
-    row.style.opacity=isTrial?'0.4':'';
-    row.querySelectorAll('input').forEach(inp=>inp.disabled=isTrial);
-  });
   document.getElementById('c-join-row').style.display=isTrial?'none':'';
   document.getElementById('c-trialdate-row').style.display=isTrial?'':'none';
   if(isTrial&&!document.getElementById('c-trialdate').value)document.getElementById('c-trialdate').value=td();
@@ -1689,7 +1691,7 @@ function renderDash(){
         <div style="font-size:11px;color:var(--text3);" id="dc-greet">—</div>
       </div>
     </div>
-    ${_alerts.length?`<div style="background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.3);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">
+    ${_alerts.length?`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">
       <div style="font-size:11px;font-weight:700;color:#e74c3c;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔔 Needs Attention (${_alerts.length})</div>
       ${_alerts.slice(0,6).map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);" onclick="${a.action}">
         <span>${a.icon}</span><span style="flex:1;">${_esc(a.text)}</span><span style="color:var(--text3);">›</span>
@@ -1954,7 +1956,7 @@ function renderClients(){
       <div class="client-info">
         <div class="client-name">${c.fname} ${c.lname}${c.archived?' <span style="font-size:12px;color:var(--amber);background:rgba(251,191,36,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(251,191,36,0.3);">INACTIVE</span>':''}${c.isStaffDemo?' <span style="font-size:12px;color:var(--teal);background:rgba(127,166,154,0.15);padding:1px 6px;border-radius:8px;border:1px solid rgba(127,166,154,0.4);font-weight:800;">🎓 STAFF DEMO</span>':''}</div>
         <div class="client-sub">${_fmtPhone(c.phone)}${plan?(()=>{const _baseS=mem.sessions||plan.sessions||0;const _bonus=mem.bonus||0;const _tot=_baseS+_bonus;return ' • <b style="color:var(--gold);">'+plan.name+'</b>'+(_tot>=999?' (Unlimited)':_tot?' ('+(_bonus>0?_baseS+'+'+_bonus:_tot)+' sess)':'');})():''}</div>
-        <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial: '+fmt(c.trialDate):''}${!c.isTrial&&(c.join||c.joinDate)?' • 📅 Joined '+fmt(c.join||c.joinDate):''}${mem&&!c.isTrial&&mem.endDate?' • Expires '+fmt(mem.endDate):''}</div>
+        <div style="font-size:11px;color:var(--text3);margin:1px 0 2px;">🆔 ${c.memNo||'—'}${c.trialDate?' • 🎯 Trial: '+fmt(c.trialDate):''}${!c.isTrial&&(c.join||c.joinDate)?' • 📅 Regd '+fmt(c.join||c.joinDate):''}${mem&&!c.isTrial&&mem.endDate?' • Expires '+fmt(mem.endDate):''}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${(()=>{
             /* Converted = attended trial AND has a paid membership plan */
@@ -2044,7 +2046,7 @@ function _crefPick(id,name,memNo){
   document.getElementById('c-ref-search').value=(memNo?memNo+' — ':'')+name;
   document.getElementById('c-ref-suggest').style.display='none';
 }
-function openAddClient(){
+function openAddClient(forceCat){
   document.getElementById('client-modal-title').textContent='Add Client';
   document.getElementById('c-id').value='';
   document.getElementById('c-memno-row').style.display='none';
@@ -2056,9 +2058,8 @@ function openAddClient(){
   document.getElementById('c-anni').value='';
   document.getElementById('c-join').value=td();
   document.getElementById('c-trialdate').value='';
-  /* Category choice only exists for a NEW registration — show it, default to Regular */
   document.getElementById('c-category-row').style.display='';
-  _cSetCategory('regular');
+  _cSetCategory(forceCat||'regular',!!forceCat);
   document.getElementById('c-ref').value='';
   document.getElementById('c-ref-search').value='';
   openM('m-client');
@@ -2066,8 +2067,8 @@ function openAddClient(){
 }
 /* Dashboard's purple + button opens the same form, pre-set to Trial */
 function openTrialReg(){
-  openAddClient();
-  _cSetCategory('trial');
+  openAddClient('trial');
+  _cSetCategory('trial',true);
 }
 function openEditClient(cid){
   const clients=ld('pp_clients',[]);
@@ -2989,16 +2990,21 @@ function showTab(n,btn){
     const _allChip=document.querySelector('#tab-clients .ftab');
     if(_allChip)_allChip.classList.add('active');
   }
-  /* Update fab button: purple "Trial" on dashboard, gold "+" elsewhere */
+  /* Update fab button: purple "Trial" on dashboard, gold "+" elsewhere,
+     hidden on schedule and about (no action needed there) */
   const _fab=document.getElementById('fab-btn');
   if(_fab){
-    if(n==='dashboard'){
+    if(n==='schedule'||n==='about'){
+      _fab.style.display='none';
+    }else if(n==='dashboard'){
+      _fab.style.display='';
       _fab.style.background='linear-gradient(135deg,#9b59b6,#8e44ad)';
       _fab.style.color='#fff';
       _fab.style.boxShadow='0 4px 20px rgba(155,89,182,0.4)';
       _fab.style.fontSize='11px';_fab.style.fontWeight='700';_fab.style.width='auto';_fab.style.padding='0 16px';
       _fab.textContent='Trial';
     }else{
+      _fab.style.display='';
       _fab.style.background='';_fab.style.color='';_fab.style.boxShadow='';
       _fab.style.fontSize='';_fab.style.fontWeight='';_fab.style.width='';_fab.style.padding='';
       _fab.textContent='＋';
@@ -3017,22 +3023,22 @@ function showTab(n,btn){
    scrolling long lists on these pages was the original complaint. */
 function _updateFloatingNav(n){
   const box=document.getElementById('float-nav');
-  if(!box)return;
+  const boxR=document.getElementById('float-nav-r');
+  if(!box||!boxR)return;
   const scoped=['clients','cash','tns','schedule'];
-  if(!scoped.includes(n)){box.classList.remove('show');box.innerHTML='';return;}
-  const updown=`<div class="float-nav-row">
-      <button class="float-nav-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">▲</button>
-      <button class="float-nav-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Scroll to bottom">▼</button>
-    </div>`;
+  if(!scoped.includes(n)){box.classList.remove('show');box.innerHTML='';boxR.classList.remove('show');boxR.innerHTML='';return;}
+  /* Right side: scroll up/down (all scoped tabs) */
+  boxR.innerHTML=`<button class="float-nav-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">▲</button>
+      <button class="float-nav-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
+  boxR.classList.add('show');
+  /* Left side: day nav (schedule only) */
   if(n==='schedule'){
-    box.innerHTML=`<div class="float-nav-row">
-        <button class="float-nav-btn" onclick="chDay(-1)" title="Previous day">◀</button>
-        <button class="float-nav-btn" onclick="chDay(1)" title="Next day">▶</button>
-      </div>`+updown;
+    box.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day">◀</button>
+        <button class="float-nav-btn" onclick="chDay(1)" title="Next day">▶</button>`;
+    box.classList.add('show');
   }else{
-    box.innerHTML=updown;
+    box.classList.remove('show');box.innerHTML='';
   }
-  box.classList.add('show');
 }
 function renderPlanChips(selected){
   const plans=getPlans().filter(p=>p.id!=='trial');
@@ -3054,7 +3060,7 @@ function fabAction(){
   _fabLastTap=now;
   const actions={
     dashboard:openTrialReg,
-    clients:openAddClient,
+    clients:()=>openAddClient('regular'),
     schedule:()=>toast('Tap any empty slot + to book'),
     cash:()=>openCashEntry(),
     tns:()=>{
@@ -3476,17 +3482,15 @@ function renderCredits(){
       <div style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
       <div style="font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
       <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 12px;">Studio Admin</div>
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Built with</div>
-      <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
-        <div style="text-align:center;"><div style="font-size:14px;font-weight:500;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">by Anthropic</div></div>
-        <div style="text-align:center;"><div style="font-size:14px;font-weight:500;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">by Google</div></div>
-        <div style="text-align:center;"><div style="font-size:14px;font-weight:500;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div>
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Built with</div>
+      <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#d4a574;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#2d1810;">C</div><div style="font-size:12px;font-weight:500;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div>
+        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#ff9100;display:flex;align-items:center;justify-content:center;font-size:18px;">🔥</div><div style="font-size:12px;font-weight:500;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">Google</div></div>
+        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#f48120;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;">CF</div><div style="font-size:12px;font-weight:500;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div>
+        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#24292e;display:flex;align-items:center;justify-content:center;font-size:18px;">🐙</div><div style="font-size:12px;font-weight:500;color:var(--text);">GitHub</div><div style="font-size:9px;color:var(--text3);">Source</div></div>
+        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#4285f4;display:flex;align-items:center;justify-content:center;font-size:18px;">✨</div><div style="font-size:12px;font-weight:500;color:var(--text);">Gemini</div><div style="font-size:9px;color:var(--text3);">Google</div></div>
       </div>
       <div style="font-size:11px;color:var(--text3);">Designed together with its user</div>
-    </div>
-    <div style="margin:0 16px 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">What's inside</div>
-      ${['👥 Clients & Profiles','📅 Booking & Attendance','💰 Cash Book','👨‍🏫 Staff & Salary','🎁 Complimentary','📋 Tasks','📊 Dashboard'].map(f=>'<span style="display:inline-block;padding:3px 8px;margin:2px;border:1px solid var(--border);border-radius:12px;font-size:11px;color:var(--text3);">'+f+'</span>').join('')}
     </div>
     <div style="margin:0 16px 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🔒 Fingerprint / Face Unlock (this device)</div>
@@ -5073,7 +5077,7 @@ function ppIsAdmin(){
     const _tb=document.getElementById('tb-chiprow');
     if(_tb&&!document.getElementById('tb-user')){
       const _d=document.createElement('div');_d.className='tb-user';_d.id='tb-user';
-      _d.innerHTML=`<div class="tb-uname">${PPS.role==='admin'?'👑':'👤'} ${PPS.name}</div><button class="tb-lout" onclick="doLogout()" title="Logout">⎋</button>`;
+      _d.innerHTML=`<button class="tb-mini" onclick="doLogout()" title="Logout" style="font-weight:700;">${PPS.role==='admin'?'👑':'👤'} ${PPS.name} ⎋</button>`;
       _tb.appendChild(_d);
     }
   }
@@ -5281,7 +5285,7 @@ function applyRole(){
   const tb=document.getElementById('tb-chiprow');
   if(tb&&!document.getElementById('tb-user')){
     const d=document.createElement('div');d.className='tb-user';d.id='tb-user';
-    d.innerHTML=`<div class="tb-uname">${PPS.role==='admin'?'👑':'👤'} ${PPS.name}</div><button class="tb-lout" onclick="doLogout()" title="Logout">⎋</button>`;
+    d.innerHTML=`<button class="tb-mini" onclick="doLogout()" title="Logout" style="font-weight:700;">${PPS.role==='admin'?'👑':'👤'} ${PPS.name} ⎋</button>`;
     tb.appendChild(d);
   }
   if(ppIsStaff()){
@@ -6296,7 +6300,7 @@ function printMembers(){
   const planName=pf?((getPlans().find(p=>p.id===pf)||{}).name||pf):'';
   let title='Member List — '+fLabel+(planName?' · '+planName+' plan':'')+' ('+clients.length+')';
   ppPrint(title,
-    `<table><tr><th>Mem No</th><th>Name</th><th>Phone</th><th>Email</th><th>Plan</th><th>Joined</th><th>Starts</th><th>Expires</th><th>Sessions</th><th>Due</th><th>Status</th></tr>${rows}</table>`);
+    `<table><tr><th>Mem No</th><th>Name</th><th>Phone</th><th>Email</th><th>Plan</th><th>Registered</th><th>Starts</th><th>Expires</th><th>Sessions</th><th>Due</th><th>Status</th></tr>${rows}</table>`);
 }
 
 /* ---- Member profile + attendance ---- */
@@ -6319,7 +6323,7 @@ function printProfile(cid){
     ${c.insta?`<tr><th>Instagram</th><td>${_esc(c.insta)}</td></tr>`:''}
     ${c.bday?`<tr><th>Birthday</th><td>${fmt(c.bday)}</td></tr>`:''}
     ${c.anni?`<tr><th>Anniversary</th><td>${fmt(c.anni)}</td></tr>`:''}
-    <tr><th>Joined / Registered</th><td>${isTrialClient?'NA':((c.join||c.joinDate)?fmt(c.join||c.joinDate):'—')}</td></tr>
+    <tr><th>Registered</th><td>${isTrialClient?'NA':((c.join||c.joinDate)?fmt(c.join||c.joinDate):'—')}</td></tr>
     ${refBy?`<tr><th>Referred By</th><td>${_esc(refBy)}</td></tr>`:''}
     ${c.notes?`<tr><th>Notes</th><td>${_esc(c.notes)}</td></tr>`:''}</table>`;
   if(m&&isTrialClient){
