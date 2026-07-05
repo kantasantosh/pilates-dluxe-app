@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div style="width:88px;height:88px;border-radius:50%;margin:0 auto 6px;overflow:hidden;"><img src="bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v36</small></div>
+  <div class="logo"><small>Book a Session · v37</small></div>
 </div>
 
 <div class="container">
@@ -140,7 +140,7 @@ const MACHINES=5;
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-let _clients=[], _bookings={}, _mems={}, _closedDays={};
+let _clients=[], _bookings={}, _mems={}, _closedDays={}, _announce={};
 let _selDate='', _client=null, _googleUser=null;
 async function pdlHashPin(cid,pin){
   try{
@@ -263,16 +263,18 @@ async function loadDataAndVerify(){
   document.getElementById('main-content').innerHTML='<div class="loading"><span class="spinner">⟳</span><br/><br/>Loading your profile...</div>';
   try{
     const opts={source:'server'}; /* always fetch fresh from server */
-    const [cSnap, bSnap, mSnap, cdSnap]=await Promise.all([
+    const [cSnap, bSnap, mSnap, cdSnap, anSnap]=await Promise.all([
       db.collection(COL).doc('pp_clients').get(opts),
       db.collection(COL).doc('pp_bookings').get(opts),
       db.collection(COL).doc('pp_memberships').get(opts),
-      db.collection(COL).doc('pp_closed_days').get(opts)
+      db.collection(COL).doc('pp_closed_days').get(opts),
+      db.collection(COL).doc('pp_announce').get(opts).catch(()=>null)
     ]);
     _clients=cSnap.exists?JSON.parse(cSnap.data().value):[];
     _bookings=bSnap.exists?JSON.parse(bSnap.data().value):{};
     _mems=mSnap.exists?JSON.parse(mSnap.data().value):{};
     _closedDays=cdSnap.exists?JSON.parse(cdSnap.data().value):{};
+    _announce=(anSnap&&anSnap.exists)?JSON.parse(anSnap.data().value):{msg:'',type:'info',until:''};
   }catch(e){
     document.getElementById('main-content').innerHTML='<div class="loading">⚠️ Could not load data. Please refresh.</div>';
     return;
@@ -430,6 +432,8 @@ function renderDashboard(){
   const initial=(c.fname||'?')[0].toUpperCase();
 
   document.getElementById('main-content').innerHTML=`
+    <!-- Announcement Banner -->
+    ${_renderAnnounce()}
     <!-- Client Dashboard -->
     <div class="card" style="padding:14px 16px;">
       <div class="client-dash">
@@ -501,10 +505,12 @@ function renderSlots(){
 
 function renderSlotsHTML(){
   if(_closedDays[_selDate]){
+    const anMsg=(_announce&&_announce.msg&&(!_announce.until||_announce.until>=td()))?_announce.msg:'';
     return `<div class="card" style="text-align:center;padding:24px;">
       <div style="font-size:32px;margin-bottom:8px;">🚫</div>
       <div style="font-size:14px;font-weight:700;color:var(--red);">Studio Closed</div>
       <div style="font-size:12px;color:var(--text3);margin-top:4px;">${_closedDays[_selDate].reason||'Closed'}</div>
+      ${anMsg?'<div style="margin-top:10px;padding:10px;background:rgba(201,168,76,0.1);border-radius:8px;font-size:12px;color:var(--text2);line-height:1.5;">📢 '+anMsg+'</div>':''}
     </div>`;
   }
   const morning=SLOTS.slice(0,5).map(s=>slotBtn(s)).join('');
@@ -685,6 +691,20 @@ window.addEventListener('popstate',()=>{
   if(openPopups.length){
     openPopups[openPopups.length-1].classList.remove('open');
   }
+/* Announcement banner — active if msg exists and until date is today or future (or empty = always on) */
+function _renderAnnounce(){
+  if(!_announce||!_announce.msg)return '';
+  if(_announce.until&&_announce.until<td())return '';
+  const colors={info:'var(--gold)',warning:'var(--amber, #f39c12)',urgent:'var(--red, #e74c3c)'};
+  const icons={info:'📢',warning:'⚠️',urgent:'🚨'};
+  const t=_announce.type||'info';
+  return `<div style="background:rgba(201,168,76,0.1);border:1.5px solid ${colors[t]||colors.info};border-radius:var(--rmd);padding:14px 16px;margin-bottom:14px;text-align:center;">
+    <div style="font-size:16px;margin-bottom:4px;">${icons[t]||icons.info}</div>
+    <div style="font-size:13px;color:var(--text);line-height:1.5;">${_announce.msg}</div>
+    ${_announce.until?'<div style="font-size:10px;color:var(--text3);margin-top:6px;">Until '+fmt(_announce.until)+'</div>':''}
+  </div>`;
+}
+
 });
 </script>
 

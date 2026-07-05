@@ -43,17 +43,20 @@
 body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;font-size:14px;line-height:1.5;}
 
 /* TOPBAR */
-.topbar{background:linear-gradient(135deg,#1a1612 0%,#221e18 100%);padding:14px 18px 12px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
-.topbar-logo{display:flex;align-items:center;gap:10px;}
+.topbar{background:linear-gradient(135deg,#1a1612 0%,#221e18 100%);padding:10px 14px 6px;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
+.topbar-row1{display:flex;align-items:center;justify-content:space-between;}
+.topbar-logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .logo-mark{width:36px;height:36px;background:transparent;border:1.5px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);font-weight:300;font-style:italic;flex-shrink:0;}
 .logo-text{font-family:'Playfair Display',serif;font-size:18px;color:var(--text);letter-spacing:1px;font-weight:400;font-style:italic;}
-.logo-sub{font-size:10px;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;margin-top:-1px;font-family:'Jost',sans-serif;font-weight:300;}
-.topbar-date{font-size:10px;color:var(--text3);text-align:right;opacity:0.75;}
+.logo-sub{font-size:9px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;font-family:'Jost',sans-serif;font-weight:300;text-align:center;margin-top:2px;}
 .tb-mini{background:none;border:1px solid var(--border2);border-radius:16px;padding:4px 12px;font-size:11px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
-.tb-chiprow{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:5px;flex-wrap:wrap;}
+.tb-chiprow{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;}
+.topbar-row2{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding:0 2px;}
+.tb-date-left{font-size:11px;color:var(--text2);font-weight:600;}
+.tb-date-left span{font-size:10px;color:var(--text3);font-weight:400;margin-left:4px;}
+.tb-clock-centre{text-align:center;color:var(--gold);font-size:13px;font-weight:600;line-height:1.2;}
+.tb-clock-centre div{font-size:9px;color:var(--text3);font-weight:400;letter-spacing:1px;}
 .np-area::placeholder{color:var(--text3);opacity:0.35;}
-.np-area::-webkit-input-placeholder{color:var(--text3);opacity:0.35;}
-.topbar-date strong{display:block;color:var(--text2);font-size:11px;font-weight:600;}
 
 /* BOTTOM NAV */
 .bnav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
@@ -590,23 +593,22 @@ try{
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="topbar-logo">
-    <div class="logo-mark" style="overflow:hidden;padding:0;width:112px;height:112px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
-    <div>
-      <div class="logo-sub">Studio Admin · <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.8;">v141b</span></div>
+  <div class="topbar-row1">
+    <div class="topbar-logo">
+      <div class="logo-mark" style="overflow:hidden;padding:0;width:112px;height:112px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     </div>
-  </div>
-  <div class="topbar-date" style="text-align:right;margin-left:auto;margin-right:12px;">
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
-      <strong id="top-date"></strong>
-      <span id="top-day" style="font-size:10px;"></span>
-    </div>
-    <div style="font-size:11px;color:var(--gold);margin-top:1px;" id="top-clock"></div>
     <div class="tb-chiprow" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-mini">🔄 Sync</button>
       <button onclick="openNotepad()" title="Notepad" class="tb-mini">📝 Notes</button>
     </div>
   </div>
+  <div class="logo-sub">Studio Admin</div>
+  <div class="topbar-row2">
+    <div class="tb-date-left"><span id="top-date"></span><span id="top-day"></span></div>
+    <div class="tb-clock-centre" id="top-clock"></div>
+    <div style="width:60px;"></div>
+  </div>
+  <div style="text-align:center;margin-top:2px;"><span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.6;font-size:9px;color:var(--text3);letter-spacing:1px;">v141d</span></div>
 </div>
 
 <!-- TABS -->
@@ -1487,7 +1489,11 @@ function startDashClock(){
     const n=new Date();
     /* Top bar clock — always visible, on every tab */
     const topClock=document.getElementById('top-clock');
-    if(topClock)topClock.textContent=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    if(topClock){
+      const h=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+      const parts=h.split(' ');
+      topClock.innerHTML=parts[0]+'<div>'+(parts[1]||'').toUpperCase()+'</div>';
+    }
     /* Dashboard's own greeting card — unchanged, only when Dashboard is visible */
     const t=document.getElementById('dc-time');
     if(!t||_activeTab!=='dashboard')return;
