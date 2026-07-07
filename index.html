@@ -46,7 +46,8 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .topbar{background:linear-gradient(135deg,#1a1612 0%,#221e18 100%);padding:6px 14px 4px;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
 .logo-mark{width:36px;height:36px;background:transparent;border:1.5px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);font-weight:300;font-style:italic;flex-shrink:0;}
 .tb-mini{background:none;border:1px solid var(--border2);border-radius:14px;padding:3px 10px;font-size:10px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
-.tb-clock-centre{text-align:center;color:var(--gold);font-size:28px;font-weight:700;line-height:1.1;font-family:'Jost',sans-serif;}
+.tb-clock-centre{text-align:center;color:var(--gold);font-size:30px;font-weight:700;line-height:1.02;font-family:'Jost',sans-serif;}
+.tb-ico{background:none;border:none;font-size:22px;cursor:pointer;padding:2px;line-height:1;}
 .tb-clock-centre div{font-size:10px;color:var(--text3);font-weight:400;margin-top:1px;}
 .np-area::placeholder{color:var(--text3);opacity:0.35;}
 
@@ -583,9 +584,8 @@ try{
 </head>
 <body>
 
-<!-- TOPBAR -->
+<!-- TOPBAR (design: logo+STUDIO ADMIN left · stacked clock + date centre · icon row right) -->
 <div class="topbar">
-  <div style="text-align:center;font-size:10px;color:var(--text3);margin-bottom:3px;"><span id="top-date"></span> · <span id="top-day"></span></div>
   <div style="display:flex;align-items:center;justify-content:space-between;">
     <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
       <div class="logo-mark" style="overflow:hidden;padding:0;width:76px;height:76px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
@@ -593,11 +593,12 @@ try{
     </div>
     <div style="text-align:center;">
       <div class="tb-clock-centre" id="top-clock"></div>
-      <div style="margin-top:2px;"><span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.5;font-size:8px;color:var(--text3);letter-spacing:1px;">v141i</span></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:1px;"><span id="top-date"></span> : <span id="top-day"></span></div>
+      <div style="margin-top:2px;"><span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.5;font-size:8px;color:var(--text3);letter-spacing:1px;">v141j</span></div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:stretch;gap:4px;flex-shrink:0;min-width:88px;" id="tb-chiprow">
-      <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-mini" style="text-align:center;">🔄 Sync</button>
-      <button onclick="openNotepad()" title="Notepad" class="tb-mini" style="text-align:center;">📝 Notes</button>
+    <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;" id="tb-chiprow">
+      <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">🔄</button>
+      <button onclick="openNotepad()" title="Notepad" class="tb-ico">📝</button>
     </div>
   </div>
 </div>
@@ -611,11 +612,12 @@ try{
 
 <!-- CLIENTS -->
 <div class="tab" id="tab-clients">
-  <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding-bottom:4px;">
-  <div style="display:flex;align-items:center;justify-content:center;padding:6px 14px;gap:8px;">
+  <div style="display:flex;align-items:center;justify-content:center;padding:0 14px 6px;gap:8px;">
     <div style="font-size:14px;font-weight:700;color:var(--text);">Clients</div>
     <button class="btn btn-outline btn-sm" onclick="openAttendanceLookup()" title="Look up a member's attendance and validity" style="margin:0;">🔍 Attendance</button>
   </div>
+  <!-- #5 sticky: from the plan/time dropdowns down to the search bar -->
+  <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding-bottom:4px;">
   <div style="margin-bottom:8px;display:flex;gap:8px;">
     <select id="client-planfilter" onchange="renderClients()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">📋 All plans</option>
@@ -629,7 +631,7 @@ try{
       <option value="lastfy">Last FY</option>
     </select>
   </div>
-  <div class="ftabs">
+  <div class="ftabs" style="margin-bottom:8px;">
     <button class="ftab active" onclick="setClientFilter('all',this)">All</button>
     <button class="ftab" onclick="setClientFilter('active',this)">Active</button>
     <button class="ftab" onclick="setClientFilter('converted',this)">✓ Converted</button>
@@ -639,7 +641,7 @@ try{
     <button class="ftab" onclick="setClientFilter('due',this)">Due</button>
     <button class="ftab" onclick="setClientFilter('inactive',this)">⏸ Inactive</button>
   </div>
-  <div class="search-box">
+  <div class="search-box" style="margin-bottom:6px;">
     <span style="color:var(--text3);font-size:16px;">🔍</span>
     <input id="client-search" placeholder="🔍 Search by name, ID, phone, email, plan..." oninput="renderClients()"/>
   </div>
@@ -652,18 +654,20 @@ try{
   <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding:6px 14px 6px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
       <div style="font-size:14px;font-weight:700;color:var(--text);">Schedule</div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <button class="btn btn-outline btn-sm" onclick="pdlSyncNow()" title="Force refresh from cloud" style="padding:4px 8px;">🔄</button>
-        <button class="btn btn-gold btn-sm" onclick="openScanner()" title="Scan member QR to mark present" style="padding:4px 8px;">📷 Check-in</button>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button onclick="pdlSyncNow()" title="Force refresh from cloud" class="tb-ico" style="font-size:18px;">🔄</button>
+        <button class="btn btn-gold btn-sm" onclick="openScanner()" title="Scan member QR to mark present" style="padding:4px 10px;">📷 Scan</button>
       </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:12px;">
-      <button class="float-nav-btn" onclick="chDay(-1)" title="Previous day" style="position:static;width:32px;height:32px;font-size:14px;">◀</button>
-      <div style="text-align:center;min-width:120px;">
-        <div style="font-size:13px;font-weight:700;color:var(--gold);" id="sched-label"></div>
-        <input type="date" id="sched-date-pick" class="fi" style="width:auto;padding:4px 8px;font-size:11px;text-align:center;margin-top:2px;" onchange="pickSchedDate(this.value)"/>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);" id="sched-label"></div>
+        <input type="date" id="sched-date-pick" class="fi" style="width:auto;padding:4px 8px;font-size:11px;text-align:center;" onchange="pickSchedDate(this.value)"/>
       </div>
-      <button class="float-nav-btn" onclick="chDay(1)" title="Next day" style="position:static;width:32px;height:32px;font-size:14px;">▶</button>
+      <div style="display:flex;gap:8px;">
+        <button class="float-nav-btn" onclick="chDay(-1)" title="Previous day" style="position:static;width:32px;height:32px;font-size:14px;">◀</button>
+        <button class="float-nav-btn" onclick="chDay(1)" title="Next day" style="position:static;width:32px;height:32px;font-size:14px;">▶</button>
+      </div>
     </div>
   </div>
   <div id="schedule-content"></div>
@@ -708,8 +712,7 @@ try{
 
 <!-- CASH BOOK -->
 <div class="tab" id="tab-cash">
-  <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding-bottom:4px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 14px 6px;">
     <div style="font-size:14px;font-weight:700;color:var(--text);">Cash Book</div>
     <div style="display:flex;gap:6px;">
       <button class="btn btn-gold btn-sm" onclick="openCashEntry()" style="padding:4px 10px;">+ New</button>
@@ -717,13 +720,15 @@ try{
     </div>
   </div>
   <div id="cash-summary"></div>
+  <!-- #5 sticky: from the 4 filter chips down to the search row -->
+  <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding-bottom:4px;">
   <div style="display:flex;gap:4px;margin-bottom:8px;">
     <button class="ftab active" onclick="setCashFilter('all',this)" style="flex:1;text-align:center;">All</button>
     <button class="ftab" onclick="setCashFilter('in',this)" style="flex:1;text-align:center;">💚 Credits</button>
     <button class="ftab" onclick="setCashFilter('out',this)" style="flex:1;text-align:center;">🔴 Debits</button>
     <button class="ftab" onclick="setCashFilter('contra',this)" style="flex:1;text-align:center;">🔁 Contra</button>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
     <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries (name, note, amount, mode)…" style="flex:2;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
     <select id="cash-catfilter" onchange="renderCash()" style="flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">All categories</option>
@@ -941,7 +946,12 @@ try{
     </div>
     <div id="ce-mode-bal" style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
     <div class="fr">
-      <div class="fg"><label class="fl">Amount (₹)</label><input class="fi" id="ce-amt" type="number" placeholder="0" oninput="_updateModeBalance();const b=document.getElementById('ce-save-btn');if(b){b.disabled=!(parseFloat(this.value)>0);b.style.opacity=parseFloat(this.value)>0?'':'0.45';}"/></div>
+      <div class="fg"><label class="fl">Amount</label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gold);font-weight:700;font-size:14px;pointer-events:none;">₹</span>
+          <input class="fi" id="ce-amt" type="number" placeholder="0" style="padding-left:26px;" oninput="_updateModeBalance();_ceGate();"/>
+        </div>
+      </div>
       <div class="fg"><label class="fl">Date</label><input class="fi" id="ce-date" type="date"/></div>
     </div>
     <div class="fg">
@@ -961,8 +971,12 @@ try{
         <label class="fl" style="margin-bottom:0;">Category</label>
         <button onclick="openManageCashCats()" style="background:none;border:none;color:var(--gold);font-size:13px;font-family:'Jost',sans-serif;font-weight:700;cursor:pointer;">✏️ Edit</button>
       </div>
-      <select class="fi" id="ce-cat" onchange="_updateModeBalance()"></select>
+      <select class="fi" id="ce-cat" onchange="_updateModeBalance();_ceStaffRow()"></select>
       <div id="ce-cat-bal" style="font-size:12px;color:var(--text2);margin-top:6px;padding:5px 9px;background:var(--surface2);border-radius:8px;text-align:center;"></div>
+    </div>
+    <div class="fg" id="ce-staff-row" style="display:none;">
+      <label class="fl">Staff Member</label>
+      <select class="fi" id="ce-staff"><option value="">— select staff —</option></select>
     </div>
     <div class="fg"><label class="fl">Description</label><input class="fi" id="ce-desc" placeholder="Membership fee, rent, salary..."/></div>
     <button class="sb2" id="ce-save-btn" onclick="saveCashEntry()" disabled style="opacity:0.45;">Save Entry</button>
@@ -1467,8 +1481,8 @@ function init(){
     }
   });
   const now=new Date();
-  document.getElementById('top-date').textContent=now.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('top-day').textContent=now.toLocaleDateString('en-IN',{weekday:'long'});
+  document.getElementById('top-date').textContent=now.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  document.getElementById('top-day').textContent=now.toLocaleDateString('en-IN',{weekday:'short'});
   const dp=document.getElementById('sched-date-pick');
   if(dp)dp.value=td();
   renderDash();
@@ -1491,9 +1505,10 @@ function startDashClock(){
     /* Top bar clock — always visible, on every tab */
     const topClock=document.getElementById('top-clock');
     if(topClock){
-      const h=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
-      const parts=h.split(' ');
-      topClock.innerHTML=parts[0]+'<div>'+(parts[1]||'').toUpperCase()+'</div>';
+      /* stacked: hours over minutes, per approved top bar design */
+      const hh=n.toLocaleTimeString('en-IN',{hour:'2-digit',hour12:true}).split(' ')[0];
+      const mm=String(n.getMinutes()).padStart(2,'0');
+      topClock.innerHTML=hh+'<br>'+mm;
     }
     /* Dashboard's own greeting card — unchanged, only when Dashboard is visible */
     const t=document.getElementById('dc-time');
@@ -1685,17 +1700,7 @@ function renderDash(){
   _billsDue.forEach(b=>_alerts.push({icon:b.due<td()?'🔴':'💰',text:(b.due<td()?'Overdue bill: ':'Due today: ')+b.name+' (₹'+(b.amt||0).toLocaleString('en-IN')+')',action:"showTab('tns');setTnsView('bills',document.querySelector('#tns-subtabs .ftab:nth-child(1)'))"}));
 
   document.getElementById('dash-content').innerHTML=`
-    <div id="dash-clock" style="background:linear-gradient(135deg,rgba(201,168,76,0.14),rgba(201,168,76,0.04));border:1px solid rgba(201,168,76,0.35);border-radius:var(--radius);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-      <div>
-        <div id="dc-time" style="font-family:'Playfair Display',serif;font-size:30px;color:var(--gold);line-height:1;">--:--</div>
-        <div id="dc-date" style="font-size:13px;color:var(--text2);margin-top:4px;">—</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Pilates D'Luxe</div>
-        <div style="font-size:11px;color:var(--text3);" id="dc-greet">—</div>
-      </div>
-    </div>
-    ${_alerts.length?`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">
+    ${_alerts.length?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">
       <div style="font-size:11px;font-weight:700;color:#e74c3c;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔔 Needs Attention (${_alerts.length})</div>
       ${_alerts.slice(0,6).map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);" onclick="${a.action}">
         <span>${a.icon}</span><span style="flex:1;">${_esc(a.text)}</span><span style="color:var(--text3);">›</span>
@@ -2656,8 +2661,9 @@ function renderSchedule(){
   const isFuture=_schedDate>td();
   const picker=document.getElementById('sched-date-pick');
   if(picker&&!picker.value)picker.value=_schedDate;
+  /* per approved header design: always show "8 July, Wednesday" — no golden Today/Upcoming */
   document.getElementById('sched-label').textContent=
-    isToday?'Today':isFuture?'Upcoming':dt.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'});
+    dt.toLocaleDateString('en-IN',{day:'numeric',month:'long'})+', '+dt.toLocaleDateString('en-IN',{weekday:'long'});
 
   const bookings=ld('pp_bookings',{});
   const daySlots=bookings[_schedDate]||{};
@@ -2892,7 +2898,7 @@ function cycleSlot(slotIdx,cellIdx){
   if(!bk)return;
   if(!bk.attended){
     bookings[_schedDate][slot][cellIdx].attended=true;
-    sv('pp_bookings',bookings);renderSchedule();toast('✓ Marked Present!');
+    sv('pp_bookings',bookings);renderSchedule();renderDash();toast('✓ Marked Present!'); /* #2 dash sync */
   } else {
     const clients=ld('pp_clients',[]);
     const name=(clients.find(c=>c.id===bk.cid)||{}).fname||'Client';
@@ -3031,12 +3037,17 @@ function _updateFloatingNav(n){
   if(!box||!boxR)return;
   const scoped=['clients','cash','tns','schedule'];
   if(!scoped.includes(n)){box.classList.remove('show');box.innerHTML='';boxR.classList.remove('show');boxR.innerHTML='';return;}
-  /* Left side: scroll up/down for non-schedule tabs */
+  /* Left side: scroll up/down */
   const scrollTarget=box;
   scrollTarget.innerHTML=`<button class="float-nav-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">▲</button>
       <button class="float-nav-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
   scrollTarget.classList.add('show');
-  boxR.classList.remove('show');boxR.innerHTML='';
+  /* Right side, Schedule only: ◀ ▶ day switch reachable while scrolled down */
+  if(n==='schedule'){
+    boxR.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day">◀</button>
+      <button class="float-nav-btn" onclick="chDay(1)" title="Next day">▶</button>`;
+    boxR.classList.add('show');
+  }else{boxR.classList.remove('show');boxR.innerHTML='';}
 }
 function renderPlanChips(selected){
   const plans=getPlans().filter(p=>p.id!=='trial');
@@ -3101,7 +3112,7 @@ function confirmCycleSlot(slotIdx,cellIdx,clientName){
         const slot=SLOTS[slotIdx];
         if(bookings[_schedDate]&&bookings[_schedDate][slot]&&bookings[_schedDate][slot][cellIdx]){
           bookings[_schedDate][slot][cellIdx].attended=false;
-          sv('pp_bookings',bookings);renderSchedule();toast('Back to Booked');
+          sv('pp_bookings',bookings);renderSchedule();renderDash();toast('Back to Booked'); /* #2 dash sync */
         }
       }},
       {label:'Remove Slot',color:'var(--rose)',action:()=>{
@@ -4286,6 +4297,20 @@ function refreshCECats(){
 // ===== CASH BOOK =====
 let _cashFilter='all';
 function setCashFilter(f,btn){_cashFilter=f;document.querySelectorAll('#tab-cash .ftab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderCash();}
+/* #8 — Receipt/voucher form gating: only Amount active until a valid
+   amount is entered; all other fields stay greyed-out to guide entry order
+   and prevent half-filled vouchers. Type buttons stay active (they define
+   the voucher kind before amount). */
+function _ceGate(){
+  const amt=parseFloat(document.getElementById('ce-amt').value)||0;
+  const ok=amt>0;
+  ['ce-client-search','ce-date','ce-mode','ce-mode2','ce-cat','ce-desc','ce-staff'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.disabled=!ok;el.style.opacity=ok?'':'0.45';}
+  });
+  const b=document.getElementById('ce-save-btn');
+  if(b){b.disabled=!ok;b.style.opacity=ok?'':'0.45';}
+}
 function setCEType(t){
   document.getElementById('ce-type').value=t;
   const inBtn=document.getElementById('ce-btn-in');
@@ -4317,6 +4342,7 @@ function setCEType(t){
     if(catRow)catRow.style.display='block';
   }
   refreshCECats();
+  _ceStaffRow(); /* #3 — staff picker visibility follows type+category */
 }
 let _ceClientList=[];
 /* show matching clients as a clean tappable panel */
@@ -4407,7 +4433,17 @@ function openCashEntry(id,prefillCid){
     document.getElementById('ce-mode').value=e.mode||modes[0];
     if(e.mode2)document.getElementById('ce-mode2').value=e.mode2;
     // Set cat after refreshCECats
-    setTimeout(()=>{if(document.getElementById('ce-cat'))document.getElementById('ce-cat').value=e.cat||'';},50);
+    setTimeout(()=>{
+      if(document.getElementById('ce-cat'))document.getElementById('ce-cat').value=e.cat||'';
+      /* #3 — show + prefill the staff picker for staff-linked entries
+         (sid stored on newer entries; legacy 'sadv_' ones found by scan) */
+      _ceStaffRow();
+      const _sSel=document.getElementById('ce-staff');
+      if(_sSel){
+        if(e.sid)_sSel.value=e.sid;
+        else{const _f=_staffAdvFind(e.id||'');if(_f)_sSel.value=_f.sid;}
+      }
+    },50);
   } else if(prefillCid){
     window._ceOriginal=null;
     /* opened from a client profile → Credit, pre-fill client + due amount + description */
@@ -4431,10 +4467,8 @@ function openCashEntry(id,prefillCid){
     document.getElementById('ce-date').value=td();
     document.getElementById('ce-cid').value='';
   }
-  /* Enable save button if amount is filled (editing existing entry) */
-  const _ceAmt=parseFloat(document.getElementById('ce-amt').value)||0;
-  const _ceSave=document.getElementById('ce-save-btn');
-  if(_ceSave){_ceSave.disabled=!(_ceAmt>0);_ceSave.style.opacity=_ceAmt>0?'':'0.45';}
+  /* #8 — gate all fields based on amount (editing existing entry = enabled) */
+  _ceGate();
   openM('m-cashentry');
   const delBtn=document.getElementById('ce-del-btn');
   if(delBtn)delBtn.style.display=(id&&(typeof ppIsAdmin!=='function'||ppIsAdmin()))?'block':'none';
@@ -4465,10 +4499,60 @@ function deleteCashEntry(){
       const cash=ld('pp_cash',[]);
       const e=cash.find(x=>x.id===id);
       sv('pp_cash',cash.filter(x=>x.id!==id));
+      _staffAdvSync({id:id,type:'out',cat:'',sid:''}); /* #3 — remove staff-side record if linked */
       if(typeof AUD==='function')AUD('🗑 Cashbook entry deleted',(e?((e.type==='in'?'+':e.type==='contra'?'⇄':'-')+'₹'+(e.amt||0)+' '+(e.cat||e.desc||'')):''));
       closeCashEntry();renderCash();renderDash();toast('Entry deleted');
     }}
   ]);
+}
+/* ===== #3 Staff Salary ↔ Cash Book bidirectional sync =====
+   "Record Advance" (staff side) already writes a linked cash debit
+   (id 'sadv_<advId>'). These close the reverse direction:
+   - a Staff Salary debit entered in the Cash Book requires picking the
+     staff member and writes/updates the matching record in that staff's
+     advance list (pp_sadv_<sid>);
+   - editing amount/date/staff propagates; changing category away from
+     Staff Salary removes the staff-side record;
+   - deleting the cash entry deletes the staff-side record too. */
+function _ceStaffRow(){
+  const row=document.getElementById('ce-staff-row');
+  if(!row)return;
+  const isSal=document.getElementById('ce-type').value==='out'&&document.getElementById('ce-cat').value==='Staff Salary';
+  row.style.display=isSal?'':'none';
+  if(isSal){
+    const sel=document.getElementById('ce-staff');
+    const cur=sel.value;
+    sel.innerHTML='<option value="">— select staff —</option>'+ld('pp_staff',[]).filter(s=>!s.archived).map(s=>`<option value="${s.id}">${s.fname||''} ${s.lname||''}</option>`).join('');
+    if(cur)sel.value=cur;
+  }
+}
+/* find which staff's advance list holds the record linked to a cash id */
+function _staffAdvFind(cashId){
+  const advKey=cashId.startsWith('sadv_')?cashId.slice(5):cashId;
+  for(const s of ld('pp_staff',[])){
+    const list=ld('pp_sadv_'+s.id,[]);
+    const idx=list.findIndex(a=>a.id===advKey);
+    if(idx>=0)return {sid:s.id,list,idx,advKey};
+  }
+  return null;
+}
+function _staffAdvSync(data){
+  const isSal=data&&data.type==='out'&&data.cat==='Staff Salary'&&data.sid;
+  const ex=_staffAdvFind(data.id);
+  const advKey=data.id.startsWith('sadv_')?data.id.slice(5):data.id;
+  if(isSal){
+    if(ex&&ex.sid!==data.sid){ /* moved to a different staff member */
+      ex.list.splice(ex.idx,1);sv('pp_sadv_'+ex.sid,ex.list);
+    }
+    const list=ld('pp_sadv_'+data.sid,[]);
+    const i=list.findIndex(a=>a.id===advKey);
+    const rec={id:advKey,amt:data.amt,date:data.date,notes:data.desc||''};
+    if(i>=0)list[i]=rec;else list.push(rec);
+    sv('pp_sadv_'+data.sid,list);
+  }else if(ex){ /* no longer staff-linked (category changed / deleted) */
+    ex.list.splice(ex.idx,1);sv('pp_sadv_'+ex.sid,ex.list);
+  }
+  if(typeof renderStaff==='function')try{renderStaff();}catch(e){}
 }
 function saveCashEntry(){
   const amt=parseFloat(document.getElementById('ce-amt').value);
@@ -4480,11 +4564,16 @@ function saveCashEntry(){
   const _cat=_t==='contra'?'Contra':document.getElementById('ce-cat').value;
   const _cidv=_t==='contra'?'':document.getElementById('ce-cid').value;
   if(_t==='in'&&/membership|renewal|drop-in/i.test(_cat||'')&&!_cidv){alert('Please select the client for this fee — a membership payment must be linked to a member.');return;}
-  const data={id,type:_t,desc:document.getElementById('ce-desc').value.trim(),cid:_t==='contra'?'':document.getElementById('ce-cid').value,amt,date:document.getElementById('ce-date').value||td(),mode:document.getElementById('ce-mode').value,mode2:_t==='contra'?document.getElementById('ce-mode2').value:'',cat:_t==='contra'?'Contra':document.getElementById('ce-cat').value};
+  /* #3 — Staff Salary debits must be linked to a staff member */
+  const _sidv=(_t==='out'&&_cat==='Staff Salary')?document.getElementById('ce-staff').value:'';
+  if(_t==='out'&&_cat==='Staff Salary'&&!_sidv){alert('Please select the staff member for this salary payment.');return;}
+  const data={id,type:_t,desc:document.getElementById('ce-desc').value.trim(),cid:_t==='contra'?'':document.getElementById('ce-cid').value,amt,date:document.getElementById('ce-date').value||td(),mode:document.getElementById('ce-mode').value,mode2:_t==='contra'?document.getElementById('ce-mode2').value:'',cat:_t==='contra'?'Contra':document.getElementById('ce-cat').value,sid:_sidv};
   const idx=cash.findIndex(x=>x.id===id);
   const isNewCE=idx<0;
   if(idx>-1)cash[idx]=data;else cash.push(data);
-  sv('pp_cash',cash);closeCashEntry();toast('✓ Entry saved!');renderCash();renderDash();
+  sv('pp_cash',cash);
+  _staffAdvSync(data); /* #3 — keep staff advance/salary records in step */
+  closeCashEntry();toast('✓ Entry saved!');renderCash();renderDash();
   /* offer printable receipt for a new client-linked credit (fee collection) */
   if(isNewCE&&_t==='in'&&data.cid&&typeof offerReceiptCash==='function')offerReceiptCash(data.id);
 }
@@ -4507,10 +4596,10 @@ function renderCash(){
   const allIn=cash.filter(e=>e.type==='in').reduce((s,e)=>s+e.amt,0);
   const allOut=cash.filter(e=>e.type==='out').reduce((s,e)=>s+e.amt,0);
   document.getElementById('cash-summary').innerHTML=`
-    <div class="card card-gold" style="margin-bottom:14px;">
+    <div class="card card-gold" style="width:fit-content;min-width:270px;margin:0 auto 14px;padding-left:22px;padding-right:22px;text-align:center;">
       <div style="font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Overall Balance</div>
       <div style="font-family:'Playfair Display',serif;font-size:32px;color:var(--gold);margin-bottom:10px;">₹${(allIn-allOut).toLocaleString('en-IN')}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px;text-align:center;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:13px;text-align:center;">
         <div><div style="color:var(--green);font-weight:700;">₹${totalIn.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Credits</div></div>
         <div><div style="color:var(--red);font-weight:700;">₹${totalOut.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Debits</div></div>
         <div><div style="color:var(--gold);font-weight:700;">₹${(totalIn-totalOut).toLocaleString('en-IN')}</div><div style="color:var(--text2);">Net Flow</div></div>
@@ -5075,7 +5164,7 @@ function ppIsAdmin(){
     const _tb=document.getElementById('tb-chiprow');
     if(_tb&&!document.getElementById('tb-user')){
       const _d=document.createElement('div');_d.className='tb-user';_d.id='tb-user';
-      _d.innerHTML=`<button class="tb-mini" onclick="doLogout()" title="Logout" style="font-weight:700;text-align:center;width:100%;">${PPS.role==='admin'?'👑':'👤'} ${PPS.name} ⎋</button>`;
+      _d.innerHTML=`<button class="tb-ico" onclick="doLogout()" title="${PPS.name} — tap to logout">${PPS.role==='admin'?'👑':'👤'}</button>`;
       _tb.appendChild(_d);
     }
   }
@@ -5283,7 +5372,7 @@ function applyRole(){
   const tb=document.getElementById('tb-chiprow');
   if(tb&&!document.getElementById('tb-user')){
     const d=document.createElement('div');d.className='tb-user';d.id='tb-user';
-    d.innerHTML=`<button class="tb-mini" onclick="doLogout()" title="Logout" style="font-weight:700;text-align:center;width:100%;">${PPS.role==='admin'?'👑':'👤'} ${PPS.name} ⎋</button>`;
+    d.innerHTML=`<button class="tb-ico" onclick="doLogout()" title="${PPS.name} — tap to logout">${PPS.role==='admin'?'👑':'👤'}</button>`;
     tb.appendChild(d);
   }
   if(ppIsStaff()){
@@ -5322,13 +5411,16 @@ const _TRAINER_BLOCKED_TABS=['dashboard','clients','cash','credits'];
 function AUD(action,detail){
   try{
     const arr=ld('pp_audit',[]);
-    /* Guard against duplicate entries — e.g. a double-tap, or two code
-       paths logging the same event a moment apart. Only blocks an EXACT
-       repeat (same user, action, detail) within 2 seconds; anything
-       genuinely new still logs normally. */
-    const last=arr[0];
+    /* #16 Guard against duplicate entries — double-taps, or two code
+       paths logging the same event moments apart. Blocks an EXACT repeat
+       (same user, action, detail) within 5 seconds, scanning the last few
+       entries so interleaved events can't slip a repeat through. */
     const uName=PPS?PPS.name:'system';
-    if(last&&last.u===uName&&last.a===action&&last.d===(detail||'')&&(Date.now()-last.ts)<2000)return;
+    const _now=Date.now();
+    for(let i=0;i<Math.min(arr.length,10);i++){
+      if((_now-arr[i].ts)>5000)break;
+      if(arr[i].u===uName&&arr[i].a===action&&arr[i].d===(detail||''))return;
+    }
     arr.unshift({ts:Date.now(),u:uName,a:action,d:detail||''});
     if(arr.length>600)arr.length=600;
     sv('pp_audit',arr);
@@ -5399,7 +5491,13 @@ function openAuditModal(){
 }
 function renderAudit(){
   const q=(document.getElementById('aud-search').value||'').toLowerCase();
-  const arr=ld('pp_audit',[]).filter(e=>!q||((e.u||'')+' '+(e.a||'')+' '+(e.d||'')).toLowerCase().includes(q));
+  /* #16 — one-pass cleanup of exact duplicates already in stored data
+     (identical timestamp+user+action+detail, e.g. from sync echoes) */
+  let _raw=ld('pp_audit',[]);
+  const _seen=new Set();
+  const _clean=_raw.filter(e=>{const k=e.ts+'|'+(e.u||'')+'|'+(e.a||'')+'|'+(e.d||'');if(_seen.has(k))return false;_seen.add(k);return true;});
+  if(_clean.length!==_raw.length)sv('pp_audit',_clean);
+  const arr=_clean.filter(e=>!q||((e.u||'')+' '+(e.a||'')+' '+(e.d||'')).toLowerCase().includes(q));
   document.getElementById('aud-list').innerHTML=arr.length?arr.slice(0,400).map(e=>{
     const d=new Date(e.ts);
     const when=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
@@ -6663,8 +6761,7 @@ function _receiptHtml(pay,forPrint){
      pick the one whose period contains the payment date (fallback: the
      latest plan that had started by then), and compute everything —
      period, fee, discount, balance — from THAT plan and the payments
-     made within ITS period alone. Known limit: a renewal paid BEFORE the
-     new plan's start date allocates to the old period by date. */
+     made within ITS period alone (see allocation classifier below). */
   const _key=x=>(x.plan||'')+'|'+(x.startDate||'')+'|'+(x.endDate||'');
   const _seen=new Set();const _plansAll=[];
   if(m){
@@ -6673,22 +6770,41 @@ function _receiptHtml(pay,forPrint){
     _plansAll.sort((a,b)=>(a.startDate||'')<(b.startDate||'')?-1:1);
   }
   const _pd=pay.date||td();
-  let mp=_plansAll.find(h=>_pd>=(h.startDate||'')&&_pd<=(h.endDate||''))||
-         [..._plansAll].reverse().find(h=>(h.startDate||'')<=_pd)||
-         (_plansAll.length?_plansAll[_plansAll.length-1]:m);
+  /* ALLOCATION FIX (Nancy PP019 / Pragya PP063): date-only allocation
+     failed two real cases — (a) boundary day: old plan ends the same day
+     the new one starts; first match won, so a renewal receipt showed the
+     OLD plan with all-time payments ("Advance ₹9,000" nonsense);
+     (b) gap payment: a renewal taken between plans fell back to the OLD
+     plan. Renewal money is also often taken BEFORE the old plan ends
+     (Nancy paid ₹1,000 on 30 Jun for a 2 Jul plan), so date alone can
+     never decide — but "Payment For" can: payments marked Renewal belong
+     to the plan starting on/after their date. ONE classifier below
+     allocates every payment; the receipt's plan AND its "Paid Earlier"
+     both come from it, so they can never disagree. */
+  const _payFor=x=>(x.forWhat||x.payType||x.cat||x.desc||'');
+  const _allocIdx=x=>{
+    const d=x.date||'';
+    if(!_plansAll.length)return -1;
+    if(/renew/i.test(_payFor(x))){
+      const i=_plansAll.findIndex(h=>(h.startDate||'')>=d);
+      return i>=0?i:_plansAll.length-1;
+    }
+    for(let i=_plansAll.length-1;i>=0;i--){
+      if(d>=(_plansAll[i].startDate||'')&&d<=(_plansAll[i].endDate||''))return i;
+    }
+    const i=_plansAll.findIndex(h=>(h.startDate||'')>d);
+    return i>=0?i:_plansAll.length-1;
+  };
+  const _mpIdx=_allocIdx(pay);
+  let mp=_mpIdx>=0?_plansAll[_mpIdx]:m;
   const _isFirstPaidPlan=_plansAll.length&&mp===_plansAll[0];
   const plan=mp?(getPlans().find(p=>p.id===mp.plan)||{}).name||mp.plan:'';
-  /* Payments belonging to THIS plan's period only.
-     Window starts AFTER the previous plan ended (not at this plan's start),
-     so payments made in the gap (e.g. pay on Jul 4 for a plan starting Jul 6)
-     are correctly attributed. For the first plan, all payments count.
-     Capped at the receipt's own date so future payments don't inflate it. */
-  const _mpIdx=_plansAll.indexOf(mp);
-  const _winStart=_mpIdx>0?_plansAll[_mpIdx-1].endDate:'';
-  const _winEnd=_pd<(mp&&mp.endDate||'9999')?_pd:(mp&&mp.endDate||'9999');
-  const _paidInWin=(mp)?(
-    ld('pp_payments',[]).filter(p=>p.cid===pay.cid&&(p.date||'')>_winStart&&(p.date||'')<=_winEnd).reduce((t,p)=>t+p.amt,0)+
-    ld('pp_cash',[]).filter(e=>e.cid===pay.cid&&e.type==='in'&&(e.date||'')>_winStart&&(e.date||'')<=_winEnd).reduce((t,e)=>t+e.amt,0)
+  /* Paid within this plan = every payment the classifier assigns to the
+     SAME plan, capped at the receipt's own date so future payments don't
+     inflate it. */
+  const _paidInWin=(mp&&_mpIdx>=0)?(
+    ld('pp_payments',[]).filter(p=>p.cid===pay.cid&&(p.date||'')<=_pd&&_allocIdx(p)===_mpIdx).reduce((t,p)=>t+p.amt,0)+
+    ld('pp_cash',[]).filter(e=>e.cid===pay.cid&&e.type==='in'&&(e.date||'')<=_pd&&_allocIdx(e)===_mpIdx).reduce((t,e)=>t+e.amt,0)
   ):getClientTotalPaid(pay.cid);
   const due=mp?((mp.fee||0)-(mp.disc||0))-_paidInWin:0;
   const rcptNo='PDL-'+(pay.id||'').toString().slice(-8);
@@ -7829,6 +7945,32 @@ function ufToggle(section){
   const showing=body.style.display!=='none';
   body.style.display=showing?'none':'';
   if(arrow)arrow.textContent=showing?'▶':'✕';
+  /* #9 — while the Receipts section is open, hide the WhatsApp/Complimentary
+     and admin chip rows below it, so a mis-tap can't trigger Deactivate/
+     Delete etc. mid-payment. Restore previous visibility on collapse
+     (admin row's display depends on role, so remember what it was). */
+  if(section==='payment'){
+    const nowOpen=body.style.display!=='none';
+    ['uf-chips-row','uf-admin-row'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el)return;
+      if(nowOpen){el.dataset.prevDisp=el.style.display;el.style.display='none';}
+      else if(el.dataset.prevDisp!==undefined){el.style.display=el.dataset.prevDisp;delete el.dataset.prevDisp;}
+    });
+    if(nowOpen)_ufPayGate(); /* #8 — apply gate state when section opens */
+  }
+}
+/* #8 — Receipts section gating: only Amount Received is active until a
+   valid amount is entered; Date, Mode, Payment For, Notes and Save stay
+   greyed-out until then. */
+function _ufPayGate(){
+  const ok=(parseFloat(document.getElementById('uf-pay-amt').value)||0)>0;
+  ['uf-pay-date','uf-pay-mode','uf-pay-for','uf-pay-notes'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.disabled=!ok;el.style.opacity=ok?'':'0.45';}
+  });
+  const b=document.getElementById('uf-pay-btn');
+  if(b){b.disabled=!ok;b.style.opacity=ok?'':'0.45';}
 }
 
 /* ---- PROFILE ---- */
@@ -8915,6 +9057,7 @@ function _ufPopulatePayment(cid){
      member → button was already enabled with an empty field. */
   const _payBtn=document.getElementById('uf-pay-btn');
   if(_payBtn){_payBtn.disabled=true;_payBtn.style.opacity='0.45';}
+  _ufPayGate(); /* #8 — also reset the field gating for the fresh member */
   
   /* Auto-select Payment For based on context */
   const payForEl=document.getElementById('uf-pay-for');
@@ -9114,7 +9257,12 @@ function ufSavePayment(){
       <div class="uf-sec-body" id="uf-body-payment" style="display:none;">
         <div id="uf-pay-balance" style="text-align:center;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:12px;"></div>
         <div class="fr">
-          <div class="fg"><label class="fl">Amount Received (₹)</label><input class="fi" id="uf-pay-amt" type="number" placeholder="0" oninput="document.getElementById('uf-pay-btn').disabled=!(parseFloat(this.value)>0);document.getElementById('uf-pay-btn').style.opacity=parseFloat(this.value)>0?'':'0.45'"/></div>
+          <div class="fg"><label class="fl">Amount Received</label>
+            <div style="position:relative;">
+              <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gold);font-weight:700;font-size:14px;pointer-events:none;">₹</span>
+              <input class="fi" id="uf-pay-amt" type="number" placeholder="0" style="padding-left:26px;" oninput="_ufPayGate()"/>
+            </div>
+          </div>
           <div class="fg"><label class="fl">Date Received</label><input class="fi" id="uf-pay-date" type="date"/></div>
         </div>
         <div class="fr">
@@ -9129,7 +9277,7 @@ function ufSavePayment(){
     </div>
 
     <!-- WhatsApp + Complimentary -->
-    <div style="display:flex;gap:8px;margin:10px 0;">
+    <div id="uf-chips-row" style="display:flex;gap:8px;margin:10px 0;">
       <button onclick="const _cid=document.getElementById('uf-cid').value;closeM('m-unified');setTimeout(()=>openWA(_cid),200)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
       <button onclick="openAddComp(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;">🎁 Add Complimentary</button>
     </div>
