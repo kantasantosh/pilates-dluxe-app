@@ -46,8 +46,9 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .topbar{background:linear-gradient(135deg,#1a1612 0%,#221e18 100%);padding:6px 14px 4px;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
 .logo-mark{width:36px;height:36px;background:transparent;border:1.5px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);font-weight:300;font-style:italic;flex-shrink:0;}
 .tb-mini{background:none;border:1px solid var(--border2);border-radius:14px;padding:3px 10px;font-size:10px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
-.tb-clock-centre{text-align:center;color:var(--gold);font-size:30px;font-weight:700;line-height:1.02;font-family:'Jost',sans-serif;}
-.tb-ico{background:none;border:none;font-size:22px;cursor:pointer;padding:2px;line-height:1;}
+.tb-clock-centre{text-align:center;color:var(--gold);font-size:34px;font-weight:700;line-height:1.0;font-family:'Jost',sans-serif;}
+.tb-ico{background:none;border:none;cursor:pointer;padding:2px;line-height:1;color:var(--gold);}
+.gico{width:26px;height:26px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));}
 .tb-clock-centre div{font-size:10px;color:var(--text3);font-weight:400;margin-top:1px;}
 .np-area::placeholder{color:var(--text3);opacity:0.35;}
 
@@ -63,11 +64,11 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .tab.active{display:block;}
 
 /* CARDS */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow2);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;box-shadow:var(--shadow2);}
 .card-gold{border-color:rgba(201,168,76,0.3);background:linear-gradient(135deg,var(--surface) 0%,rgba(201,168,76,0.05) 100%);}
 
 /* DASHBOARD */
-.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
 .dash-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;position:relative;overflow:hidden;}
 .dash-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:50%;opacity:0.08;transform:translate(20px,-20px);}
 .dash-card.gold::before{background:var(--gold);}
@@ -584,21 +585,25 @@ try{
 </head>
 <body>
 
-<!-- TOPBAR (design: logo+STUDIO ADMIN left · stacked clock + date centre · icon row right) -->
+<!-- TOPBAR (approved design: logo+STUDIO ADMIN left · stacked clock + date centre · gold icon row right) -->
 <div class="topbar">
-  <div style="display:flex;align-items:center;justify-content:space-between;">
-    <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+  <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-self:start;">
       <div class="logo-mark" style="overflow:hidden;padding:0;width:76px;height:76px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
       <div style="font-size:7px;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;font-family:'Jost',sans-serif;font-weight:300;margin-top:2px;white-space:nowrap;">STUDIO ADMIN</div>
     </div>
     <div style="text-align:center;">
       <div class="tb-clock-centre" id="top-clock"></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:1px;"><span id="top-date"></span> : <span id="top-day"></span></div>
-      <div style="margin-top:2px;"><span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.5;font-size:8px;color:var(--text3);letter-spacing:1px;">v141j</span></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px;letter-spacing:1px;font-weight:600;"><span id="top-date"></span> : <span id="top-day"></span></div>
+      <div style="margin-top:3px;"><span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.6;font-size:9px;color:var(--text3);letter-spacing:1px;">v141k</span></div>
     </div>
-    <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;" id="tb-chiprow">
-      <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">🔄</button>
-      <button onclick="openNotepad()" title="Notepad" class="tb-ico">📝</button>
+    <div style="display:flex;align-items:center;gap:16px;justify-self:end;" id="tb-chiprow">
+      <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
+        <svg class="gico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+      </button>
+      <button onclick="openNotepad()" title="Notepad" class="tb-ico">
+        <svg class="gico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h7"/></svg>
+      </button>
     </div>
   </div>
 </div>
@@ -617,7 +622,7 @@ try{
     <button class="btn btn-outline btn-sm" onclick="openAttendanceLookup()" title="Look up a member's attendance and validity" style="margin:0;">🔍 Attendance</button>
   </div>
   <!-- #5 sticky: from the plan/time dropdowns down to the search bar -->
-  <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding-bottom:4px;">
+  <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding-bottom:4px;">
   <div style="margin-bottom:8px;display:flex;gap:8px;">
     <select id="client-planfilter" onchange="renderClients()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">📋 All plans</option>
@@ -651,18 +656,21 @@ try{
 
 <!-- SCHEDULE -->
 <div class="tab" id="tab-schedule">
-  <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding:6px 14px 6px;">
+  <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding:6px 14px 6px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
       <div style="font-size:14px;font-weight:700;color:var(--text);">Schedule</div>
       <div style="display:flex;gap:10px;align-items:center;">
-        <button onclick="pdlSyncNow()" title="Force refresh from cloud" class="tb-ico" style="font-size:18px;">🔄</button>
+        <button onclick="pdlSyncNow()" title="Force refresh from cloud" class="tb-ico">
+          <svg class="gico" style="width:22px;height:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+        </button>
         <button class="btn btn-gold btn-sm" onclick="openScanner()" title="Scan member QR to mark present" style="padding:4px 10px;">📷 Scan</button>
       </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);" id="sched-label"></div>
-        <input type="date" id="sched-date-pick" class="fi" style="width:auto;padding:4px 8px;font-size:11px;text-align:center;" onchange="pickSchedDate(this.value)"/>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px;">
+      <div style="position:relative;display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="document.getElementById('sched-date-pick').showPicker&&document.getElementById('sched-date-pick').showPicker()" title="Tap to pick a date">
+        <div style="font-size:15px;font-weight:700;color:var(--text);" id="sched-label"></div>
+        <span style="font-size:11px;color:var(--gold);">▾</span>
+        <input type="date" id="sched-date-pick" style="position:absolute;inset:0;opacity:0;pointer-events:none;" onchange="pickSchedDate(this.value)"/>
       </div>
       <div style="display:flex;gap:8px;">
         <button class="float-nav-btn" onclick="chDay(-1)" title="Previous day" style="position:static;width:32px;height:32px;font-size:14px;">◀</button>
@@ -721,7 +729,7 @@ try{
   </div>
   <div id="cash-summary"></div>
   <!-- #5 sticky: from the 4 filter chips down to the search row -->
-  <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding-bottom:4px;">
+  <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding-bottom:4px;">
   <div style="display:flex;gap:4px;margin-bottom:8px;">
     <button class="ftab active" onclick="setCashFilter('all',this)" style="flex:1;text-align:center;">All</button>
     <button class="ftab" onclick="setCashFilter('in',this)" style="flex:1;text-align:center;">💚 Credits</button>
@@ -1700,7 +1708,7 @@ function renderDash(){
   _billsDue.forEach(b=>_alerts.push({icon:b.due<td()?'🔴':'💰',text:(b.due<td()?'Overdue bill: ':'Due today: ')+b.name+' (₹'+(b.amt||0).toLocaleString('en-IN')+')',action:"showTab('tns');setTnsView('bills',document.querySelector('#tns-subtabs .ftab:nth-child(1)'))"}));
 
   document.getElementById('dash-content').innerHTML=`
-    ${_alerts.length?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">
+    ${_alerts.length?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;">
       <div style="font-size:11px;font-weight:700;color:#e74c3c;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔔 Needs Attention (${_alerts.length})</div>
       ${_alerts.slice(0,6).map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);" onclick="${a.action}">
         <span>${a.icon}</span><span style="flex:1;">${_esc(a.text)}</span><span style="color:var(--text3);">›</span>
@@ -1764,7 +1772,7 @@ function renderDash(){
 
     <!-- Today's Schedule Summary Card -->
     <div class="div-section">📅 Today's Schedule</div>
-    <div class="card card-gold" style="margin-bottom:14px;">
+    <div class="card card-gold" style="margin-bottom:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <div>
           <div style="font-size:20px;font-weight:800;color:var(--gold);">${todayCount} <span style="font-size:12px;font-weight:400;color:var(--text2);">bookings today</span></div>
@@ -3954,7 +3962,7 @@ function saveStaffAdv(){
      leaving the till was invisible in Day Book / cash balance. Record it
      as a matching debit, same as any other cash-out entry. */
   const cash=ld('pp_cash',[]);
-  cash.push({id:'sadv_'+advId,type:'out',desc:'Advance to '+name+(notes?' — '+notes:''),cid:'',amt,date,mode,mode2:'',cat:'Staff Salary'});
+  cash.push({id:'sadv_'+advId,type:'out',desc:'Advance to '+name+(notes?' — '+notes:''),cid:'',amt,date,mode,mode2:'',cat:'Staff Salary',sid:sid});
   sv('pp_cash',cash);
   closeM('m-staffadv');
   toast('✓ Advance of ₹'+amt.toLocaleString('en-IN')+' recorded — added to Cash Book too');
@@ -4596,7 +4604,7 @@ function renderCash(){
   const allIn=cash.filter(e=>e.type==='in').reduce((s,e)=>s+e.amt,0);
   const allOut=cash.filter(e=>e.type==='out').reduce((s,e)=>s+e.amt,0);
   document.getElementById('cash-summary').innerHTML=`
-    <div class="card card-gold" style="width:fit-content;min-width:270px;margin:0 auto 14px;padding-left:22px;padding-right:22px;text-align:center;">
+    <div class="card card-gold" style="width:fit-content;min-width:270px;margin:0 auto 10px;padding-left:22px;padding-right:22px;text-align:center;">
       <div style="font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Overall Balance</div>
       <div style="font-family:'Playfair Display',serif;font-size:32px;color:var(--gold);margin-bottom:10px;">₹${(allIn-allOut).toLocaleString('en-IN')}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:13px;text-align:center;">
@@ -4847,6 +4855,12 @@ function npCopy(){
 // structure (#pp-login, #lg-users, #pp-cloud, etc.) genuinely exists.
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',()=>{if(typeof _ppBoot==='function')_ppBoot();});
+  /* #5 — sticky sections pin just below the sticky topbar; measure its
+     real height (varies with device font) into a CSS variable */
+  function _setTbh(){const t=document.querySelector('.topbar');if(t)document.documentElement.style.setProperty('--tbh',t.offsetHeight+'px');}
+  document.addEventListener('DOMContentLoaded',_setTbh);
+  window.addEventListener('resize',_setTbh);
+  setTimeout(_setTbh,800);
 }else{
   if(typeof _ppBoot==='function')_ppBoot();
 }
@@ -5164,7 +5178,7 @@ function ppIsAdmin(){
     const _tb=document.getElementById('tb-chiprow');
     if(_tb&&!document.getElementById('tb-user')){
       const _d=document.createElement('div');_d.className='tb-user';_d.id='tb-user';
-      _d.innerHTML=`<button class="tb-ico" onclick="doLogout()" title="${PPS.name} — tap to logout">${PPS.role==='admin'?'👑':'👤'}</button>`;
+      _d.innerHTML=`<button class="tb-ico" onclick="doLogout()" title="${PPS.name} — tap to logout">${PPS.role==='admin'?`<svg class="gico" viewBox="0 0 24 24" fill="currentColor"><path d="M2.5 7l4.4 4 5.1-6.5L17.1 11l4.4-4-1.6 11.5H4.1L2.5 7zm1.9 13h15.2v2H4.4v-2z"/></svg>`:`<svg class="gico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>`}</button>`;
       _tb.appendChild(_d);
     }
   }
@@ -5372,7 +5386,7 @@ function applyRole(){
   const tb=document.getElementById('tb-chiprow');
   if(tb&&!document.getElementById('tb-user')){
     const d=document.createElement('div');d.className='tb-user';d.id='tb-user';
-    d.innerHTML=`<button class="tb-ico" onclick="doLogout()" title="${PPS.name} — tap to logout">${PPS.role==='admin'?'👑':'👤'}</button>`;
+    d.innerHTML=`<button class="tb-ico" onclick="doLogout()" title="${PPS.name} — tap to logout">${PPS.role==='admin'?`<svg class="gico" viewBox="0 0 24 24" fill="currentColor"><path d="M2.5 7l4.4 4 5.1-6.5L17.1 11l4.4-4-1.6 11.5H4.1L2.5 7zm1.9 13h15.2v2H4.4v-2z"/></svg>`:`<svg class="gico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>`}</button>`;
     tb.appendChild(d);
   }
   if(ppIsStaff()){
