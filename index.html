@@ -152,6 +152,7 @@ input,select,textarea{color:var(--gold);}
 .sb2{width:100%;padding:14px;border-radius:var(--rsm);border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-family:'Jost',sans-serif;font-weight:700;font-size:15px;cursor:pointer;margin-top:8px;}
 
 /* FAB */
+#tab-clients{padding-top:8px;}
 .fab{position:fixed;bottom:76px;right:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(201,168,76,0.4);z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
 .float-nav{position:fixed;left:16px;bottom:84px;display:none;flex-direction:column;gap:8px;z-index:85;}
 .float-nav.float-nav-right{left:auto;right:16px;}
@@ -589,21 +590,28 @@ try{
 <div class="topbar">
   <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;">
     <div style="display:flex;flex-direction:column;align-items:center;justify-self:start;">
-      <div class="logo-mark" style="overflow:hidden;padding:0;width:76px;height:76px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
-      <div style="font-size:7px;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;font-family:'Jost',sans-serif;font-weight:300;margin-top:2px;white-space:nowrap;">STUDIO ADMIN</div>
+      <div class="logo-mark" style="overflow:hidden;padding:0;width:86px;height:86px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
+      <svg width="104" height="26" viewBox="0 0 104 26" style="margin-top:-6px;">
+        <defs><path id="adm-arc" d="M 8 4 Q 52 26 96 4"/></defs>
+        <text style="font-size:9px;fill:var(--gold);letter-spacing:3px;font-family:'Jost',sans-serif;font-weight:400;">
+          <textPath href="#adm-arc" startOffset="50%" text-anchor="middle">STUDIO ADMIN</textPath>
+        </text>
+      </svg>
     </div>
     <div style="text-align:center;">
       <div class="tb-clock-centre" id="top-clock"></div>
       <div style="font-size:12px;color:var(--text2);margin-top:4px;letter-spacing:1px;font-weight:600;"><span id="top-date"></span> : <span id="top-day"></span></div>
-      <div style="margin-top:3px;"><span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.6;font-size:9px;color:var(--text3);letter-spacing:1px;">v141k</span></div>
     </div>
-    <div style="display:flex;align-items:center;gap:16px;justify-self:end;" id="tb-chiprow">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:5px;justify-self:end;">
+    <div style="display:flex;align-items:center;gap:16px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
       </button>
       <button onclick="openNotepad()" title="Notepad" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h7"/></svg>
       </button>
+    </div>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.75;font-size:11px;color:var(--text3);letter-spacing:1px;">v141l</span>
     </div>
   </div>
 </div>
@@ -684,10 +692,10 @@ try{
 <!-- TnS: TASKS & STAFF COMBINED -->
 <div class="tab" id="tab-tns">
   <!-- Sub-tab navigation -->
-  <div class="ftabs" id="tns-subtabs">
-    <button class="ftab active" onclick="setTnsView('bills',this)">📋 Bills</button>
-    <button class="ftab" onclick="setTnsView('tasks',this)">✅ Tasks</button>
-    <button class="ftab" onclick="setTnsView('staff',this)">👨‍🏫 Staff</button>
+  <div class="ftabs" id="tns-subtabs" style="display:flex;gap:6px;">
+    <button class="ftab active" style="flex:1;text-align:center;" onclick="setTnsView('bills',this)">📋 Bills</button>
+    <button class="ftab" style="flex:1;text-align:center;" onclick="setTnsView('tasks',this)">✅ Tasks</button>
+    <button class="ftab" style="flex:1;text-align:center;" onclick="setTnsView('staff',this)">👨‍🏫 Staff</button>
   </div>
 
   <!-- BILLS + TASKS content -->
@@ -701,19 +709,20 @@ try{
 
   <!-- STAFF content -->
   <div id="tns-staff" style="display:none;">
+    <div style="position:sticky;top:var(--tbh,96px);z-index:9;background:var(--bg);padding-bottom:4px;">
     <div class="sh">
       <div class="st">Staff<small>Team & Attendance</small></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance">🖨</button>
-        <button class="btn btn-gold btn-sm" onclick="openAddStaff()">+ Add</button>
       </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;">
       <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664;</button>
       <div id="staff-ml" style="font-size:14px;font-weight:700;color:var(--gold);flex:1;text-align:center;"></div>
       <input type="month" id="staff-month-pick" class="fi" style="width:auto;padding:7px 10px;font-size:12px;" onchange="pickStaffMonth(this.value)"/>
       <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">&#9654;</button>
     </div>
+    </div><!-- /staff sticky -->
     <div id="staff-list"></div>
   </div>
 </div>
@@ -2685,15 +2694,9 @@ function renderSchedule(){
   const evening=SLOTS.slice(5);
 
   const dmSerif="font-family:'Playfair Display',serif";
+  /* duplicate in-body date + Prev/Next row removed — the sticky schedule
+     header above already shows the date and the single ◀ ▶ pair */
   let html=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <button class="btn btn-outline btn-sm" onclick="chDay(-1)">&#9664; Prev</button>
-      <div style="text-align:center;">
-        <div style="${dmSerif};font-size:18px;">${dt.toLocaleDateString('en-IN',{day:'numeric',month:'long'})}</div>
-        <div style="font-size:13px;color:var(--text2);">${dt.toLocaleDateString('en-IN',{weekday:'long'})}</div>
-      </div>
-      <button class="btn btn-outline btn-sm" onclick="chDay(1)">Next &#9654;</button>
-    </div>
     ${(function(){
       const closed=ld('pp_closed_days',{});
       const isClosed=!!closed[_schedDate];
@@ -3050,12 +3053,8 @@ function _updateFloatingNav(n){
   scrollTarget.innerHTML=`<button class="float-nav-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">▲</button>
       <button class="float-nav-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
   scrollTarget.classList.add('show');
-  /* Right side, Schedule only: ◀ ▶ day switch reachable while scrolled down */
-  if(n==='schedule'){
-    boxR.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day">◀</button>
-      <button class="float-nav-btn" onclick="chDay(1)" title="Next day">▶</button>`;
-    boxR.classList.add('show');
-  }else{boxR.classList.remove('show');boxR.innerHTML='';}
+  /* single ◀ ▶ set lives in the sticky schedule header (user direction) */
+  boxR.classList.remove('show');boxR.innerHTML='';
 }
 function renderPlanChips(selected){
   const plans=getPlans().filter(p=>p.id!=='trial');
@@ -3924,11 +3923,7 @@ function renderStaff(){
       <div style="display:flex;gap:8px;margin-top:12px;">
         <button onclick="openStaffAdv('${s.id}','${s.fname} ${s.lname}')" style="flex:1;padding:9px;border-radius:var(--rsm);border:1.5px solid var(--purple);background:none;color:var(--purple);font-family:'Jost',sans-serif;font-weight:700;cursor:pointer;font-size:12px;">+ Record Advance</button>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
-        <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664; Prev</button>
-        <span style="font-size:12px;color:var(--text2);">${MN_S[m]} ${y}</span>
-        <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">Next &#9654;</button>
-      </div>
+      <!-- per-card month nav removed: the sticky month header above is the single control -->
     </div>`;
   }).join('');
 }
@@ -4525,7 +4520,7 @@ function deleteCashEntry(){
 function _ceStaffRow(){
   const row=document.getElementById('ce-staff-row');
   if(!row)return;
-  const isSal=document.getElementById('ce-type').value==='out'&&document.getElementById('ce-cat').value==='Staff Salary';
+  const isSal=document.getElementById('ce-type').value==='out'&&/salar/i.test(document.getElementById('ce-cat').value||'');
   row.style.display=isSal?'':'none';
   if(isSal){
     const sel=document.getElementById('ce-staff');
@@ -4545,7 +4540,7 @@ function _staffAdvFind(cashId){
   return null;
 }
 function _staffAdvSync(data){
-  const isSal=data&&data.type==='out'&&data.cat==='Staff Salary'&&data.sid;
+  const isSal=data&&data.type==='out'&&/salar/i.test(data.cat||'')&&data.sid;
   const ex=_staffAdvFind(data.id);
   const advKey=data.id.startsWith('sadv_')?data.id.slice(5):data.id;
   if(isSal){
@@ -4573,8 +4568,11 @@ function saveCashEntry(){
   const _cidv=_t==='contra'?'':document.getElementById('ce-cid').value;
   if(_t==='in'&&/membership|renewal|drop-in/i.test(_cat||'')&&!_cidv){alert('Please select the client for this fee — a membership payment must be linked to a member.');return;}
   /* #3 — Staff Salary debits must be linked to a staff member */
-  const _sidv=(_t==='out'&&_cat==='Staff Salary')?document.getElementById('ce-staff').value:'';
-  if(_t==='out'&&_cat==='Staff Salary'&&!_sidv){alert('Please select the staff member for this salary payment.');return;}
+  /* tolerant match — the category list is user-editable, so any label
+     containing "salary" counts (Staff Salary / Salaries / Salary etc.) */
+  const _isSalCat=(_t==='out'&&/salar/i.test(_cat||''));
+  const _sidv=_isSalCat?document.getElementById('ce-staff').value:'';
+  if(_isSalCat&&!_sidv){alert('Please select the staff member for this salary payment.');return;}
   const data={id,type:_t,desc:document.getElementById('ce-desc').value.trim(),cid:_t==='contra'?'':document.getElementById('ce-cid').value,amt,date:document.getElementById('ce-date').value||td(),mode:document.getElementById('ce-mode').value,mode2:_t==='contra'?document.getElementById('ce-mode2').value:'',cat:_t==='contra'?'Contra':document.getElementById('ce-cat').value,sid:_sidv};
   const idx=cash.findIndex(x=>x.id===id);
   const isNewCE=idx<0;
