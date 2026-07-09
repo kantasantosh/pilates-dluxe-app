@@ -153,6 +153,9 @@ input,select,textarea{color:var(--gold);}
 
 /* FAB */
 #tab-clients{padding-top:8px;}
+#m-unified .fg{margin-bottom:9px;}
+#m-unified .fr{gap:8px;}
+#m-unified .fr .fg{flex:1;min-width:0;}
 .fab{position:fixed;bottom:76px;right:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(201,168,76,0.4);z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
 .float-nav{position:fixed;left:16px;bottom:84px;display:none;flex-direction:column;gap:8px;z-index:85;}
 .float-nav.float-nav-right{left:auto;right:16px;}
@@ -591,16 +594,16 @@ try{
   <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;">
     <div style="display:flex;flex-direction:column;align-items:center;justify-self:start;">
       <div class="logo-mark" style="overflow:hidden;padding:0;width:86px;height:86px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
-      <svg width="104" height="26" viewBox="0 0 104 26" style="margin-top:-6px;">
-        <defs><path id="adm-arc" d="M 8 4 Q 52 26 96 4"/></defs>
-        <text style="font-size:9px;fill:var(--gold);letter-spacing:3px;font-family:'Jost',sans-serif;font-weight:400;">
+      <svg width="120" height="24" viewBox="0 0 120 24" style="margin-top:-4px;">
+        <defs><path id="adm-arc" d="M 12 4 A 92 92 0 0 0 108 4"/></defs>
+        <text style="font-size:9.5px;fill:var(--gold);letter-spacing:3px;font-family:'Jost',sans-serif;font-weight:400;">
           <textPath href="#adm-arc" startOffset="50%" text-anchor="middle">STUDIO ADMIN</textPath>
         </text>
       </svg>
     </div>
     <div style="text-align:center;">
       <div class="tb-clock-centre" id="top-clock"></div>
-      <div style="font-size:12px;color:var(--text2);margin-top:4px;letter-spacing:1px;font-weight:600;"><span id="top-date"></span> : <span id="top-day"></span></div>
+      <div style="font-size:14px;color:var(--text2);margin-top:4px;letter-spacing:1px;font-weight:600;"><span id="top-date"></span> : <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:5px;justify-self:end;">
     <div style="display:flex;align-items:center;gap:16px;" id="tb-chiprow">
@@ -611,7 +614,7 @@ try{
         <svg class="gico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h7"/></svg>
       </button>
     </div>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.75;font-size:11px;color:var(--text3);letter-spacing:1px;">v141l</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;">v141m</span>
     </div>
   </div>
 </div>
@@ -674,15 +677,10 @@ try{
         <button class="btn btn-gold btn-sm" onclick="openScanner()" title="Scan member QR to mark present" style="padding:4px 10px;">📷 Scan</button>
       </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px;">
-      <div style="position:relative;display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="document.getElementById('sched-date-pick').showPicker&&document.getElementById('sched-date-pick').showPicker()" title="Tap to pick a date">
-        <div style="font-size:15px;font-weight:700;color:var(--text);" id="sched-label"></div>
-        <span style="font-size:11px;color:var(--gold);">▾</span>
+    <div style="display:flex;justify-content:center;margin-top:2px;">
+      <div style="position:relative;text-align:center;cursor:pointer;" onclick="document.getElementById('sched-date-pick').showPicker&&document.getElementById('sched-date-pick').showPicker()" title="Tap to pick a date">
+        <div id="sched-label" style="line-height:1.05;"></div>
         <input type="date" id="sched-date-pick" style="position:absolute;inset:0;opacity:0;pointer-events:none;" onchange="pickSchedDate(this.value)"/>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="float-nav-btn" onclick="chDay(-1)" title="Previous day" style="position:static;width:32px;height:32px;font-size:14px;">◀</button>
-        <button class="float-nav-btn" onclick="chDay(1)" title="Next day" style="position:static;width:32px;height:32px;font-size:14px;">▶</button>
       </div>
     </div>
   </div>
@@ -718,8 +716,8 @@ try{
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;">
       <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664;</button>
-      <div id="staff-ml" style="font-size:14px;font-weight:700;color:var(--gold);flex:1;text-align:center;"></div>
-      <input type="month" id="staff-month-pick" class="fi" style="width:auto;padding:7px 10px;font-size:12px;" onchange="pickStaffMonth(this.value)"/>
+      <div id="staff-ml" onclick="const i=document.getElementById('staff-month-pick');i.showPicker&&i.showPicker()" title="Tap to pick month" style="flex:1;text-align:center;cursor:pointer;line-height:1.15;"></div>
+      <input type="month" id="staff-month-pick" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" onchange="pickStaffMonth(this.value)"/>
       <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">&#9654;</button>
     </div>
     </div><!-- /staff sticky -->
@@ -2678,9 +2676,10 @@ function renderSchedule(){
   const isFuture=_schedDate>td();
   const picker=document.getElementById('sched-date-pick');
   if(picker&&!picker.value)picker.value=_schedDate;
-  /* per approved header design: always show "8 July, Wednesday" — no golden Today/Upcoming */
-  document.getElementById('sched-label').textContent=
-    dt.toLocaleDateString('en-IN',{day:'numeric',month:'long'})+', '+dt.toLocaleDateString('en-IN',{weekday:'long'});
+  /* centred, stacked, same size as the top bar digital clock (user direction) */
+  document.getElementById('sched-label').innerHTML=
+    '<div style="font-family:\'Jost\',sans-serif;font-size:34px;font-weight:700;color:var(--gold);">'+dt.toLocaleDateString('en-IN',{day:'numeric',month:'long'})+'</div>'+
+    '<div style="font-family:\'Jost\',sans-serif;font-size:16px;font-weight:600;color:var(--text2);letter-spacing:2px;">'+dt.toLocaleDateString('en-IN',{weekday:'long'}).toUpperCase()+' <span style="color:var(--gold);font-size:12px;">▾</span></div>';
 
   const bookings=ld('pp_bookings',{});
   const daySlots=bookings[_schedDate]||{};
@@ -2722,7 +2721,14 @@ function renderSchedule(){
 
   ['Morning','Evening'].forEach((period,pi)=>{
     const slots=pi===0?morning:evening;
-    html+=`<div class="div-section">${period}</div>`;
+    /* day-switch ◀ ▶ live at the right of the Evening divider (user direction) */
+    html+=pi===1
+      ?`<div class="div-section" style="display:flex;align-items:center;justify-content:space-between;"><span>${period}</span>
+          <span style="display:flex;gap:8px;">
+            <button class="float-nav-btn" onclick="chDay(-1)" title="Previous day" style="position:static;width:30px;height:30px;font-size:13px;">◀</button>
+            <button class="float-nav-btn" onclick="chDay(1)" title="Next day" style="position:static;width:30px;height:30px;font-size:13px;">▶</button>
+          </span></div>`
+      :`<div class="div-section">${period}</div>`;
     slots.forEach((slot,_si)=>{
       const slotIdx=SLOTS.indexOf(slot);
       const booked=daySlots[slot]||[];
@@ -3497,7 +3503,8 @@ function renderCredits(){
     <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
       <div style="width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
       <div style="font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
-      <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 12px;">Studio Admin</div>
+      <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 4px;">Studio Admin</div>
+      <div style="font-size:13px;color:var(--text2);letter-spacing:1px;margin-bottom:12px;">${typeof _appVer==='function'?_appVer():''}</div>
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Built with</div>
       <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;">
         <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#d4a574;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#2d1810;">C</div><div style="font-size:12px;font-weight:500;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div>
@@ -3697,7 +3704,8 @@ function renderStaff(){
   const _spb=document.getElementById('staff-print-btn');
   if(_spb)_spb.style.display=(typeof ppIsAdmin==='function'&&!ppIsAdmin())?'none':'';
   const mlabel=document.getElementById('staff-ml');
-  if(mlabel)mlabel.textContent=MN_S[m]+' '+y;
+  /* single month/year control: centred, two lines (user direction) */
+  if(mlabel)mlabel.innerHTML='<div style="font-size:16px;font-weight:700;color:var(--gold);">'+MN_S[m]+'</div><div style="font-size:12px;color:var(--text2);">'+y+'</div>';
 
   if(!staff.length){
     document.getElementById('staff-list').innerHTML=`
@@ -3896,8 +3904,8 @@ function renderStaff(){
         ${advHistory.length>0?`
         <div style="margin-top:10px;">
           <div style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Advance History</div>
-          ${advHistory.map(a=>`<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:3px;">
-            <span>${fmt(a.date)}${a.notes?' • '+a.notes:''}</span>
+          ${advHistory.map(a=>`<div onclick="openStaffAdvVoucher('${s.id}','${a.id}')" title="Tap to open this voucher" style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:3px;cursor:pointer;padding:3px 6px;margin-left:-6px;margin-right:-6px;border-radius:6px;background:rgba(201,168,76,0.05);">
+            <span>${fmt(a.date)}${a.notes?' • '+a.notes:''} <span style="color:var(--gold);font-size:11px;">›</span></span>
             <span style="color:var(--red);">₹${a.amt.toLocaleString('en-IN')}</span>
           </div>`).join('')}
         </div>`:''}
@@ -4538,6 +4546,23 @@ function _staffAdvFind(cashId){
     if(idx>=0)return {sid:s.id,list,idx,advKey};
   }
   return null;
+}
+/* Drill-down: staff payment row → its Cash Book voucher (view/edit/delete).
+   Old records from the pre-sync era may have no voucher — offer to remove
+   the orphan record directly (answers: "how to remove old trial entries"). */
+function openStaffAdvVoucher(sid,advId){
+  const cash=ld('pp_cash',[]);
+  const ce=cash.find(e=>e.id===advId||e.id==='sadv_'+advId);
+  if(ce){openCashEntry(ce.id);return;}
+  showConfirm('🧾','No voucher linked','This payment record has no Cash Book voucher (it predates the sync). Remove this record from the staff account?',[
+    {label:'Cancel',color:'var(--text2)',action:null},
+    {label:'Remove',color:'var(--red)',action:()=>{
+      const list=ld('pp_sadv_'+sid,[]).filter(a=>a.id!==advId);
+      sv('pp_sadv_'+sid,list);
+      if(typeof AUD==='function')AUD('🗑 Staff payment record removed','orphan record '+advId);
+      renderStaff();toast('Record removed');
+    }}
+  ]);
 }
 function _staffAdvSync(data){
   const isSal=data&&data.type==='out'&&/salar/i.test(data.cat||'')&&data.sid;
@@ -9196,17 +9221,17 @@ function ufSavePayment(){
         <div class="fr">
           <div class="fg"><label class="fl">📱 Phone (WhatsApp)</label><div style="display:flex;align-items:center;gap:6px;"><span style="background:var(--surface3);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 10px;font-size:14px;color:var(--text2);font-family:'Jost',sans-serif;">+91</span><input class="fi" id="uf-phone" type="tel" inputmode="numeric" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"/></div></div>
           <div class="fg"><label class="fl">📧 Email</label><input class="fi" id="uf-email" type="email" autocomplete="off" autocapitalize="none"/></div>
-          <div class="fg"><label class="fl"><span style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:white;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;vertical-align:1px;">IG</span> Insta ID</label><input class="fi" id="uf-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
         </div>
         <div class="fr">
-          <div class="fg"><label class="fl">🎂 Birthday <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="uf-bday" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
-          <div class="fg"><label class="fl">💍 Anniversary <span style="color:var(--text3);font-weight:400;">(optional)</span></label><input class="fi" id="uf-anni" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
+          <div class="fg"><label class="fl">🎂 Birthday</label><input class="fi" id="uf-bday" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
+          <div class="fg"><label class="fl">💍 Anniversary</label><input class="fi" id="uf-anni" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
         </div>
         <div class="fr">
           <div class="fg"><label class="fl">📅 Registration Date</label><input class="fi" id="uf-join" type="date"/></div>
-          <div class="fg"><label class="fl">🎯 Trial Date <span style="color:var(--text3);font-weight:400;">(if any)</span></label><input class="fi" id="uf-trialdate" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
+          <div class="fg"><label class="fl">🎯 Trial Date</label><input class="fi" id="uf-trialdate" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
         </div>
         <div class="fr">
+          <div class="fg"><label class="fl"><span style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:white;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;vertical-align:1px;">IG</span> Insta ID</label><input class="fi" id="uf-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
           <div class="fg">
             <label class="fl">🔗 Referred By</label>
             <div style="position:relative;">
