@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div style="width:88px;height:88px;border-radius:50%;margin:0 auto 6px;overflow:hidden;"><img src="bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v36</small></div>
+  <div class="logo"><small>Book a Session · v37</small></div>
 </div>
 
 <div class="container">
@@ -244,7 +244,15 @@ async function signInGoogle(){
      the officially recommended approach for Safari. Other browsers keep
      the smoother in-place popup flow. */
   const isSafari=/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
-  if(isSafari){
+  /* INSTALLED-APP FIX: signInWithRedirect is broken inside a standalone
+     (installed) PWA — the OAuth return redirect opens in the browser, not
+     the app, so the sign-in never completes there. That is why login
+     worked from the browser but not from the installed app. In standalone
+     mode we must use the in-place POPUP flow on every platform; redirect
+     stays only for a normal Safari browser tab, where it is the reliable
+     choice. */
+  const isStandalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
+  if(isSafari&&!isStandalone){
     try{await firebase.auth().signInWithRedirect(provider);}
     catch(e){showAlert('Sign in failed. Please try again.','😕');}
     return; /* page will navigate away and back; onAuthStateChanged picks up the result */
@@ -254,6 +262,11 @@ async function signInGoogle(){
     _googleUser=result.user;
     loadDataAndVerify();
   }catch(e){
+    /* last resort inside an installed app: attempt redirect, else guide the user */
+    if(isStandalone){
+      try{await firebase.auth().signInWithRedirect(provider);return;}
+      catch(e2){showAlert('Sign in could not open here. Please open the booking page in your browser once, sign in, then return to the app.','😕');return;}
+    }
     showAlert('Sign in failed. Please try again.','😕');
   }
 }
@@ -474,14 +487,17 @@ function renderDashboard(){
 
 function renderDates(){
   const days=getNext7Days();
-  if(_closedDays[_selDate]){
-    const fo=days.find(d=>!_closedDays[d.key]);
+  const _isSunKey=k=>new Date(k+'T00:00:00').getDay()===0;
+  if(_closedDays[_selDate]||_isSunKey(_selDate)){
+    const fo=days.find(d=>!_closedDays[d.key]&&!_isSunKey(d.key));
     if(fo)_selDate=fo.key;
   }
   return days.map(d=>{
-    const isClosed=!!_closedDays[d.key];
-    return `<div class="date-btn${d.key===_selDate?' selected':''}${d.isToday?' today':''}" onclick="${isClosed?'':'selectDate(\''+d.key+'\')'}" style="${isClosed?'opacity:0.3;cursor:not-allowed;':''}">
-      <div class="day">${d.isToday?'Today':d.day}</div>
+    /* Sundays are marked closed on the live schedule (studio weekly off) */
+    const isSun=new Date(d.key+'T00:00:00').getDay()===0;
+    const isClosed=!!_closedDays[d.key]||isSun;
+    return `<div class="date-btn${d.key===_selDate?' selected':''}${d.isToday?' today':''}" onclick="${isClosed?'':'selectDate(\''+d.key+'\')'}" style="${isClosed?'opacity:0.35;cursor:not-allowed;':''}">
+      <div class="day" style="${isSun?'color:#e74c3c;font-weight:700;':''}">${d.isToday?'Today':d.day}</div>
       <div class="num">${d.num}</div>
       <div class="mon">${isClosed?'🚫':d.mon}</div>
     </div>`;
@@ -489,7 +505,7 @@ function renderDates(){
 }
 
 function selectDate(d){
-  if(_closedDays[d])return;
+  if(_closedDays[d]||new Date(d+'T00:00:00').getDay()===0)return;
   _selDate=d;
   document.getElementById('date-row').innerHTML=renderDates();
   renderSlots();

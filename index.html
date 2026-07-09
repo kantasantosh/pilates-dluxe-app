@@ -594,9 +594,9 @@ try{
   <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;">
     <div style="display:flex;flex-direction:column;align-items:center;justify-self:start;">
       <div class="logo-mark" style="overflow:hidden;padding:0;width:86px;height:86px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
-      <svg width="120" height="24" viewBox="0 0 120 24" style="margin-top:-4px;">
-        <defs><path id="adm-arc" d="M 12 4 A 92 92 0 0 0 108 4"/></defs>
-        <text style="font-size:9.5px;fill:var(--gold);letter-spacing:3px;font-family:'Jost',sans-serif;font-weight:400;">
+      <svg width="124" height="46" viewBox="0 0 124 46" style="margin-top:-32px;pointer-events:none;">
+        <defs><path id="adm-arc" d="M 15 20 A 56 56 0 0 0 109 20"/></defs>
+        <text style="font-size:11px;fill:var(--gold);letter-spacing:4px;font-family:'Jost',sans-serif;font-weight:500;">
           <textPath href="#adm-arc" startOffset="50%" text-anchor="middle">STUDIO ADMIN</textPath>
         </text>
       </svg>
@@ -614,7 +614,7 @@ try{
         <svg class="gico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h7"/></svg>
       </button>
     </div>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;">v141m</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;">v141n</span>
     </div>
   </div>
 </div>
@@ -677,10 +677,14 @@ try{
         <button class="btn btn-gold btn-sm" onclick="openScanner()" title="Scan member QR to mark present" style="padding:4px 10px;">📷 Scan</button>
       </div>
     </div>
-    <div style="display:flex;justify-content:center;margin-top:2px;">
-      <div style="position:relative;text-align:center;cursor:pointer;" onclick="document.getElementById('sched-date-pick').showPicker&&document.getElementById('sched-date-pick').showPicker()" title="Tap to pick a date">
-        <div id="sched-label" style="line-height:1.05;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="position:relative;cursor:pointer;" onclick="document.getElementById('sched-date-pick').showPicker&&document.getElementById('sched-date-pick').showPicker()" title="Tap to pick a date">
+        <div id="sched-label" style="line-height:1.1;"></div>
         <input type="date" id="sched-date-pick" style="position:absolute;inset:0;opacity:0;pointer-events:none;" onchange="pickSchedDate(this.value)"/>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="float-nav-btn" onclick="chDay(-1)" title="Previous day" style="position:static;width:32px;height:32px;font-size:14px;">◀</button>
+        <button class="float-nav-btn" onclick="chDay(1)" title="Next day" style="position:static;width:32px;height:32px;font-size:14px;">▶</button>
       </div>
     </div>
   </div>
@@ -708,17 +712,15 @@ try{
   <!-- STAFF content -->
   <div id="tns-staff" style="display:none;">
     <div style="position:sticky;top:var(--tbh,96px);z-index:9;background:var(--bg);padding-bottom:4px;">
-    <div class="sh">
-      <div class="st">Staff<small>Team & Attendance</small></div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance">🖨</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+      <div class="st" style="flex-shrink:0;">Staff</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664;</button>
+        <div id="staff-ml" onclick="const i=document.getElementById('staff-month-pick');i.showPicker&&i.showPicker()" title="Tap to pick month" style="text-align:center;cursor:pointer;line-height:1.1;min-width:64px;"></div>
+        <input type="month" id="staff-month-pick" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" onchange="pickStaffMonth(this.value)"/>
+        <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">&#9654;</button>
       </div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;">
-      <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664;</button>
-      <div id="staff-ml" onclick="const i=document.getElementById('staff-month-pick');i.showPicker&&i.showPicker()" title="Tap to pick month" style="flex:1;text-align:center;cursor:pointer;line-height:1.15;"></div>
-      <input type="month" id="staff-month-pick" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" onchange="pickStaffMonth(this.value)"/>
-      <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">&#9654;</button>
+      <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance" style="flex-shrink:0;">🖨</button>
     </div>
     </div><!-- /staff sticky -->
     <div id="staff-list"></div>
@@ -2676,10 +2678,10 @@ function renderSchedule(){
   const isFuture=_schedDate>td();
   const picker=document.getElementById('sched-date-pick');
   if(picker&&!picker.value)picker.value=_schedDate;
-  /* centred, stacked, same size as the top bar digital clock (user direction) */
+  /* compact: date + day in one tight block, tappable (no picker glyph) */
   document.getElementById('sched-label').innerHTML=
-    '<div style="font-family:\'Jost\',sans-serif;font-size:34px;font-weight:700;color:var(--gold);">'+dt.toLocaleDateString('en-IN',{day:'numeric',month:'long'})+'</div>'+
-    '<div style="font-family:\'Jost\',sans-serif;font-size:16px;font-weight:600;color:var(--text2);letter-spacing:2px;">'+dt.toLocaleDateString('en-IN',{weekday:'long'}).toUpperCase()+' <span style="color:var(--gold);font-size:12px;">▾</span></div>';
+    '<span style="font-family:\'Jost\',sans-serif;font-size:20px;font-weight:700;color:var(--gold);">'+dt.toLocaleDateString('en-IN',{day:'numeric',month:'long'})+'</span>'+
+    '<span style="font-family:\'Jost\',sans-serif;font-size:13px;font-weight:600;color:var(--text2);letter-spacing:1px;margin-left:8px;">'+dt.toLocaleDateString('en-IN',{weekday:'long'})+'</span>';
 
   const bookings=ld('pp_bookings',{});
   const daySlots=bookings[_schedDate]||{};
@@ -2721,14 +2723,7 @@ function renderSchedule(){
 
   ['Morning','Evening'].forEach((period,pi)=>{
     const slots=pi===0?morning:evening;
-    /* day-switch ◀ ▶ live at the right of the Evening divider (user direction) */
-    html+=pi===1
-      ?`<div class="div-section" style="display:flex;align-items:center;justify-content:space-between;"><span>${period}</span>
-          <span style="display:flex;gap:8px;">
-            <button class="float-nav-btn" onclick="chDay(-1)" title="Previous day" style="position:static;width:30px;height:30px;font-size:13px;">◀</button>
-            <button class="float-nav-btn" onclick="chDay(1)" title="Next day" style="position:static;width:30px;height:30px;font-size:13px;">▶</button>
-          </span></div>`
-      :`<div class="div-section">${period}</div>`;
+    html+=`<div class="div-section">${period}</div>`;
     slots.forEach((slot,_si)=>{
       const slotIdx=SLOTS.indexOf(slot);
       const booked=daySlots[slot]||[];
@@ -3705,7 +3700,7 @@ function renderStaff(){
   if(_spb)_spb.style.display=(typeof ppIsAdmin==='function'&&!ppIsAdmin())?'none':'';
   const mlabel=document.getElementById('staff-ml');
   /* single month/year control: centred, two lines (user direction) */
-  if(mlabel)mlabel.innerHTML='<div style="font-size:16px;font-weight:700;color:var(--gold);">'+MN_S[m]+'</div><div style="font-size:12px;color:var(--text2);">'+y+'</div>';
+  if(mlabel)mlabel.innerHTML='<div style="font-size:14px;font-weight:700;color:var(--gold);">'+MN_S[m]+'</div><div style="font-size:11px;color:var(--text2);">'+y+'</div>';
 
   if(!staff.length){
     document.getElementById('staff-list').innerHTML=`
@@ -6843,7 +6838,20 @@ function _receiptHtml(pay,forPrint){
     ld('pp_payments',[]).filter(p=>p.cid===pay.cid&&(p.date||'')<=_pd&&_allocIdx(p)===_mpIdx).reduce((t,p)=>t+p.amt,0)+
     ld('pp_cash',[]).filter(e=>e.cid===pay.cid&&e.type==='in'&&(e.date||'')<=_pd&&_allocIdx(e)===_mpIdx).reduce((t,e)=>t+e.amt,0)
   ):getClientTotalPaid(pay.cid);
-  const due=mp?((mp.fee||0)-(mp.disc||0))-_paidInWin:0;
+  /* Carry-forward (Nancy PP019 case): if earlier plans were paid MORE
+     than their net fee (e.g. a discount added later left ₹1,000 excess),
+     that excess adjusts into this plan's balance instead of vanishing. */
+  let _carryIn=0;
+  if(mp&&_mpIdx>0){
+    for(let i=0;i<_mpIdx;i++){
+      const _net=(_plansAll[i].fee||0)-(_plansAll[i].disc||0);
+      const _paid_i=ld('pp_payments',[]).filter(pp=>pp.cid===pay.cid&&(pp.date||'')<=_pd&&_allocIdx(pp)===i).reduce((t,pp)=>t+pp.amt,0)+
+                    ld('pp_cash',[]).filter(e=>e.cid===pay.cid&&e.type==='in'&&(e.date||'')<=_pd&&_allocIdx(e)===i).reduce((t,e)=>t+e.amt,0);
+      _carryIn+=_paid_i-_net;
+    }
+    _carryIn=Math.max(0,_carryIn);
+  }
+  const due=mp?((mp.fee||0)-(mp.disc||0))-_paidInWin-_carryIn:0;
   const rcptNo='PDL-'+(pay.id||'').toString().slice(-8);
   const dt=new Date((pay.date||td())+'T00:00:00');
   const txt=forPrint?'#111':'#111';
@@ -6869,6 +6877,7 @@ function _receiptHtml(pay,forPrint){
     <table style="width:100%;font-size:13px;color:#333;border-collapse:collapse;">
       ${mp?`<tr><td style="padding:3px 0;color:#666;">Total Plan Fee</td><td style="text-align:right;font-weight:700;">₹${(mp.fee||0).toLocaleString('en-IN')}</td></tr>`:''}
       ${mp&&(mp.disc||0)>0?`<tr><td style="padding:3px 0;color:#2e7d32;">Complimentary Discount</td><td style="text-align:right;color:#2e7d32;">− ₹${(mp.disc||0).toLocaleString('en-IN')}</td></tr>`:''}
+      ${_carryIn>0?`<tr><td style="padding:3px 0;color:#2e7d32;">Adjusted from Previous Plan</td><td style="text-align:right;color:#2e7d32;">₹${_carryIn.toLocaleString('en-IN')}</td></tr>`:''}
       ${(_paidInWin-(pay.amt||0))>0?`<tr><td style="padding:3px 0;color:#666;">Paid Earlier</td><td style="text-align:right;">₹${(_paidInWin-(pay.amt||0)).toLocaleString('en-IN')}</td></tr>`:''}
       <tr><td style="padding:3px 0;color:#666;">Amount Received</td><td style="text-align:right;font-weight:700;font-size:18px;color:#1a1a1a;">₹${(pay.amt||0).toLocaleString('en-IN')}</td></tr>
       ${mp?`<tr style="border-top:1px solid #c9a84c;"><td style="padding:5px 0;font-weight:700;">${due>0?'Balance Due':'Balance'}</td><td style="text-align:right;font-weight:700;font-size:14px;color:${due>0?'#b00':'#2e7d32'};">${due>0?'₹'+due.toLocaleString('en-IN'):due<0?'Advance ₹'+Math.abs(due).toLocaleString('en-IN'):'✓ Settled'}</td></tr>`:''}
