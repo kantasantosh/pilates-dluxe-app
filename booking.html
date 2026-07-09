@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header">
   <div style="width:88px;height:88px;border-radius:50%;margin:0 auto 6px;overflow:hidden;"><img src="bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v37</small></div>
+  <div class="logo"><small>Book a Session · v38</small></div>
 </div>
 
 <div class="container">
@@ -487,25 +487,25 @@ function renderDashboard(){
 
 function renderDates(){
   const days=getNext7Days();
-  const _isSunKey=k=>new Date(k+'T00:00:00').getDay()===0;
-  if(_closedDays[_selDate]||_isSunKey(_selDate)){
-    const fo=days.find(d=>!_closedDays[d.key]&&!_isSunKey(d.key));
+  if(_closedDays[_selDate]){
+    const fo=days.find(d=>!_closedDays[d.key]);
     if(fo)_selDate=fo.key;
   }
   return days.map(d=>{
-    /* Sundays are marked closed on the live schedule (studio weekly off) */
+    /* Sundays are highlighted but stay bookable — the admin may open the
+       studio on a Sunday; only the admin's closed-days list blocks a day. */
     const isSun=new Date(d.key+'T00:00:00').getDay()===0;
-    const isClosed=!!_closedDays[d.key]||isSun;
+    const isClosed=!!_closedDays[d.key];
     return `<div class="date-btn${d.key===_selDate?' selected':''}${d.isToday?' today':''}" onclick="${isClosed?'':'selectDate(\''+d.key+'\')'}" style="${isClosed?'opacity:0.35;cursor:not-allowed;':''}">
       <div class="day" style="${isSun?'color:#e74c3c;font-weight:700;':''}">${d.isToday?'Today':d.day}</div>
-      <div class="num">${d.num}</div>
+      <div class="num" style="${isSun?'color:#e74c3c;':''}">${d.num}</div>
       <div class="mon">${isClosed?'🚫':d.mon}</div>
     </div>`;
   }).join('');
 }
 
 function selectDate(d){
-  if(_closedDays[d]||new Date(d+'T00:00:00').getDay()===0)return;
+  if(_closedDays[d])return;
   _selDate=d;
   document.getElementById('date-row').innerHTML=renderDates();
   renderSlots();
