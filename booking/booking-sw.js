@@ -1,7 +1,8 @@
-const CACHE='pilates-v141r';
-const ASSETS=['./','./index.html','./icon192.png','./icon512.png','./manifest.json'];
+const CACHE='booking-v40';
+const ASSETS=['./','./index.html'];
 self.addEventListener('install', e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})));
+  self.skipWaiting();
 });
 self.addEventListener('activate', e=>{
   e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
@@ -12,6 +13,6 @@ self.addEventListener('message', e=>{
 });
 self.addEventListener('fetch', e=>{
   e.respondWith(
-    fetch(e.request).catch(()=>caches.match(e.request).then(r=>r||caches.match('./index.html')))
+    fetch(e.request).catch(()=>caches.match(e.request))
   );
 });

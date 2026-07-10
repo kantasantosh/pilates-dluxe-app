@@ -635,7 +635,7 @@ try{
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M7 2h12a1.5 1.5 0 0 1 1.5 1.5v17A1.5 1.5 0 0 1 19 22H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm-.6 3.4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zM17.8 5.2c-2.4.6-5.1 2.5-6.3 4.8-.7 1.4-.9 3-.5 4.3l-1 2.9 1.5-.5.6-1.8c1.3.2 2.8-.3 3.9-1.3 1.9-1.7 2.7-4.9 1.8-8.4z"/></svg>
       </button>
     </div>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;white-space:nowrap;">v141q</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;white-space:nowrap;">v141r</span>
     </div>
   </div>
 </div>
@@ -7342,14 +7342,35 @@ function saveStudio(){
       return _oAUD.apply(this,arguments);
     };
   }
+  /* Membership writes happen for many reasons (session counts change on
+     every attendance mark). Only a real PLAN change deserves an audit
+     entry — and the entry must name the client whose plan changed, not
+     whoever was assigned most recently. */
+  function _memChanged(oldO,newO){
+    try{
+      for(const cid in (newO||{})){
+        const n=newO[cid]||{},o=(oldO||{})[cid];
+        if(!o)return cid;
+        if(o.plan!==n.plan||o.fee!==n.fee||(o.disc||0)!==(n.disc||0)||o.startDate!==n.startDate||o.endDate!==n.endDate)return cid;
+      }
+    }catch(e){}
+    return null;
+  }
   const _oSv=window.sv;
   window.sv=function(k,v){
+    let _prevMem=null;
+    if(k==='pp_memberships'){try{_prevMem=JSON.parse(localStorage.getItem('pp_memberships'))||{};}catch(e){_prevMem={};}}
     const r=_oSv.apply(this,arguments);
     try{
       /* never log the audit log itself, sessions, locks, or the last-backup marker */
       if(k==='pp_audit'||k==='pp_session'||k==='pp_lock'||k==='pp_last_backup'||k==='pp_hid')return r;
       /* only log once auth/session is active to avoid noise during initial sync */
       if(typeof PPS==='undefined'||!PPS)return r;
+      let _memCid=null;
+      if(k==='pp_memberships'){
+        _memCid=_memChanged(_prevMem,v);
+        if(!_memCid)return r; /* session-count-only rewrite — no plan change, no log */
+      }
       const L=lbl(k);
       if(L&&typeof AUD==='function'){
         /* de-dup rapid repeats of same key within 1.5s (one logical action) */
@@ -7357,16 +7378,21 @@ function saveStudio(){
         window._audLast=window._audLast||{};
         if(!window._audLast[k]||now-window._audLast[k]>1500){
           window._audLast[k]=now;
-          AUD(L,_audDetail(k,v));
+          AUD(L,_audDetail(k,v,_memCid));
         }
       }
     }catch(e){}
     return r;
   };
   /* build a human detail for the most-relevant record in the saved value */
-  function _audDetail(k,v){
+  function _audDetail(k,v,memCid){
     try{
       const cname=cid=>{const c=ld('pp_clients',[]).find(x=>x.id===cid);return c?(c.fname+' '+(c.lname||'')).trim():'';};
+      if(k==='pp_memberships'&&memCid&&v&&v[memCid]){
+        const m=v[memCid];
+        const pl=(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan;
+        return `${cname(memCid)} → ${pl} (₹${(m.fee||0).toLocaleString('en-IN')})`;
+      }
       if(k==='pp_cash'&&Array.isArray(v)&&v.length){
         const e=v[v.length-1];
         const sign=e.type==='in'?'+':e.type==='contra'?'⇄':'-';

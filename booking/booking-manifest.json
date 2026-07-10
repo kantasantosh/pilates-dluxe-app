@@ -1,0 +1,18 @@
+{
+  "id": "/booking/",
+  "name": "Book Pilates D'Luxe",
+  "short_name": "Book Pilates",
+  "description": "Book your Pilates class at Pilates D'Luxe",
+  "start_url": "/booking/",
+  "scope": "/booking/",
+  "display": "standalone",
+  "background_color": "#0d0c0a",
+  "theme_color": "#0d0c0a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {"src": "/bookingicon192.png","sizes": "192x192","type": "image/png","purpose": "any"},
+    {"src": "/bookingicon192.png","sizes": "192x192","type": "image/png","purpose": "maskable"},
+    {"src": "/bookingicon.png","sizes": "512x512","type": "image/png","purpose": "any"},
+    {"src": "/bookingicon.png","sizes": "512x512","type": "image/png","purpose": "maskable"}
+  ]
+}
