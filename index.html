@@ -635,7 +635,7 @@ try{
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M7 2h12a1.5 1.5 0 0 1 1.5 1.5v17A1.5 1.5 0 0 1 19 22H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm-.6 3.4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zM17.8 5.2c-2.4.6-5.1 2.5-6.3 4.8-.7 1.4-.9 3-.5 4.3l-1 2.9 1.5-.5.6-1.8c1.3.2 2.8-.3 3.9-1.3 1.9-1.7 2.7-4.9 1.8-8.4z"/></svg>
       </button>
     </div>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;white-space:nowrap;">v141s</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;white-space:nowrap;">v141t</span>
     </div>
   </div>
 </div>
@@ -2611,19 +2611,18 @@ function renderPayments(){
     const c=clients.find(cl=>cl.id===p.cid)||{};
     return `<div class="card" style="padding:11px 12px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:9px;">
-        <div style="width:34px;height:34px;border-radius:50%;background:${e.type==='in'?'rgba(74,222,128,0.15)':e.type==='contra'?'rgba(155,138,175,0.18)':'rgba(248,113,113,0.15)'};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">${e.type==='in'?'💚':e.type==='contra'?'🔁':'🔴'}</div>
+        <div style="width:34px;height:34px;border-radius:50%;background:rgba(74,222,128,0.15);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">💚</div>
         <div style="flex:1;min-width:0;">
-          ${c?`<div style="font-weight:700;font-size:13px;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">👤 ${c.memNo||''} ${c.fname} ${c.lname}</div>`
-             :`<div style="font-weight:600;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.desc||e.cat}</div>`}
-          <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.type==='contra'?(e.mode||'')+' → '+(e.mode2||''):(e.mode||'')} • ${fmt(e.date)}</div>
-          <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c?`${e.cat||e.desc||''}${(()=>{const _b=getClientTotalCharged(e.cid)-getClientTotalPaid(e.cid);return _b>0?' · <span style="color:var(--red);">₹'+_b.toLocaleString('en-IN')+' due</span>':_b<0?' · <span style="color:var(--green);">₹'+Math.abs(_b).toLocaleString('en-IN')+' advance</span>':' · <span style="color:var(--green);">✓ settled</span>';})()}`:(e.cat&&e.cat!==(e.desc||''))?e.cat:''}</div>
-          ${e.notes?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.notes}</div>`:''}
+          <div style="font-weight:700;font-size:13px;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">👤 ${c.memNo||''} ${c.fname||'?'} ${c.lname||''}</div>
+          <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.mode||''} • ${fmt(p.date)}</div>
+          <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.forWhat||'Membership Fee'}</div>
+          ${p.notes?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.notes}</div>`:''}
         </div>
         <div style="flex-shrink:0;text-align:right;">
-          <div style="font-size:15px;font-weight:700;white-space:nowrap;color:${e.type==='in'?'var(--green)':e.type==='contra'?'var(--purple)':'var(--red)'};"><span style="font-size:10px;font-weight:800;letter-spacing:0.5px;vertical-align:2px;margin-right:3px;">${e.type==='in'?'Cr':e.type==='contra'?'⇄':'Dr'}</span>${e.type==='in'?'+':e.type==='contra'?'':'-'}₹${e.amt.toLocaleString('en-IN')}</div>
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;color:var(--green);"><span style="font-size:10px;font-weight:800;letter-spacing:0.5px;vertical-align:2px;margin-right:3px;">Cr</span>+₹${(p.amt||0).toLocaleString('en-IN')}</div>
           <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:5px;">
-            <button onclick="openCashEntry('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 7px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
-            ${(e.type==='in'&&e.cid)?`<button onclick="event.stopPropagation();showReceiptCash('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 7px;color:var(--gold);cursor:pointer;font-size:12px;" title="Receipt">🧾</button>`:''}
+            <button onclick="event.stopPropagation();openPaymentModal('${p.cid}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 7px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
+            <button onclick="event.stopPropagation();showReceipt('${p.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 7px;color:var(--gold);cursor:pointer;font-size:12px;" title="Receipt">🧾</button>
           </div>
         </div>
       </div>
@@ -4444,7 +4443,17 @@ function openCashEntry(id,prefillCid){
   document.getElementById('cash-modal-title').textContent=id?'Edit Entry':'New Entry';
   document.getElementById('ce-id').value=id||'';
   const clients=ld('pp_clients',[]);
-  _ceClientList=clients.filter(c=>!c.archived).map(c=>({
+  /* Dropdown shows ACTIVE members only (user direction): excludes archived,
+     unconverted trials (took the free class, never subscribed) and members
+     whose plan has expired. */
+  const _mems=ld('pp_memberships',{});const _today=td();
+  _ceClientList=clients.filter(c=>{
+    if(c.archived)return false;
+    const m=_mems[c.id];
+    if(!m||m.plan==='trial')return false;
+    if((m.endDate||'')<_today)return false;
+    return true;
+  }).map(c=>({
     id:c.id,
     label:`${c.memNo?c.memNo+' — ':''}${c.fname} ${c.lname||''}${c.phone?' ('+c.phone.replace('+91','').slice(-4)+')':''}`,
     search:`${c.memNo||''} ${c.fname} ${c.lname||''} ${c.phone||''}`.toLowerCase()
@@ -4695,20 +4704,22 @@ function renderCash(){
   if(!filtered.length){document.getElementById('cash-list').innerHTML=`<div style="text-align:center;padding:40px;color:var(--text2);">No entries yet. Tap + to add.</div>`;return;}
   document.getElementById('cash-list').innerHTML=filtered.map(e=>{
     const c=e.cid?clients.find(cl=>cl.id===e.cid):null;
-    return `<div class="card" style="padding:12px 14px;margin-bottom:8px;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:${e.type==='in'?'rgba(74,222,128,0.15)':e.type==='contra'?'rgba(155,138,175,0.18)':'rgba(248,113,113,0.15)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${e.type==='in'?'💚':e.type==='contra'?'🔁':'🔴'}</div>
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:13px;color:var(--text);">${e.desc||e.cat}</div>
-          <div style="font-size:13px;color:var(--text2);">${e.type==='contra'?(e.mode||'')+' → '+(e.mode2||''):(e.mode||'')+' • '+(e.cat||'')} • ${fmt(e.date)}</div>
-          ${c?`<div style="font-size:13px;color:var(--gold);">👤 ${c.memNo||''} ${c.fname} ${c.lname}${(()=>{const _b=getClientTotalCharged(e.cid)-getClientTotalPaid(e.cid);return _b>0?' · <span style="color:var(--red);">₹'+_b.toLocaleString('en-IN')+' due</span>':_b<0?' · <span style="color:var(--green);">₹'+Math.abs(_b).toLocaleString('en-IN')+' advance</span>':' · <span style="color:var(--green);">✓ settled</span>';})()}</div>`:''}
-          ${e.notes?`<div style="font-size:13px;color:var(--text3);">${e.notes}</div>`:''}
+    return `<div class="card" style="padding:11px 12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="width:34px;height:34px;border-radius:50%;background:${e.type==='in'?'rgba(74,222,128,0.15)':e.type==='contra'?'rgba(155,138,175,0.18)':'rgba(248,113,113,0.15)'};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">${e.type==='in'?'💚':e.type==='contra'?'🔁':'🔴'}</div>
+        <div style="flex:1;min-width:0;">
+          ${c?`<div style="font-weight:700;font-size:13px;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">👤 ${c.memNo||''} ${c.fname} ${c.lname}</div>`
+             :`<div style="font-weight:600;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.desc||e.cat}</div>`}
+          <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.type==='contra'?(e.mode||'')+' → '+(e.mode2||''):(e.mode||'')} • ${fmt(e.date)}</div>
+          <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c?`${e.cat||e.desc||''}${(()=>{const _b=getClientTotalCharged(e.cid)-getClientTotalPaid(e.cid);return _b>0?' · <span style="color:var(--red);">₹'+_b.toLocaleString('en-IN')+' due</span>':_b<0?' · <span style="color:var(--green);">₹'+Math.abs(_b).toLocaleString('en-IN')+' advance</span>':' · <span style="color:var(--green);">✓ settled</span>';})()}`:(e.cat&&e.cat!==(e.desc||''))?e.cat:''}</div>
+          ${e.notes?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.notes}</div>`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="font-size:12px;color:${e.type==='in'?'var(--green)':e.type==='contra'?'var(--purple)':'var(--red)'};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">${e.type==='in'?'Credit':e.type==='contra'?'Contra':'Debit'}</div>
-          <div style="font-size:18px;font-weight:700;color:${e.type==='in'?'var(--green)':e.type==='contra'?'var(--purple)':'var(--red)'};">${e.type==='in'?'+':e.type==='contra'?'⇄ ':'-'}₹${e.amt.toLocaleString('en-IN')}</div>
-          <button onclick="openCashEntry('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 7px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
-          ${(e.type==='in'&&e.cid)?`<button onclick="event.stopPropagation();showReceiptCash('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 7px;color:var(--gold);cursor:pointer;font-size:12px;" title="Receipt">🧾</button>`:''}
+        <div style="flex-shrink:0;text-align:right;">
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;color:${e.type==='in'?'var(--green)':e.type==='contra'?'var(--purple)':'var(--red)'};"><span style="font-size:10px;font-weight:800;letter-spacing:0.5px;vertical-align:2px;margin-right:3px;">${e.type==='in'?'Cr':e.type==='contra'?'⇄':'Dr'}</span>${e.type==='in'?'+':e.type==='contra'?'':'-'}₹${e.amt.toLocaleString('en-IN')}</div>
+          <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:5px;">
+            <button onclick="openCashEntry('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 7px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
+            ${(e.type==='in'&&e.cid)?`<button onclick="event.stopPropagation();showReceiptCash('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 7px;color:var(--gold);cursor:pointer;font-size:12px;" title="Receipt">🧾</button>`:''}
+          </div>
         </div>
       </div>
     </div>`;}).join('');
@@ -5134,7 +5145,13 @@ function renderAttLookup(){
         (bookings[date][slot]||[]).forEach(bk=>{if(bk&&bk.cid===c.id)att.push({date,slot,attended:!!bk.attended});});
       });
     });
-    att.sort((a,b)=>new Date(b.date)-new Date(a.date));
+    /* the free trial class is not part of the subscription — exclude it from
+     the attendance summary (it only appeared for members whose trial was
+     booked through the app, which made them look inconsistent) */
+  const _clTrial=(ld('pp_clients',[]).find(x=>x.id===cid)||{}).trialDate||'';
+  const attFiltered=_clTrial?att.filter(a=>a.date!==_clTrial):att;
+  att.length=0;att.push(...attFiltered);
+  att.sort((a,b)=>new Date(b.date)-new Date(a.date));
     const plan=m?(getPlans().find(p=>p.id===m.plan)||{}).name||m.plan:null;
     const sessTotal=m?((m.sessions!=null?m.sessions:(m.sessionsTotal||0))+(m.bonus||0)):0;
     const sessLeft=m?getSessionsLeft(m,c.id):0;
@@ -6510,7 +6527,7 @@ function printProfile(cid){
     html+=`<h2>📋 Previous Plans (${m.history.length})</h2><table><tr><th>Plan</th><th>Period</th><th>Fee</th><th>Outcome</th></tr>`+
       m.history.map(h=>{
         const hp=allPlans.find(x=>x.id===h.plan);
-        return `<tr><td>${_esc(hp?hp.name:h.plan)}</td><td>${h.plan==='trial'?fmt(h.startDate):fmt(h.startDate)+' → '+fmt(h.endDate)}</td><td>₹${(h.fee||0).toLocaleString('en-IN')}</td><td>${_esc(h.endReason||'—')}</td></tr>`;
+        return `<tr><td>${_esc(hp?hp.name:h.plan)}</td><td>${h.plan==='trial'?fmt(h.startDate):fmt(h.startDate)+' → '+fmt(h.endDate)}</td><td>₹${(h.fee||0).toLocaleString('en-IN')}</td><td>${_esc((h.endReason||'—').replace(/^Converted to/,'Subscribed to'))}</td></tr>`;
       }).join('')+'</table>';
   }
   if(pays.length){
@@ -6522,6 +6539,12 @@ function printProfile(cid){
   Object.keys(bookings).forEach(date=>{Object.keys(bookings[date]||{}).forEach(slot=>{
     (bookings[date][slot]||[]).forEach(bk=>{if(bk&&bk.cid===cid)att.push({date,slot,attended:!!bk.attended});});
   });});
+  /* the free trial class is not part of the subscription — exclude it from
+     the attendance summary (it only appeared for members whose trial was
+     booked through the app, which made them look inconsistent) */
+  const _clTrial=(ld('pp_clients',[]).find(x=>x.id===cid)||{}).trialDate||'';
+  const attFiltered=_clTrial?att.filter(a=>a.date!==_clTrial):att;
+  att.length=0;att.push(...attFiltered);
   att.sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(att.length){
     html+=`<h2>🗓 Attendance / Bookings (last ${Math.min(att.length,50)})</h2><table><tr><th>Date</th><th>Slot</th><th>Status</th></tr>`+
@@ -8274,8 +8297,8 @@ planInfo.innerHTML=`${_staleTrialFlag?`<div style="background:rgba(231,76,60,0.1
         <div class="fg"><label class="fl">Sessions</label><input class="fi" id="uf-edit-sessions" type="number"/></div>
         <div class="fg"><label class="fl">Bonus/Complimentary</label><input class="fi" id="uf-edit-bonus" type="number"/></div>
       </div>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="sb2" id="uf-edit-save-btn" onclick="_ufSaveDates()" disabled style="flex:1;opacity:0.45;">Save Corrected Plan</button><button class="sb2" onclick="_ufDeleteHistoryEntry()" title="Delete this history entry" style="flex:0 0 auto;background:none;border:1.5px solid var(--rose);color:var(--rose);">🗑</button>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:stretch;">
+        <button class="sb2" id="uf-edit-save-btn" onclick="_ufSaveDates()" disabled style="flex:1 1 140px;min-width:0;opacity:0.45;">Save Corrected Plan</button><button class="sb2" onclick="_ufDeleteHistoryEntry()" title="Delete this history entry" style="flex:0 0 auto;width:48px;max-width:48px;padding:0;background:none;border:1.5px solid var(--rose);color:var(--rose);">🗑</button>
         <button onclick="document.getElementById('uf-edit-dates').style.display='none';window._ufEditTarget=null;" style="flex:0 0 auto;padding:0 16px;background:none;border:1px solid var(--border2);color:var(--text2);border-radius:var(--rsm);font-family:'Jost',sans-serif;cursor:pointer;">Cancel</button>
       </div>
     </div>`;
@@ -8359,7 +8382,7 @@ function _ufRenderHistory(cid){
     html+=hist.map((h,idx)=>{
       const plans=getPlans();
       const p=plans.find(x=>x.id===h.plan);
-      return '<div class="uf-history-item" style="cursor:pointer;" onclick="_ufEditHistoryEntry(\''+cid+'\','+idx+')"><b>'+(p?p.name:h.plan)+'</b> · '+(h.plan==='trial'?fmt(h.startDate):fmt(h.startDate)+' → '+fmt(h.endDate))+(h.plan==='trial'?'':'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN'))+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">✏️ tap to correct</div></div>';
+      return '<div class="uf-history-item" style="cursor:pointer;" onclick="_ufEditHistoryEntry(\''+cid+'\','+idx+')"><b>'+(p?p.name:h.plan)+'</b> · '+(h.plan==='trial'?fmt(h.startDate):fmt(h.startDate)+' → '+fmt(h.endDate))+(h.plan==='trial'?'':'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN'))+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason.replace(/^Converted to/,'Subscribed to')+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">✏️ tap to correct</div></div>';
     }).join('');
   }
   const evtItems=events.filter(e=>['freeze','resume','extend'].includes(e.type));
@@ -9001,7 +9024,7 @@ function ufAssignPlan(){
   if(existing&&existing.plan&&!_identicalResave){
     if(!existing.history)existing.history=[];
     let _endReason='Renewed';
-    if(existing.plan==='trial'||isTrialConvert)_endReason='Converted to '+p.name;
+    if(existing.plan==='trial'||isTrialConvert)_endReason='Subscribed to '+p.name; /* after a free trial it's a fresh subscription, not a conversion */
     else if(eventType==='renew')_endReason='Renewed to '+p.name;
     existing.history.push({...existing,endReason:_endReason,history:undefined,events:undefined});
   }
