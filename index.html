@@ -463,7 +463,7 @@ window._lastSnapTs=Date.now();
 setInterval(()=>{
   if(document.visibilityState!=='visible')return;
   if(!localStorage.getItem('pp_cloud_ok')||!_pdb)return;
-  if(Date.now()-(window._lastSnapTs||0)<20000)return;
+  if(Date.now()-(window._lastSnapTs||0)<10000)return;
   let u=null;try{u=firebase.auth().currentUser;}catch(e){}
   if(!u)return;
   window._lastSnapTs=Date.now(); /* throttle even if the fetch fails */
@@ -475,7 +475,7 @@ setInterval(()=>{
       _pRerenderActive();
     }
   }).catch(()=>{});
-},7000);
+},5000);
 function _pRerenderActive(){
   try{
     const t=_activeTab;
@@ -635,7 +635,7 @@ try{
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M7 2h12a1.5 1.5 0 0 1 1.5 1.5v17A1.5 1.5 0 0 1 19 22H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm-.6 3.4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zM17.8 5.2c-2.4.6-5.1 2.5-6.3 4.8-.7 1.4-.9 3-.5 4.3l-1 2.9 1.5-.5.6-1.8c1.3.2 2.8-.3 3.9-1.3 1.9-1.7 2.7-4.9 1.8-8.4z"/></svg>
       </button>
     </div>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;white-space:nowrap;">v141r</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;white-space:nowrap;">v141s</span>
     </div>
   </div>
 </div>
@@ -714,13 +714,13 @@ try{
 <div class="tab" id="tab-tns">
   <!-- Sub-tab navigation -->
   <div class="ftabs" id="tns-subtabs" style="display:flex;gap:6px;">
-    <button class="ftab active" style="flex:1;text-align:center;" onclick="setTnsView('bills',this)">📋 Bills</button>
+    <button class="ftab active" style="flex:1;text-align:center;" onclick="setTnsView('staff',this)">👨‍🏫 Staff</button>
     <button class="ftab" style="flex:1;text-align:center;" onclick="setTnsView('tasks',this)">✅ Tasks</button>
-    <button class="ftab" style="flex:1;text-align:center;" onclick="setTnsView('staff',this)">👨‍🏫 Staff</button>
+    <button class="ftab" style="flex:1;text-align:center;" onclick="setTnsView('bills',this)">📋 Bills</button>
   </div>
 
   <!-- BILLS + TASKS content -->
-  <div id="tns-bills">
+  <div id="tns-bills" style="display:none;">
     <div class="sh">
       <div class="st">Tasks & Bills<small>One-time & Recurring</small></div>
       <button class="btn btn-gold btn-sm" onclick="openAddBillTodo()">+ Add</button>
@@ -729,7 +729,7 @@ try{
   </div>
 
   <!-- STAFF content -->
-  <div id="tns-staff" style="display:none;">
+  <div id="tns-staff">
     <div style="position:sticky;top:var(--tbh,96px);z-index:9;background:var(--bg);padding-bottom:4px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
       <div class="st" style="flex-shrink:0;">Staff</div>
@@ -1736,7 +1736,7 @@ function renderDash(){
   });
   const _billsAll=ld('pp_bills',[]);
   const _billsDue=_billsAll.filter(b=>b.status==='due'&&b.due<=td());
-  _billsDue.forEach(b=>_alerts.push({icon:b.due<td()?'🔴':'💰',text:(b.due<td()?'Overdue bill: ':'Due today: ')+b.name+' (₹'+(b.amt||0).toLocaleString('en-IN')+')',action:"showTab('tns');setTnsView('bills',document.querySelector('#tns-subtabs .ftab:nth-child(1)'))"}));
+  _billsDue.forEach(b=>_alerts.push({icon:b.due<td()?'🔴':'💰',text:(b.due<td()?'Overdue bill: ':'Due today: ')+b.name+' (₹'+(b.amt||0).toLocaleString('en-IN')+')',action:"showTab('tns');setTnsView('bills',document.querySelector('#tns-subtabs .ftab:nth-child(3)'))"}));
 
   document.getElementById('dash-content').innerHTML=`
     ${_alerts.length?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;">
@@ -2609,17 +2609,22 @@ function renderPayments(){
   if(!sorted.length){document.getElementById('payment-list').innerHTML=`<div style="text-align:center;padding:40px;color:var(--text2);">No receipts recorded yet</div>`;return;}
   document.getElementById('payment-list').innerHTML=sorted.map(p=>{
     const c=clients.find(cl=>cl.id===p.cid)||{};
-    return `<div class="card" style="padding:12px 14px;margin-bottom:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:600;color:var(--text);">${c.memNo?'<span style="color:var(--gold);font-size:13px;">'+c.memNo+'</span> ':''} ${c.fname||''} ${c.lname||''}</div>
-          <div style="font-size:13px;color:var(--text2);margin-top:2px;">${p.mode} • ${p.forWhat||''} • ${fmt(p.date)}</div>
-          ${p.notes?`<div style="font-size:13px;color:var(--text3);margin-top:2px;">${p.notes}</div>`:''}
+    return `<div class="card" style="padding:11px 12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="width:34px;height:34px;border-radius:50%;background:${e.type==='in'?'rgba(74,222,128,0.15)':e.type==='contra'?'rgba(155,138,175,0.18)':'rgba(248,113,113,0.15)'};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">${e.type==='in'?'💚':e.type==='contra'?'🔁':'🔴'}</div>
+        <div style="flex:1;min-width:0;">
+          ${c?`<div style="font-weight:700;font-size:13px;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">👤 ${c.memNo||''} ${c.fname} ${c.lname}</div>`
+             :`<div style="font-weight:600;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.desc||e.cat}</div>`}
+          <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.type==='contra'?(e.mode||'')+' → '+(e.mode2||''):(e.mode||'')} • ${fmt(e.date)}</div>
+          <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c?`${e.cat||e.desc||''}${(()=>{const _b=getClientTotalCharged(e.cid)-getClientTotalPaid(e.cid);return _b>0?' · <span style="color:var(--red);">₹'+_b.toLocaleString('en-IN')+' due</span>':_b<0?' · <span style="color:var(--green);">₹'+Math.abs(_b).toLocaleString('en-IN')+' advance</span>':' · <span style="color:var(--green);">✓ settled</span>';})()}`:(e.cat&&e.cat!==(e.desc||''))?e.cat:''}</div>
+          ${e.notes?`<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.notes}</div>`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--green);">₹${p.amt.toLocaleString('en-IN')}</div>
-          <button onclick="openEditPayment('${p.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 8px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
-          <button onclick="event.stopPropagation();showReceipt('${p.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 8px;color:var(--gold);cursor:pointer;font-size:12px;" title="Receipt">🧾</button>
+        <div style="flex-shrink:0;text-align:right;">
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;color:${e.type==='in'?'var(--green)':e.type==='contra'?'var(--purple)':'var(--red)'};"><span style="font-size:10px;font-weight:800;letter-spacing:0.5px;vertical-align:2px;margin-right:3px;">${e.type==='in'?'Cr':e.type==='contra'?'⇄':'Dr'}</span>${e.type==='in'?'+':e.type==='contra'?'':'-'}₹${e.amt.toLocaleString('en-IN')}</div>
+          <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:5px;">
+            <button onclick="openCashEntry('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 7px;color:var(--text2);cursor:pointer;font-size:12px;">✏️</button>
+            ${(e.type==='in'&&e.cid)?`<button onclick="event.stopPropagation();showReceiptCash('${e.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 7px;color:var(--gold);cursor:pointer;font-size:12px;" title="Receipt">🧾</button>`:''}
+          </div>
         </div>
       </div>
     </div>`;}).join('');
