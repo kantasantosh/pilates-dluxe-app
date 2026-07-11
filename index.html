@@ -7125,11 +7125,12 @@ function _autoCheckForUpdate(){
         {label:'Later',color:'var(--border2)',outline:true,action:null},
         {label:'Update now',color:'var(--gold)',action:()=>{
           toast('Updating…');
+          window._userRequestedUpdate=true;
           if('caches' in window)caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k))));
           navigator.serviceWorker.getRegistrations().then(rs=>{
             rs.forEach(r=>{try{r.update();}catch(e){}if(r.waiting)r.waiting.postMessage('skipWaiting');});
           });
-          setTimeout(()=>location.reload(true),800);
+          setTimeout(()=>location.reload(true),1200);
         }}
       ]);
     }
@@ -7150,12 +7151,12 @@ function checkForUpdate(){
         {label:'Later',color:'var(--border2)',outline:true,action:null},
         {label:'Update now',color:'var(--gold)',action:()=>{
           toast('Updating…');
-          /* Clear ALL caches + force SW update + hard reload */
+          window._userRequestedUpdate=true;
           if('caches' in window)caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k))));
           navigator.serviceWorker.getRegistrations().then(rs=>{
             rs.forEach(r=>{try{r.update();}catch(e){}if(r.waiting)r.waiting.postMessage('skipWaiting');});
           });
-          setTimeout(()=>location.reload(true),800);
+          setTimeout(()=>location.reload(true),1200);
         }}
       ]);
     }else{
