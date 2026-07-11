@@ -46,7 +46,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .topbar{background:linear-gradient(135deg,#1a1612 0%,#221e18 100%);padding:3px 14px 2px;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
 .logo-mark{width:36px;height:36px;background:transparent;border:1.5px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);font-weight:300;font-style:italic;flex-shrink:0;}
 .tb-mini{background:none;border:1px solid var(--border2);border-radius:14px;padding:3px 10px;font-size:10px;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;line-height:1.6;white-space:nowrap;}
-.tb-clock-centre{text-align:center;color:var(--gold);font-size:28px;font-weight:700;line-height:1.0;font-family:'Jost',sans-serif;}
+.tb-clock-centre{text-align:center;color:var(--gold);font-size:24px;font-weight:700;line-height:1.0;font-family:'Jost',sans-serif;}
 .tb-ico{background:none;border:none;cursor:pointer;padding:2px;line-height:1;color:var(--gold);}
 .gico{width:26px;height:26px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));}
 .tb-clock-centre div{font-size:10px;color:var(--text3);font-weight:400;margin-top:1px;}
@@ -60,7 +60,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .nb.active .ni{filter:drop-shadow(0 0 6px var(--gold));}
 
 /* TABS */
-.tab{display:none;padding:16px 16px 100px;}
+.tab{display:none;padding:8px 16px 100px;}
 .tab.active{display:block;}
 
 /* CARDS */
@@ -615,7 +615,7 @@ try{
 <div class="topbar">
   <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;">
     <div style="display:flex;flex-direction:column;align-items:center;justify-self:start;">
-      <div class="logo-mark" style="overflow:hidden;padding:0;width:86px;height:86px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
+      <div class="logo-mark" style="overflow:hidden;padding:0;width:70px;height:70px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
       <svg width="0" height="0" style="position:absolute;"><defs>
         <linearGradient id="goldg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="#ecd9a0"/><stop offset="0.5" stop-color="#c9a84c"/><stop offset="1" stop-color="#8f6f2e"/>
@@ -624,9 +624,10 @@ try{
     </div>
     <div style="text-align:center;">
       <div class="tb-clock-centre" id="top-clock"></div>
-      <div style="font-size:14px;color:var(--text2);margin-top:4px;letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> : <span id="top-day"></span></div>
+      <div style="margin-top:3px;line-height:1.25;"><div id="top-date" style="font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;"></div><div id="top-day" style="font-size:11px;color:var(--text3);letter-spacing:1.5px;font-weight:600;"></div></div>
     </div>
-    <div style="position:relative;justify-self:end;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;">
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:11px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v141v</span>
     <div style="display:flex;align-items:center;gap:10px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -635,7 +636,7 @@ try{
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M7 2h12a1.5 1.5 0 0 1 1.5 1.5v17A1.5 1.5 0 0 1 19 22H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm-.6 3.4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zm0 4a.9.9 0 1 0 0 1.8h.2a.9.9 0 1 0 0-1.8h-.2zM17.8 5.2c-2.4.6-5.1 2.5-6.3 4.8-.7 1.4-.9 3-.5 4.3l-1 2.9 1.5-.5.6-1.8c1.3.2 2.8-.3 3.9-1.3 1.9-1.7 2.7-4.9 1.8-8.4z"/></svg>
       </button>
     </div>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:13px;color:var(--text2);letter-spacing:1px;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;white-space:nowrap;">v141u</span>
+    <button class="tb-mini" onclick="exportPPData()" title="Download a backup file now" style="padding:2px 9px;">💾 Backup</button>
     </div>
   </div>
 </div>
@@ -698,7 +699,7 @@ try{
         <button class="btn btn-gold btn-sm" onclick="openScanner()" title="Scan member QR to mark present" style="padding:4px 10px;">📷 Scan</button>
       </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
       <div style="position:relative;cursor:pointer;" title="Tap to pick a date">
         <div id="sched-label" style="line-height:1.1;"></div>
         <!-- transparent native input over the label: a tap opens the OS calendar
@@ -1739,12 +1740,13 @@ function renderDash(){
   _billsDue.forEach(b=>_alerts.push({icon:b.due<td()?'🔴':'💰',text:(b.due<td()?'Overdue bill: ':'Due today: ')+b.name+' (₹'+(b.amt||0).toLocaleString('en-IN')+')',action:"showTab('tns');setTnsView('bills',document.querySelector('#tns-subtabs .ftab:nth-child(3)'))"}));
 
   document.getElementById('dash-content').innerHTML=`
-    ${_alerts.length?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;">
-      <div style="font-size:11px;font-weight:700;color:#e74c3c;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔔 Needs Attention (${_alerts.length})</div>
-      ${_alerts.slice(0,6).map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);" onclick="${a.action}">
+    ${_alerts.length?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:6px 12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;color:#e74c3c;text-transform:uppercase;letter-spacing:1px;cursor:pointer;" onclick="window._naOpen=!window._naOpen;renderDash();">
+        <span>🔔 Needs Attention (${_alerts.length})</span><span style="color:var(--text3);font-size:13px;">${window._naOpen?'▲':'▼'}</span>
+      </div>
+      ${window._naOpen?`${_alerts.slice(0,6).map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);" onclick="${a.action}">
         <span>${a.icon}</span><span style="flex:1;">${_esc(a.text)}</span><span style="color:var(--text3);">›</span>
-      </div>`).join('')}
-      ${_alerts.length>6?`<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center;">+${_alerts.length-6} more</div>`:''}
+      </div>`).join('')}${_alerts.length>6?`<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center;">+${_alerts.length-6} more</div>`:''}`:''}
     </div>`:''}
     <div class="dash-grid">
       <div class="dash-card gold" style="cursor:pointer;" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('active',document.querySelector('#tab-clients .ftab:nth-child(2)'))">
@@ -2686,7 +2688,7 @@ function renderSchedule(){
   if(picker&&!picker.value)picker.value=_schedDate;
   /* compact: date + day in one tight block, tappable (no picker glyph) */
   document.getElementById('sched-label').innerHTML=
-    '<div style="font-family:\'Jost\',sans-serif;font-size:18px;font-weight:700;color:var(--gold);text-align:center;">'+dt.toLocaleDateString('en-IN',{day:'numeric',month:'long'})+'</span>'+
+    '<div style="font-family:\'Jost\',sans-serif;font-size:18px;font-weight:700;color:var(--gold);text-align:center;">'+dt.toLocaleDateString('en-IN',{day:'numeric',month:'long'})+'</div>'+
     '<div style="font-family:\'Jost\',sans-serif;font-size:12px;font-weight:600;color:var(--text2);letter-spacing:1px;text-align:center;">'+dt.toLocaleDateString('en-IN',{weekday:'long'})+'</div>';
 
   const bookings=ld('pp_bookings',{});
