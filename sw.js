@@ -1,6 +1,7 @@
 const CACHE='pilates-v141u';
 const ASSETS=['./','./index.html','./icon192.png','./icon512.png','./manifest.json'];
 self.addEventListener('install', e=>{
+  self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})));
 });
 self.addEventListener('activate', e=>{
