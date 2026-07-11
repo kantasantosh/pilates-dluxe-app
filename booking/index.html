@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <title>Book a Session — Pilates D'Luxe</title>
 <link rel="manifest" href="booking-manifest.json">
-<link rel="apple-touch-icon" sizes="180x180" href="/bookingicon192.png">
-<link rel="icon" type="image/png" href="/bookingicon192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="booking-icon.png">
 <meta name="theme-color" content="#0d0c0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -109,8 +108,8 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 </head>
 <body>
 
-<div class="header">
-  <div style="width:88px;height:88px;border-radius:50%;margin:0 auto 6px;overflow:hidden;"><img src="/bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
+<div class="header" style="padding:8px 20px 6px;">
+  <div style="width:62px;height:62px;border-radius:50%;margin:0 auto 3px;overflow:hidden;"><img src="bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
   <div class="logo"><small>Book a Session · v41</small></div>
 </div>
 
@@ -380,9 +379,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 function startBookingSync(){
   if(_unsubBookings)_unsubBookings(); /* clear old listener */
-  window._bkLastSnap=Date.now();
   _unsubBookings=db.collection(COL).doc('pp_bookings').onSnapshot(snap=>{
-    window._bkLastSnap=Date.now();
     if(snap.exists){
       _bookings=JSON.parse(snap.data().value);
       /* THE FIX: this used to only call renderSlots(), which refreshes
@@ -439,10 +436,10 @@ function renderDashboard(){
         <div class="client-avatar">${initial}</div>
         <div class="client-info">
           <div class="client-name">${c.fname} ${c.lname||''}</div>
-          <div class="client-plan">📋 ${planName} • Expires: ${endDate}</div>
+          <div class="client-plan">📋 ${planName} • Ends: ${endDate}</div>
         </div>
         <div class="qr-mini" onclick="openMyQR()" title="Show my QR code"><span class="qr-glyph">▦</span><span class="qr-label">QR</span></div>
-        <button class="logout-btn" onclick="firebase.auth().signOut();_googleUser=null;_client=null;" style="position:static;transform:none;">Sign Out</button>
+        <div class="qr-mini" onclick="firebase.auth().signOut();_googleUser=null;_client=null;" title="Sign out" style="background:var(--surface2,#241f18);border:1px solid var(--border);color:var(--gold);"><span class="qr-glyph"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span><span class="qr-label" style="color:#c9a84c;">EXIT</span></div>
       </div>
       <div class="client-sessions">
         <div class="sess-item"><div class="sess-num">${sessTotal}</div><div class="sess-lbl">Total</div></div>
@@ -755,26 +752,6 @@ window.addEventListener('popstate',()=>{
 </div>
 
 <script>
-/* Staleness net (mirror of the admin app's): the live listener can die
-   silently. If the page is visible and no snapshot has arrived for 10s,
-   pull the bookings doc directly (1 read) so a freed/taken slot can never
-   stay stale for long — prevents two clients clashing on one slot. */
-setInterval(()=>{
-  if(document.visibilityState!=='visible')return;
-  if(typeof db==='undefined'||!db||!_client)return;
-  if(Date.now()-(window._bkLastSnap||0)<10000)return;
-  window._bkLastSnap=Date.now();
-  db.collection(COL).doc('pp_bookings').get().then(snap=>{
-    if(snap.exists){
-      try{
-        const v=JSON.parse(snap.data().value);
-        _bookings=v;
-        if(document.getElementById('slot-grid'))renderSlots();
-        if(document.getElementById('date-row'))document.getElementById('date-row').innerHTML=renderDates();
-      }catch(e){}
-    }
-  }).catch(()=>{});
-},5000);
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('booking-sw.js',{updateViaCache:'none'}).then(reg=>{
