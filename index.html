@@ -383,13 +383,26 @@ async function _pInit(){
          leaving the app with no live listener for the rest of the
          session just because THIS load happened to start offline. */
       _startLiveSync();
-    }else{
-      /* online but read failed → not properly signed in → show cloud gate */
+    }else if(!wasTrusted){
+      /* untrusted device, online, read failed → show cloud gate */
       el.textContent='☁️ Please sign in to the cloud';
       el.style.color='#f39c12';setTimeout(()=>el.remove(),3000);
       if(typeof _showCloudGate==='function'){_showCloudGate('bulk-fetch-failed-after-retry');return;}
       if(typeof init==='function')init();
       _startLiveSync();
+    }else{
+      /* TRUSTED device: a failed read is NOT proof of a lost session —
+         Firebase may still be restoring auth from IndexedDB, or the token
+         is mid-refresh. Punishing this with an email/password prompt on
+         every login was the reported bug. Run on local data, retry the
+         cloud read in the background, and leave the sign-in decision to
+         onAuthStateChanged — whose FIRST callback is definitive (null
+         there means genuinely signed out, and IT will show the gate). */
+      el.textContent='☁️ Reconnecting to cloud…';
+      el.style.color='#f39c12';setTimeout(()=>el.remove(),3000);
+      if(typeof init==='function')init();
+      _startLiveSync();
+      if(window._pInitRetries<5){setTimeout(()=>{try{_pInit();}catch(_e){}},8000);}
     }
   }
 }
@@ -604,10 +617,19 @@ try{
         }).catch(()=>{});}catch(_e){}
       }
     }
-    /* If u is null: either the cloud gate is already showing (untrusted
-       device, waiting for real sign-in — _ppBoot already handled this),
-       or this is a trusted device whose Firebase session hasn't finished
-       restoring yet — already running fine on local data, so stay silent. */
+    else{
+      /* u === null. The FIRST onAuthStateChanged callback only fires after
+         Firebase finishes restoring the session from IndexedDB — so null
+         here is definitive: this device is truly signed out. For a device
+         marked trusted, that means the session was revoked/expired for
+         real; show the gate ONCE so it can reconnect (the old behavior
+         silently ran on stale local data forever). Untrusted devices are
+         already looking at the gate via _ppBoot — nothing to do. */
+      if(!window._authNullHandled&&localStorage.getItem('pp_cloud_ok')&&navigator.onLine!==false){
+        window._authNullHandled=true;
+        if(typeof _showCloudGate==='function')_showCloudGate('trusted-device-session-definitively-lost');
+      }
+    }
   });
 }catch(e){if(!window._pStarted){window._pStarted=true;_pInit();}}
 </script>
@@ -631,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142a</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142b</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
