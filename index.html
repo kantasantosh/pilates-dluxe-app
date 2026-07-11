@@ -51,7 +51,7 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 @keyframes fdflip{0%{transform:rotateX(0);}50%{transform:rotateX(-88deg);}100%{transform:rotateX(0);}}
 .tb-clock-centre{text-align:center;color:var(--gold);font-size:24px;font-weight:700;line-height:1.0;font-family:'Jost',sans-serif;}
 .tb-ico{background:none;border:none;cursor:pointer;padding:2px;line-height:1;color:var(--gold);}
-.gico{width:26px;height:26px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));}
+.gico{width:21px;height:21px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));}
 .tb-clock-centre div{font-size:10px;color:var(--text3);font-weight:400;margin-top:1px;}
 .np-area::placeholder{color:var(--text3);opacity:0.35;}
 
@@ -616,7 +616,7 @@ try{
 
 <!-- TOPBAR (approved design: logo+STUDIO ADMIN left · stacked clock + date centre · gold icon row right) -->
 <div class="topbar">
-  <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;">
+  <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;min-height:88px;">
     <div style="display:flex;flex-direction:column;align-items:center;justify-self:start;">
       <div class="logo-mark" style="overflow:hidden;padding:0;width:70px;height:70px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
       <div style="margin-top:2px;font-family:'Playfair Display',serif;font-style:italic;font-size:11px;letter-spacing:1.5px;white-space:nowrap;background:linear-gradient(180deg,#ecd9a0,#c9a84c 55%,#8f6f2e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">Pilates D&#39;Luxe</div>
@@ -626,13 +626,13 @@ try{
         </linearGradient>
       </defs></svg>
     </div>
-    <div style="text-align:center;">
+    <div style="text-align:center;justify-self:center;align-self:center;">
       <div class="tb-clock-centre" id="top-clock"></div>
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:11px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v141z</span>
-    <div style="display:flex;align-items:center;gap:10px;" id="tb-chiprow">
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142</span>
+    <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
       </button>
@@ -2018,7 +2018,7 @@ function renderClients(){
     const st=getMembershipStatus(mem,c.id);
     const plan=mem?getPlans().find(p=>p.id===mem.plan):null;
     const badgeMap={active:'badge-active',expiring:'badge-expiring',expired:'badge-expired',none:'badge-pending'};
-    const labelMap={active:'Active',expiring:'Expiring Soon',expired:'Expired',none:'No Plan'};
+    const labelMap={active:'Active',expiring:'Ends Soon',expired:'Expired',none:'No Plan'};
     const _isTr=!!c.isTrial;
     const _unltd=mem&&(mem.plan==='unlimited'||((mem.sessions||0)>=999));
     const _tot=mem?((mem.sessions||0)+(mem.bonus||0)):0;
@@ -2027,7 +2027,7 @@ function renderClients(){
     const _planLbl=(()=>{if(!plan)return '';const d=plan.days||0;const dur=d>0&&d%30===0?(d/30)+'M':d>0&&d%7===0?(d/7)+'W':d+'d';const ss=_unltd?'∞':_tot+'s';return dur+' × '+ss;})();
     const _due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
     const _av=c.photo?`<img src="${c.photo}" class="client-avatar" style="width:42px;height:42px;"/>`:`<div class="client-avatar" style="width:42px;height:42px;font-size:16px;background:${colorFor(c.fname+(c.lname||''))};">${initials(c.fname+' '+(c.lname||''))}</div>`;
-    return `<div class="client-card" onclick="openUnified('${c.id}')" style="padding:11px 12px;">
+    return `<div class="client-card" onclick="openUnified('${c.id}')" style="padding:11px 12px;display:block;">
       <div style="display:flex;gap:10px;align-items:center;">
       ${_av}
       <div style="flex:1;min-width:0;">
