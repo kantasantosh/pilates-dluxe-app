@@ -9387,17 +9387,17 @@ function ufSavePayment(){
       <div class="uf-sec-body" id="uf-body-payment" style="display:none;">
         <div id="uf-pay-balance" style="text-align:center;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:12px;"></div>
         <div class="fr">
-          <div class="fg"><label class="fl">Amount Received</label>
+          <div class="fg"><label class="fl">Amt. Recd.</label>
             <div style="position:relative;">
               <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gold);font-weight:700;font-size:14px;pointer-events:none;">₹</span>
               <input class="fi" id="uf-pay-amt" type="number" placeholder="0" style="padding-left:26px;" oninput="_ufPayGate()"/>
             </div>
           </div>
-          <div class="fg"><label class="fl">Date Received</label><input class="fi" id="uf-pay-date" type="date"/></div>
+          <div class="fg"><label class="fl">Date Recd.</label><input class="fi" id="uf-pay-date" type="date"/></div>
         </div>
         <div class="fr">
           <div class="fg"><label class="fl">Mode</label><select class="fi" id="uf-pay-mode"></select></div>
-          <div class="fg"><label class="fl">Payment For</label><select class="fi" id="uf-pay-for"><option>New Member</option><option>Renewal</option><option>Plan Change</option><option>Advance</option><option>Other</option></select></div>
+          <div class="fg"><label class="fl">For</label><select class="fi" id="uf-pay-for"><option>New Member</option><option>Renewal</option><option>Plan Change</option><option>Advance</option><option>Other</option></select></div>
         </div>
         <div class="fg"><label class="fl">Notes</label><input class="fi" id="uf-pay-notes" placeholder="Reference, UPI ID…"/></div>
         <button class="sb2" id="uf-pay-btn" onclick="ufSavePayment()" disabled style="opacity:0.45;">Save Payment & Issue Receipt</button>
