@@ -189,7 +189,7 @@ input,select,textarea{color:var(--gold);}
 .dot-booked{background:var(--gold);}
 
 /* DIVIDER */
-.div-section{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 10px;display:flex;align-items:center;gap:10px;}
+.div-section{cursor:default;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 10px;display:flex;align-items:center;gap:10px;}
 .div-section::before,.div-section::after{content:'';flex:1;height:1px;background:var(--border);}
 
 /* TOAST */
@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142y</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143a</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2682,9 +2682,7 @@ function _goBookSlot(cid){
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
   window._schedPrefillCid=cid;
   _schedDate=td();
-  /* Use _origShowTab to bypass nav wrapper history tracking (avoids dead Back presses) */
-  const _nav=(typeof _origShowTab==='function'?_origShowTab:showTab);
-  _nav('schedule');
+  showTab('schedule');
   setTimeout(()=>{
     const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
     renderSchedule();
@@ -2839,8 +2837,8 @@ function renderSchedule(){
 
   /* Add bottom navigation */
   html+=`<div style="display:flex;justify-content:space-between;padding:16px 0 8px;">
-    <button class="btn btn-outline btn-sm" onclick="chDay(-1)">◀ Prev day</button>
-    <button class="btn btn-outline btn-sm" onclick="chDay(1)">Next day ▶</button>
+    <button class="btn btn-outline btn-sm" onclick="chDay(-1)" style="padding:5px 12px;">◀</button>
+    <button class="btn btn-outline btn-sm" onclick="chDay(1)" style="padding:5px 12px;">▶</button>
   </div>`;
   document.getElementById('schedule-content').innerHTML=html;
 }
@@ -3184,17 +3182,19 @@ function _updateFloatingNav(n){
   if(!box||!boxR)return;
   const scoped=['clients','cash','tns','schedule'];
   if(!scoped.includes(n)){box.classList.remove('show');box.innerHTML='';boxR.classList.remove('show');boxR.innerHTML='';return;}
-  /* Left side: scroll up/down */
-  const scrollTarget=box;
-  scrollTarget.innerHTML=`<button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll to top">▲</button>
-      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
-  scrollTarget.classList.add('show');
-  /* Schedule: floating ◀ ▶ opposite the ▲▼ pair (user direction) */
+  /* RIGHT side only: all arrows on right (scroll standard) */
+  box.classList.remove('show');box.innerHTML=''; /* left box unused */
   if(n==='schedule'){
+    /* Schedule: ◀▶ day nav + ▲▼ scroll stacked on right */
     boxR.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day">◀</button>
-      <button class="float-nav-btn" onclick="chDay(1)" title="Next day">▶</button>`;
-    boxR.classList.add('show');
-  }else{boxR.classList.remove('show');boxR.innerHTML='';}
+      <button class="float-nav-btn" onclick="chDay(1)" title="Next day">▶</button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up">▲</button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down">▼</button>`;
+  }else{
+    boxR.innerHTML=`<button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up">▲</button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down">▼</button>`;
+  }
+  boxR.classList.add('show');
 }
 function renderPlanChips(selected){
   const plans=getPlans().filter(p=>p.id!=='trial');
@@ -5020,7 +5020,7 @@ function exportDaybookCSV(){
   });
   const from=document.getElementById('db-from').value||'start';
   const to=document.getElementById('db-to').value||'end';
-  const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const blob=new Blob([String.fromCharCode(0xFEFF)+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;a.download='PilatesDLuxe_Daybook_'+from+'_to_'+to+'.csv';
@@ -6397,10 +6397,12 @@ function _applyComp(mem,classes,cash){
   <div class="md" style="max-height:92vh;overflow-y:auto;">
     <button class="mc2" onclick="closeM('m-reports')">✕</button>
     <h2>📊 Business Reports</h2>
-    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px;">
-      <button class="btn btn-outline btn-sm" onclick="chRepM(-1)">&#9664;</button>
-      <div id="rep-ml" style="font-size:15px;font-weight:700;color:var(--gold);min-width:130px;text-align:center;"></div>
-      <button class="btn btn-outline btn-sm" onclick="chRepM(1)">&#9654;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
+      <div id="rep-ml" style="font-size:15px;font-weight:700;color:var(--gold);min-width:130px;"></div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-outline btn-sm" onclick="chRepM(-1)" style="padding:6px 14px;">◀</button>
+        <button class="btn btn-outline btn-sm" onclick="chRepM(1)" style="padding:6px 14px;">▶</button>
+      </div>
     </div>
     <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-bottom:12px;" onclick="printPnL()">🖨 Print / Save PDF — P&amp;L Statement</button>
     <div id="rep-content"></div>
@@ -6443,6 +6445,13 @@ function _bar(label,val,max,color){
     <div style="height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:4px;"></div></div>
   </div>`;
 }
+function toggleRepSec(id){
+  var b=document.getElementById('rsb-'+id);
+  var a=document.getElementById('rsa-'+id);
+  if(!b)return;var open=b.style.display!=='none';
+  b.style.display=open?'none':'';
+  if(a)a.textContent=open?'\u25B6':'\u25BC';
+}
 function renderReports(){
   const {y,m}=_repM;
   const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -6462,7 +6471,7 @@ function renderReports(){
   const byCat=arr=>{const o={};arr.forEach(e=>{const k=e.cat||'Other';o[k]=(o[k]||0)+e.amt;});return Object.entries(o).sort((a,b)=>b[1]-a[1]);};
   const revCats=byCat(rev),expCats=byCat(exp);
   const maxRev=revCats.length?revCats[0][1]:0,maxExp=expCats.length?expCats[0][1]:0;
-  let html=`<div class="div-section">💰 Profit &amp; Loss (Operating)</div>
+  let html=`<div class="div-section" onclick="toggleRepSec('pnl')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>💰 Profit &amp; Loss (Operating)</span><span id="rsa-pnl" style="font-size:11px;color:var(--text3);">&#9660;</span></div><div id="rsb-pnl">
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:14px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--green);">₹${revTotal.toLocaleString('en-IN')}</div><div style="font-size:11px;color:var(--text2);">Revenue</div></div>
@@ -6496,7 +6505,7 @@ function renderReports(){
      cohort removes the contradiction entirely. */
   const convMCohort=trialsM.filter(c=>c.convertedFrom==='trial');
   const pctM=trialsM.length?Math.round(convMCohort.length/trialsM.length*100):0;
-  html+=`<div class="div-section">🎯 Trial Conversion</div>
+  html+=`<div class="div-section" onclick="toggleRepSec('trial')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>🎯 Trial Conversion</span><span id="rsa-trial" style="font-size:11px;color:var(--text3);">&#9660;</span></div></div><div id="rsb-trial">
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:12px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--text);">${trialsM.length}</div><div style="font-size:11px;color:var(--text2);">Trials (month)</div></div>
@@ -6530,7 +6539,7 @@ function renderReports(){
     _compCash.push({name:cl?(cl.fname+' '+(cl.lname||'')).trim():(e.desc||'—'),amt:e.amt,src:fmt(e.date)});
     _compCashTotal+=e.amt;
   });
-  html+=`<div class="div-section">🎁 Complimentary</div>
+  html+=`<div class="div-section" onclick="toggleRepSec('comp')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>🎁 Complimentary</span><span id="rsa-comp" style="font-size:11px;color:var(--text3);">&#9660;</span></div></div><div id="rsb-comp">
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;margin-bottom:12px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--gold);">${_compClassTotal}</div><div style="font-size:11px;color:var(--text2);">Complimentary Classes</div></div>
@@ -6562,7 +6571,7 @@ function renderReports(){
   const maxSlot=Math.max(0,...slotRows.map(r=>r[1]));
   const peakDay=dayRows.slice().sort((a,b)=>b[1]-a[1])[0];
   const peakSlot=slotRows.slice().sort((a,b)=>b[1]-a[1])[0];
-  html+=`<div class="div-section">📈 Session Demand</div>
+  html+=`<div class="div-section" onclick="toggleRepSec('demand')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>📈 Session Demand</span><span id="rsa-demand" style="font-size:11px;color:var(--text3);">&#9660;</span></div></div><div id="rsb-demand">
     <div class="card" style="margin-bottom:14px;">
       ${totalBk?`
       <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">${totalBk} bookings this month${peakDay?' • Peak day: <b style="color:var(--gold)">'+peakDay[0]+'</b>':''}${peakSlot?' • Peak slot: <b style="color:var(--gold)">'+peakSlot[0]+'</b>':''}</div>
@@ -6577,14 +6586,13 @@ function renderReports(){
   /* ===== D4: Average Revenue Per Member ===== */
   const activeMembers=clients.filter(c=>!c.archived&&mems[c.id]&&getMembershipStatus(mems[c.id],c.id)!=='expired'&&mems[c.id].plan!=='trial');
   const arpm=activeMembers.length?Math.round(revTotal/activeMembers.length):0;
-  html+=`<div class="div-section">👤 Average Revenue / Member</div>
+  html+=`<div class="div-section" onclick="toggleRepSec('arpm')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>👤 Average Revenue / Member</span><span id="rsa-arpm" style="font-size:11px;color:var(--text3);">&#9660;</span></div></div><div id="rsb-arpm">
     <div class="card" style="margin-bottom:6px;">
       <div style="text-align:center;">
         <div style="font-family:'Playfair Display',serif;font-size:30px;color:var(--gold);">₹${arpm.toLocaleString('en-IN')}</div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px;">₹${revTotal.toLocaleString('en-IN')} revenue ÷ ${activeMembers.length} active member${activeMembers.length!==1?'s':''} (${MN[m]})</div>
       </div>
-    </div>`;
-
+    </div></div>`;
   document.getElementById('rep-content').innerHTML=html;
 }
 </script>
