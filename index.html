@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142t</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142w</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -758,13 +758,15 @@ try{
     <div style="position:sticky;top:var(--tbh,96px);z-index:9;background:var(--bg);padding-bottom:4px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
       <div class="st" style="flex-shrink:0;">Staff</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664;</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex:1;">
         <div style="position:relative;cursor:pointer;" title="Tap to pick month">
           <div id="staff-ml" style="text-align:center;line-height:1.1;min-width:64px;"></div>
           <input type="month" id="staff-month-pick" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;-webkit-appearance:none;" onchange="pickStaffMonth(this.value)"/>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">&#9654;</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)" style="padding:6px 14px;">◀</button>
+          <button class="btn btn-outline btn-sm" onclick="chStaffM(1)" style="padding:6px 14px;">▶</button>
+        </div>
       </div>
       <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance" style="flex-shrink:0;">🖨</button>
     </div>
@@ -2680,12 +2682,20 @@ function _goBookSlot(cid){
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
   window._schedPrefillCid=cid;
   _schedDate=td();
-  (typeof _origShowTab==='function'?_origShowTab:showTab)('schedule');
+  /* Close unified form first if open */
+  const _uf=document.getElementById('m-unified');
+  if(_uf&&_uf.classList.contains('open'))closeM('m-unified',true);
+  /* Navigate via the schedule nav button — guarantees correct rendering */
   setTimeout(()=>{
-    const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
-    renderSchedule();
-    toast('📅 Tap any empty slot to book for '+c.fname);
-  },80);
+    const _schedBtn=Array.from(document.querySelectorAll('.nb')).find(b=>(b.getAttribute('onclick')||'').includes("'schedule'"));
+    if(_schedBtn)_schedBtn.click();
+    else showTab('schedule');
+    setTimeout(()=>{
+      const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
+      renderSchedule();
+      toast('📅 Tap any empty slot to book for '+c.fname);
+    },100);
+  },_uf&&_uf.classList.contains('open')?150:30);
 }
 function pickSchedDate(val){
   if(!val)return;
@@ -3690,7 +3700,7 @@ const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function renderCredits(){
   document.getElementById('credits-content').innerHTML=`
     <div id="admin-tools-slot"></div>
-    <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+    <div style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
       <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">💾 Data Backup</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5;">Export saves all data. Import restores on any device.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -3698,25 +3708,25 @@ function renderCredits(){
         <label style="background:linear-gradient(135deg,var(--purple),#6a5a7f);color:white;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;text-align:center;display:block;">⬆️ Import<input type="file" accept=".json" onchange="importPPData(this)" style="display:none;"/></label>
       </div>
     </div>
-    <div style="margin:0 16px 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+    <div style="margin:0 16px 10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
         <button onclick="sendFeedback()" style="width:100%;background:#25D366;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;color:white;">💬 Feedback via WhatsApp</button>
     </div>
-    <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+    <div style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
       <div style="width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
       <div style="font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
       <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 4px;">Studio Admin</div>
       <div style="font-size:13px;color:var(--text2);letter-spacing:1px;margin-bottom:12px;">${typeof _appVer==='function'?_appVer():''}</div>
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Built with</div>
-      <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;">
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#d4a574;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#2d1810;">C</div><div style="font-size:12px;font-weight:500;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div>
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#ff9100;display:flex;align-items:center;justify-content:center;font-size:18px;">🔥</div><div style="font-size:12px;font-weight:500;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">Google</div></div>
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#f48120;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;">CF</div><div style="font-size:12px;font-weight:500;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div>
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#24292e;display:flex;align-items:center;justify-content:center;font-size:18px;">🐙</div><div style="font-size:12px;font-weight:500;color:var(--text);">GitHub</div><div style="font-size:9px;color:var(--text3);">Source</div></div>
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#4285f4;display:flex;align-items:center;justify-content:center;font-size:18px;">✨</div><div style="font-size:12px;font-weight:500;color:var(--text);">Gemini</div><div style="font-size:9px;color:var(--text3);">Google</div></div>
+      <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:linear-gradient(135deg,#b5673e,#d4956a);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;font-family:'Playfair Display',serif;">C</div><div style="font-size:11px;font-weight:600;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div>
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:linear-gradient(135deg,#ffa000,#ff6f00);display:flex;align-items:center;justify-content:center;font-size:22px;">🔥</div><div style="font-size:11px;font-weight:600;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">Google</div></div>
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#f6821f;display:flex;align-items:center;justify-content:center;font-size:22px;">☁️</div><div style="font-size:11px;font-weight:600;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div>
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#24292e;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div><div style="font-size:11px;font-weight:600;color:var(--text);">GitHub</div><div style="font-size:9px;color:var(--text3);">Source</div></div>
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#f7df1e;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#323330;">JS</div><div style="font-size:11px;font-weight:600;color:var(--text);">JavaScript</div><div style="font-size:9px;color:var(--text3);">HTML · CSS</div></div>
       </div>
       <div style="font-size:11px;color:var(--text3);">Designed together with its user</div>
     </div>
-    <div style="margin:0 16px 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+    <div style="margin:0 16px 10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🔒 Fingerprint / Face Unlock (this device)</div>
       <div id="bio-about-area"></div>
     </div>
@@ -4840,7 +4850,7 @@ function renderCash(){
   document.getElementById('cash-summary').innerHTML=`
     <div style="display:grid;grid-template-columns:72px 1fr 72px;gap:5px;align-items:stretch;margin-bottom:6px;">
       <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
-        <button onclick="showTab('about')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;">CASH BOOK</button>
+        <button onclick="openStatement()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;">STATEMENT</button>
         <button onclick="openDaybook()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">DAY BOOK</button>
         <button onclick="_cashFilter='all';renderCash();" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">ALL</button>
       </div>
@@ -4977,7 +4987,7 @@ function printDaybook(){
     const _settledCol=_due>0?'#b00':_due<0?'#137333':'#137333';
     return `<tr>
       <td>${fmt(e.date)}</td>
-      <td style="font-size:11px;">${c?'<b>'+_esc(c.memNo||'')+' '+_esc(c.fname+' '+(c.lname||''))+'</b><br>':''}<span style="color:#555;">${_esc(e.desc||e.cat||'—')}</span><br><span style="color:#888;font-size:9px;">${_esc(mode)}</span>${c?'<br><span style="color:'+_settledCol+';font-size:9px;">'+_settledTxt+'</span>':''}</td>
+      <td style="font-size:11px;">${c?'<b>'+_esc(c.memNo||'')+' '+_esc(c.fname+' '+(c.lname||''))+'</b><br><span style="color:#555;font-size:9px;">'+_esc(e.desc||e.cat||'')+'</span>':'<b style="color:#333;font-size:12px;">'+_esc(e.cat||'—')+'</b>'+(e.desc&&e.desc!==e.cat?'<br><span style="color:#555;font-size:9px;">'+_esc(e.desc)+'</span>':'')}${'<br><span style="color:#888;font-size:9px;">'+_esc(mode)+'</span>'}${c?'<br><span style="color:'+_settledCol+';font-size:9px;">'+_settledTxt+'</span>':''}</td>
       <td style="text-align:right;color:#137333;font-weight:700;">${cr?'<span style="font-size:9px;font-weight:800;">Cr</span> ₹'+cr.toLocaleString('en-IN'):''}</td>
       <td style="text-align:right;color:#a50e0e;font-weight:700;">${dr?'<span style="font-size:9px;font-weight:800;">Dr</span> ₹'+dr.toLocaleString('en-IN'):''}</td>
     </tr>`;
