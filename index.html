@@ -294,7 +294,7 @@ try{
      comes after this point in the file. */
   console.warn('Firebase unavailable, continuing in offline mode:',_fbErr&&_fbErr.message);
 }
-const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad'];
+const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups'];
 function _pSyncable(k){return _pSYNC.includes(k)||/^pp_(satt|sadv)_/.test(k);}
 
 async function _pfsSave(k,v){if(!_pdb)return;try{await _pdb.collection('pilates').doc(k).set({value:JSON.stringify(v),updated:Date.now()});}catch(e){}}
@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142k</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142l</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1754,6 +1754,12 @@ function renderDash(){
      surfaced again here for visibility. Low Sessions, Overdue Tasks, and
      Bills Due are genuinely new. */
   const _alerts=[];
+  const _todayStr=td();
+  ld('pp_followups',[]).filter(f=>f.remindDate&&f.remindDate<=_todayStr&&!f.done).forEach(f=>{
+    const _fc=clients.find(x=>x.id===f.cid);if(!_fc||_fc.archived)return;
+    const _dag=Math.round((new Date(_todayStr)-new Date(f.remindDate))/(864e5));
+    _alerts.push({icon:'📞',text:'Follow up · '+(_fc.fname||'')+(_fc.lname?' '+_fc.lname:'')+(_dag>0?' ('+_dag+'d ago)':''),action:"openFollowUp('"+f.cid+"')"});
+  });
   clients.filter(c=>!c.archived).forEach(c=>{
     const mem=mems[c.id];
     if(!mem||mem.plan==='trial'||mem.plan==='unlimited')return;
@@ -2075,8 +2081,9 @@ function renderClients(){
         ${!_isTr&&_unltd?'<span style="font-size:11px;color:var(--teal);">∞ Unlimited</span>':''}
         ${_due>0?'<span class="badge" style="background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);font-size:10px;font-weight:700;">₹ Due '+_due.toLocaleString('en-IN')+'</span>':''}
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:7px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
-        ${_isTr?`<span>Trial on <span style="color:#afa9ec;">${c.trialDate?fmt(c.trialDate):'—'}</span></span><span style="color:var(--gold);">📞 Follow up</span>`
+      <div style="display:flex;justify-content:space-between;margin-top:7px;${(()=>{const _fus=ld('pp_followups',[]).filter(x=>x.cid===c.id&&x.remindDate&&!x.done).sort((a,b)=>a.remindDate.localeCompare(b.remindDate));if(!_fus.length)return '';const _nr=_fus[0];const _over=_nr.remindDate<td();return '<div style="font-size:10.5px;margin-bottom:4px;color:'+(_over?'#e74c3c':'var(--amber)')+';">'+ (_over?'⚠ Follow up overdue':'🕐 Follow up due')+' '+fmt(_nr.remindDate)+'</div>';})()}
+      <div style="padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
+        ${_isTr?`<span>Trial on <span style="color:#afa9ec;">${c.trialDate?fmt(c.trialDate):'—'}</span></span><span style="color:var(--gold);cursor:pointer;" onclick="event.stopPropagation();openFollowUp('${c.id}')">📞 Follow up</span>`
         :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;"><span onclick="event.stopPropagation();_goBookSlot('${c.id}')" title="Book a slot" style="cursor:pointer;">📅</span><span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
       </div>
     </div>`;
@@ -3009,6 +3016,32 @@ function openWA(cid){
   document.getElementById('wa-template').value='';
   document.getElementById('wa-msg').value=msg;
   openM('m-whatsapp');
+}
+function openFollowUp(cid){
+  const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
+  document.getElementById('fu-cid').value=cid;
+  document.getElementById('fu-name').textContent=(c.fname||'')+' '+(c.lname||'');
+  document.getElementById('fu-note').value='';
+  const d=new Date();d.setDate(d.getDate()+3);
+  document.getElementById('fu-remind').value=d.toISOString().slice(0,10);
+  _renderFuHistory(cid);openM('m-followup');
+}
+function _renderFuHistory(cid){
+  const all=ld('pp_followups',[]).filter(x=>x.cid===cid).sort((a,b)=>b.loggedAt.localeCompare(a.loggedAt));
+  const box=document.getElementById('fu-history');if(!box)return;
+  if(!all.length){box.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px;">No follow-ups logged yet</div>';return;}
+  box.innerHTML=all.map(f=>'<div style="border-left:2px solid var(--gold);padding:4px 10px;margin-bottom:8px;"><div style="font-size:12px;color:var(--text);">'+_esc(f.note||'—')+'</div><div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · by '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');
+}
+function saveFollowUp(){
+  const cid=document.getElementById('fu-cid').value;
+  const note=document.getElementById('fu-note').value.trim();
+  const remind=document.getElementById('fu-remind').value;
+  if(!note){toast('Please add a note');return;}
+  const entry={id:Date.now()+'',cid,note,remindDate:remind,by:(PPS&&PPS.name?PPS.name:'Admin'),loggedAt:new Date().toISOString().slice(0,10)};
+  const all=ld('pp_followups',[]);all.unshift(entry);sv('pp_followups',all);
+  _renderFuHistory(cid);document.getElementById('fu-note').value='';
+  toast('📞 Follow-up saved');
+  try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
 }
 function applyWATemplate(){
   const t=document.getElementById('wa-template').value;
@@ -8079,6 +8112,15 @@ function openUnified(cid,focusSection){
      looking at an already-inactive client, even though tapping it
      correctly offered to reactivate her. Fixed so it's never ambiguous
      about what the button will actually do. */
+  /* follow-up log in unified form */
+  (function(){
+    const _fuAll=ld('pp_followups',[]).filter(x=>x.cid===cid).sort((a,b)=>b.loggedAt.localeCompare(a.loggedAt));
+    const _fuSumEl=document.getElementById('uf-followup-summary');
+    if(_fuSumEl)_fuSumEl.textContent=_fuAll.length?_fuAll.length+' note'+(_fuAll.length>1?'s':''):'';
+    const _fuBox=document.getElementById('uf-fu-history');
+    if(_fuBox){if(!_fuAll.length)_fuBox.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px;">No follow-ups yet</div>';
+    else _fuBox.innerHTML=_fuAll.slice(0,5).map(f=>'<div style="border-left:2px solid var(--gold);padding:3px 10px;margin-bottom:7px;"><div style="font-size:12px;color:var(--text);">'+_esc(f.note||'—')+'</div><div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');}
+  })();
   const _deactBtn=document.getElementById('uf-deactivate-btn');
   if(_deactBtn){
     if(c.archived){
@@ -9531,6 +9573,17 @@ function ufSavePayment(){
       </div>
     </div>
 
+    <div class="uf-section" id="uf-sec-followup">
+      <div class="uf-sec-hdr" style="background:rgba(201,168,76,0.1);border-left:3px solid var(--gold);" onclick="ufToggle('followup')">
+        <span>📞 Follow-up log</span>
+        <span id="uf-followup-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
+        <span id="uf-followup-arrow" style="font-size:12px;margin-left:auto;">▶</span>
+      </div>
+      <div class="uf-sec-body" id="uf-body-followup" style="display:none;padding:10px 12px;">
+        <div id="uf-fu-history" style="margin-bottom:10px;"></div>
+        <button onclick="openFollowUp(document.getElementById('uf-cid').value)" class="sb2" style="width:100%;padding:8px;font-size:13px;">+ Add follow-up</button>
+      </div>
+    </div>
     <!-- WhatsApp + Complimentary -->
     <div id="uf-chips-row" style="display:flex;gap:8px;margin:10px 0;">
       <button onclick="const _cid=document.getElementById('uf-cid').value;closeM('m-unified');setTimeout(()=>openWA(_cid),200)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
@@ -9550,6 +9603,26 @@ function ufSavePayment(){
   </div>
 </div>
 
+<div class="mo" id="m-followup" style="z-index:270;">
+  <div class="md" style="max-width:440px;">
+    <button class="mc2" onclick="closeM('m-followup')">✕</button>
+    <h2 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--gold);margin:0 0 4px;">📞 Follow-up</h2>
+    <div id="fu-name" style="font-size:13px;color:var(--text2);margin-bottom:14px;"></div>
+    <input type="hidden" id="fu-cid"/>
+    <div class="fg"><label class="fl">Note</label>
+      <textarea id="fu-note" class="fi" style="height:64px;resize:none;" placeholder="e.g. Interested, will join after Diwali"></textarea>
+    </div>
+    <div class="fg" style="margin-top:8px;"><label class="fl">Remind me on</label>
+      <input type="date" id="fu-remind" class="fi"/>
+    </div>
+    <div style="display:flex;gap:8px;margin:10px 0 16px;">
+      <button onclick="closeM('m-followup')" style="flex:1;padding:9px;background:none;border:1px solid var(--border2);color:var(--text2);border-radius:var(--rsm);font-family:'Jost',sans-serif;cursor:pointer;">Cancel</button>
+      <button onclick="saveFollowUp()" class="sb2" style="flex:2;padding:9px;">Save follow-up</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">History</div>
+    <div id="fu-history" style="max-height:200px;overflow-y:auto;"></div>
+  </div>
+</div>
 <script>
 /* ===== DIAGNOSTIC PANEL — tap version number 5 times to open ===== */
 (function(){

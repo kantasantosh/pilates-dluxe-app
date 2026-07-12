@@ -1,4 +1,4 @@
-const CACHE='pilates-v142k';
+const CACHE='pilates-v142l';
 const ASSETS=['./','./index.html','./icon192.png','./icon512.png','./manifest.json'];
 self.addEventListener('install', e=>{
   self.skipWaiting();
