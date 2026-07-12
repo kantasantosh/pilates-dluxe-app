@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142e</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142f</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -6822,7 +6822,7 @@ function injectPrintButtons(){
     <input class="lg-fi" id="cl-email" type="email" placeholder="Studio email" autocapitalize="none" autocomplete="username"/>
     <input class="lg-fi" id="cl-pass" type="password" placeholder="Studio cloud password" autocomplete="current-password"/>
     <div class="lg-err" id="cl-err"></div>
-    <button class="lg-btn" onclick="doCloudLogin()">Connect This Device</button>
+    <button class="lg-btn" id="cl-btn" onclick="doCloudLogin()">Connect This Device</button>
     <button onclick="_cloudOffline()" style="width:100%;padding:12px;border-radius:var(--rsm);border:1.5px solid var(--border2);background:none;color:var(--text2);font-family:'Jost',sans-serif;font-weight:600;font-size:14px;cursor:pointer;margin-top:10px;">⏭ Skip — Work Offline</button>
     <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.5;">Cloud connects this device to the studio database for sync across devices.</div>
   </div>
@@ -6869,22 +6869,32 @@ function _cloudOffline(){
 }
 async function doCloudLogin(){
   const err=document.getElementById('cl-err');
+  const btn=document.getElementById('cl-btn');
   const email=document.getElementById('cl-email').value.trim();
   const pass=document.getElementById('cl-pass').value;
   if(!email||!pass){err.textContent='Enter studio email and password';return;}
-  err.textContent='';
+  if(window._clBusy)return; /* ignore double taps while a sign-in is in flight */
+  window._clBusy=true;
+  err.textContent='';err.style.color='';
+  if(btn){btn.textContent='Connecting…';btn.style.opacity='0.6';}
   try{
     await firebase.auth().signInWithEmailAndPassword(email,pass);
-    /* onAuthStateChanged hides the gate and starts sync */
+    /* SUCCESS: say so IMMEDIATELY. The gate itself is hidden by
+       onAuthStateChanged, and the first data pull can take several
+       seconds on mobile — without this line the screen looked frozen
+       ("didn't accept"), inviting re-taps and too-many-requests. */
+    err.style.color='#2ecc71';err.textContent='✓ Connected — loading studio data…';
+    if(btn)btn.textContent='✓ Connected';
     if(typeof toast==='function')toast('☁️ Device connected to studio cloud');
   }catch(e){
+    if(btn){btn.textContent='Connect This Device';btn.style.opacity='';}
     const code=(e&&e.code)||'';
     if(code.indexOf('wrong-password')>-1||code.indexOf('invalid-credential')>-1||code.indexOf('invalid-login')>-1)err.textContent='Wrong password — please try again';
     else if(code.indexOf('user-not-found')>-1)err.textContent='No cloud account with this email';
     else if(code.indexOf('too-many-requests')>-1)err.textContent='Too many attempts — wait a few minutes';
     else if(code.indexOf('network')>-1)err.textContent='Network error — check your internet';
     else err.textContent='Sign-in failed: '+(e.message||code||'unknown error');
-  }
+  }finally{window._clBusy=false;}
 }
 function resetBookingPin(cid){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
