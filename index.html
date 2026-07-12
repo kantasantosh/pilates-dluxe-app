@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142w</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142x</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -3192,8 +3192,8 @@ function _updateFloatingNav(n){
   if(!scoped.includes(n)){box.classList.remove('show');box.innerHTML='';boxR.classList.remove('show');boxR.innerHTML='';return;}
   /* Left side: scroll up/down */
   const scrollTarget=box;
-  scrollTarget.innerHTML=`<button class="float-nav-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">▲</button>
-      <button class="float-nav-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
+  scrollTarget.innerHTML=`<button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll to top">▲</button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
   scrollTarget.classList.add('show');
   /* Schedule: floating ◀ ▶ opposite the ▲▼ pair (user direction) */
   if(n==='schedule'){
@@ -7722,7 +7722,12 @@ function genStatement(){
   }
   const sel=_modesForAccount(_stmtSel); /* the real mode strings belonging to this account */
   const clients=ld('pp_clients',[]);
-  const cname=cid=>{const c=clients.find(x=>x.id===cid);return c?((c.memNo?c.memNo+' — ':'')+c.fname+' '+(c.lname||'')).trim():'';};
+  const cname=cid=>{
+    const c=clients.find(x=>x.id===cid);if(!c)return '';
+    const _due=getClientTotalCharged(cid)-getClientTotalPaid(cid);
+    const _s=_due===0?'\u2713 settled':_due>0?'\u20b9'+_due.toLocaleString('en-IN')+' due':'\u20b9'+Math.abs(_due).toLocaleString('en-IN')+' advance';
+    return (c.memNo||'')+' '+c.fname+' '+(c.lname||'')+'<br><span style="font-size:9px;color:'+(_due>0?'#b00':'#2e7d32')+';">'+_s+'</span>';
+  };
   /* opening balance: all entries for this account strictly before "from" */
   let opening=0;
   const all=_allCashEntries();
@@ -7751,7 +7756,7 @@ function genStatement(){
   let totIn=0,totOut=0;
   const body=rows.map(r=>{
     bal+=r.in-r.out;totIn+=r.in;totOut+=r.out;
-    return `<tr><td>${fmt(r.date)}</td><td>${r.desc}${r.who?'<br><span style="font-size:11px;color:#777;">'+r.who+'</span>':''}</td><td style="text-align:right;color:#2e7d32;">${r.in?'₹'+r.in.toLocaleString('en-IN'):''}</td><td style="text-align:right;color:#b00;">${r.out?'₹'+r.out.toLocaleString('en-IN'):''}</td><td style="text-align:right;font-weight:700;">₹${bal.toLocaleString('en-IN')}</td></tr>`;
+    return `<tr><td style="white-space:nowrap;padding:5px 7px;">${fmt(r.date)}</td><td style="padding:5px 7px;">${r.who?'<b>'+r.who+'</b><br>':''}<span style="color:#555;font-size:11px;">${r.desc}</span></td><td style="text-align:right;color:#2e7d32;font-weight:700;padding:5px 7px;">${r.in?'<small>Cr</small> \u20b9'+r.in.toLocaleString('en-IN'):''}</td><td style="text-align:right;color:#b00;font-weight:700;padding:5px 7px;">${r.out?'<small>Dr</small> \u20b9'+r.out.toLocaleString('en-IN'):''}</td><td style="text-align:right;font-weight:700;padding:5px 7px;">\u20b9${bal.toLocaleString('en-IN')}</td></tr>`;
   }).join('');
   const acctLabel=_stmtSel==='cash'?'Cash':'Bank (UPI/Card/Transfer/PhonePe)';
   const html=`<div style="background:#fff;color:#111;border-radius:10px;padding:16px;font-family:'Jost',Arial,sans-serif;" id="stmt-print-body">
