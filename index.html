@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142q</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142t</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2047,7 +2047,7 @@ function renderClients(){
     const _tot=mem?((mem.sessions||0)+(mem.bonus||0)):0;
     const _left=mem?getSessionsLeft(mem,c.id):0;
     const _pct=(_tot>0&&!_unltd)?Math.max(0,Math.min(100,Math.round(_left/_tot*100))):0;
-    const _planLbl=(()=>{if(!plan)return '';const d=plan.days||0;const dur=d>0&&d%30===0?(d/30)+'M':d>0&&d%7===0?(d/7)+'W':d+'d';const _INF='<svg width="13" height="8" viewBox="0 0 13 8" style="vertical-align:-1px;fill:#c9a84c"><path d="M6.5 4C5.8 2.8 4.7 2 3.5 2 1.6 2 0 3.1 0 4s1.6 2 3.5 2C4.7 6 5.8 5.2 6.5 4zM6.5 4C7.2 5.2 8.3 6 9.5 6 11.4 6 13 4.9 13 4s-1.6-2-3.5-2C8.3 2 7.2 2.8 6.5 4z"/></svg>';const ss=_unltd?_INF:_tot+'s';return dur+' × '+ss;})();
+    const _planLbl=(()=>{if(!plan)return '';const d=plan.days||0;const dur=d>0&&d%30===0?(d/30)+'M':d>0&&d%7===0?(d/7)+'W':d+'d';const _INF='<span style="font-size:15px;line-height:1;vertical-align:-2px;color:#c9a84c;">∞</span>';const ss=_unltd?_INF:_tot+'s';return dur+' × '+ss;})();
     const _due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
     const _av=c.photo?`<img src="${c.photo}" class="client-avatar" style="width:42px;height:42px;"/>`:`<div class="client-avatar" style="width:42px;height:42px;font-size:16px;background:${colorFor(c.fname+(c.lname||''))};">${initials(c.fname+' '+(c.lname||''))}</div>`;
     return `<div class="client-card" onclick="openUnified('${c.id}')" style="padding:11px 12px;display:block;">
@@ -2074,12 +2074,12 @@ function renderClients(){
         ${st==='expiring'&&!_isTr?'<span class="badge badge-active" style="font-size:10px;">Active</span>':''}
         ${!_isTr&&st?'<span class="badge '+(badgeMap[st]||'badge-pending')+'" style="font-size:10px;">'+(labelMap[st]||'No Plan')+'</span>':''}
         ${mem&&mem.status==='frozen'?'<span class="badge" style="background:rgba(52,152,219,0.15);color:#3498db;border:1px solid rgba(52,152,219,0.4);font-size:10px;">🏖 On Leave</span>':''}
-        ${!_isTr&&_unltd?'<span style="font-size:11px;color:var(--teal);"><svg width="13" height="8" viewBox="0 0 13 8" style="vertical-align:-1px;fill:#2ecc71"><path d="M6.5 4C5.8 2.8 4.7 2 3.5 2 1.6 2 0 3.1 0 4s1.6 2 3.5 2C4.7 6 5.8 5.2 6.5 4zM6.5 4C7.2 5.2 8.3 6 9.5 6 11.4 6 13 4.9 13 4s-1.6-2-3.5-2C8.3 2 7.2 2.8 6.5 4z"/></svg> Unlimited</span>':''}
+        ${!_isTr&&_unltd?'<span style="font-size:11px;color:var(--teal);"><span style="font-size:15px;line-height:1;vertical-align:-2px;color:#2ecc71;">∞</span> Unlimited</span>':''}
         ${_due>0?'<span class="badge" style="background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);font-size:10px;font-weight:700;">₹ Due '+_due.toLocaleString('en-IN')+'</span>':''}
         ${_inactiveBadge(c)}
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:7px;${(()=>{const _fus=ld('pp_followups',[]).filter(x=>x.cid===c.id&&x.remindDate&&!x.done).sort((a,b)=>a.remindDate.localeCompare(b.remindDate));if(!_fus.length)return '';const _nr=_fus[0];const _over=_nr.remindDate<td();return '<div style="font-size:10.5px;margin-bottom:4px;color:'+(_over?'#e74c3c':'var(--amber)')+';">'+ (_over?'⚠ Follow up overdue':'🕐 Follow up due')+' '+fmt(_nr.remindDate)+'</div>';})()}
-      <div style="padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
         ${_isTr?`<span style="flex:1;white-space:nowrap;">Trial <span style="color:#afa9ec;">${c.trialDate?(()=>{const _p=c.trialDate.split('-');return _p[2]+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+_p[1]-1];})():'—'}</span></span><span style="color:var(--gold);cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();openFollowUp('${c.id}')">📞 Follow up</span>`
         :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;">${(st!=="expired"&&!c.archived)?'<span onclick="event.stopPropagation();_goBookSlot(\'${c.id}\')" title="Book a slot" style="cursor:pointer;">📅</span>':''}<span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
       </div>
@@ -2678,9 +2678,9 @@ const RSEM='10px';
    apostrophe-escaping across three nested layers of quotes. */
 function _goBookSlot(cid){
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
-  window._schedPrefillCid=cid; /* prefill when user taps a slot */
+  window._schedPrefillCid=cid;
   _schedDate=td();
-  showTab('schedule');
+  (typeof _origShowTab==='function'?_origShowTab:showTab)('schedule');
   setTimeout(()=>{
     const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
     renderSchedule();
@@ -2725,6 +2725,14 @@ function toggleClosedDay(){
       renderSchedule();
     });
   }
+}
+function themedConfirm(msg,cb){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;';
+  ov.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;max-width:320px;width:100%;padding:22px;"><div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px;">'+msg+'</div><button id="tc-ok" class="sb2" style="background:var(--red);border-color:var(--red);margin-bottom:8px;">Delete</button><button id="tc-cancel" class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);">Cancel</button></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#tc-ok').onclick=function(){ov.remove();cb();};
+  ov.querySelector('#tc-cancel').onclick=function(){ov.remove();};
 }
 function themedPrompt(title,msg,defVal,cb){
   const ov=document.createElement('div');
@@ -3027,7 +3035,7 @@ function _renderFuHistory(cid){
   const all=ld('pp_followups',[]).filter(x=>x.cid===cid).sort((a,b)=>b.loggedAt.localeCompare(a.loggedAt));
   const box=document.getElementById('fu-history');if(!box)return;
   if(!all.length){box.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px;">No follow-ups logged yet</div>';return;}
-  box.innerHTML=all.map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:4px 10px;margin-bottom:8px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="display:flex;justify-content:space-between;">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+(f.done?'':'<button onclick="markFollowUpDone(\''+f.id+'\');" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;">✓</button>')+'</div>'+'<div style="display:flex;justify-content:space-between;"><div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · by '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div>'+(f.done?'':'<span><button onclick="editFollowUp(\''+f.id+'\')" style="background:none;border:none;font-size:10px;cursor:pointer;">✏️</button><button onclick="deleteFollowUp(\''+f.id+'\')" style="background:none;border:none;font-size:10px;cursor:pointer;color:var(--red);">🗑</button></span>')+'</div></div>').join('');
+  box.innerHTML=all.map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:4px 10px;margin-bottom:8px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="display:flex;justify-content:space-between;">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+(f.done?'':'<button onclick="markFollowUpDone(\''+f.id+'\');" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;">✓</button>')+'</div>'+'<div style="display:flex;justify-content:space-between;"><div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · by '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div>'+(f.done?'':'<span style="display:flex;gap:12px;"><button onclick="editFollowUp(\''+f.id+'\')" style="background:none;border:none;font-size:12px;cursor:pointer;padding:2px 4px;">✏️</button><button onclick="deleteFollowUp(\''+f.id+'\')" style="background:none;border:none;font-size:12px;cursor:pointer;color:var(--red);padding:2px 4px;">🗑</button></span>')+'</div></div>').join('');
 }
 function editFollowUp(id){
   const all=ld('pp_followups',[]);const f=all.find(x=>x.id===id);if(!f)return;
@@ -3037,10 +3045,11 @@ function editFollowUp(id){
   toast('Editing — save when done');
 }
 function deleteFollowUp(id){
-  if(!confirm('Delete this follow-up?'))return;
-  sv('pp_followups',ld('pp_followups',[]).filter(x=>x.id!==id));
-  _renderFuHistory(document.getElementById('fu-cid').value);
-  toast('Deleted');try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
+  themedConfirm('Delete this follow-up note?',()=>{
+    sv('pp_followups',ld('pp_followups',[]).filter(x=>x.id!==id));
+    _renderFuHistory(document.getElementById('fu-cid').value);
+    toast('Deleted');try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
+  });
 }
 function markFollowUpDone(id){
   const all=ld('pp_followups',[]);const f=all.find(x=>x.id===id);if(!f)return;
@@ -4829,19 +4838,19 @@ function renderCash(){
   const allIn=cash.filter(e=>e.type==='in').reduce((s,e)=>s+e.amt,0);
   const allOut=cash.filter(e=>e.type==='out').reduce((s,e)=>s+e.amt,0);
   document.getElementById('cash-summary').innerHTML=`
-    <div style="display:grid;grid-template-columns:68px 1fr 68px;gap:5px;align-items:stretch;margin-bottom:6px;">
+    <div style="display:grid;grid-template-columns:72px 1fr 72px;gap:5px;align-items:stretch;margin-bottom:6px;">
       <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
         <button onclick="showTab('about')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;">CASH BOOK</button>
         <button onclick="openDaybook()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">DAY BOOK</button>
         <button onclick="_cashFilter='all';renderCash();" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">ALL</button>
       </div>
-      <div class="card card-gold" style="padding:8px 12px;text-align:center;">
+      <div class="card card-gold" style="padding:8px 10px;text-align:center;min-width:0;overflow:hidden;">
         <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">Overall Balance</div>
-        <div style="font-family:'Playfair Display',serif;font-size:26px;color:var(--gold);margin-bottom:5px;">₹\${(allIn-allOut).toLocaleString('en-IN')}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;text-align:center;">
-          <div><div style="color:var(--green);font-weight:700;">₹\${totalIn.toLocaleString('en-IN')}</div><div style="color:var(--text2);font-size:10px;">Credits</div></div>
-          <div><div style="color:var(--red);font-weight:700;">₹\${totalOut.toLocaleString('en-IN')}</div><div style="color:var(--text2);font-size:10px;">Debits</div></div>
-          <div><div style="color:var(--gold);font-weight:700;">₹\${(totalIn-totalOut).toLocaleString('en-IN')}</div><div style="color:var(--text2);font-size:10px;">Net Flow</div></div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--gold);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">&#8377;${(allIn-allOut).toLocaleString('en-IN')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px;text-align:center;">
+          <div><div style="color:var(--green);font-weight:700;font-size:11px;">&#8377;${totalIn.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Credits</div></div>
+          <div><div style="color:var(--red);font-weight:700;font-size:11px;">&#8377;${totalOut.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Debits</div></div>
+          <div><div style="color:var(--gold);font-weight:700;font-size:11px;">&#8377;${(totalIn-totalOut).toLocaleString('en-IN')}</div><div style="color:var(--text2);">Net Flow</div></div>
         </div>
         <div style="font-size:9px;color:var(--text3);margin-top:3px;">Cash movement · not profit</div>
       </div>
@@ -4963,20 +4972,21 @@ function printDaybook(){
     const cr=e.type==='in'?e.amt:0, dr=e.type==='out'?e.amt:0;
     tIn+=cr;tOut+=dr;if(e.type==='contra')tCon+=e.amt;
     const mode=e.type==='contra'?((e.mode||'')+' → '+(e.mode2||'')):(e.mode||'');
+    const _due=c?(getClientTotalCharged(c.id)-getClientTotalPaid(c.id)):0;
+    const _settledTxt=c?(_due===0?'✓ settled':_due>0?'₹'+_due.toLocaleString('en-IN')+' due':'₹'+Math.abs(_due).toLocaleString('en-IN')+' advance'):'';
+    const _settledCol=_due>0?'#b00':_due<0?'#137333':'#137333';
     return `<tr>
       <td>${fmt(e.date)}</td>
-      <td>${_esc(e.cat||'—')}</td>
-      <td>${_esc(e.desc||'')}${c?'<br><span style="color:#888;font-size:9px;">'+_esc((c.memNo||'')+' '+c.fname+' '+(c.lname||''))+'</span>':''}</td>
-      <td>${_esc(mode)}</td>
-      <td style="text-align:right;color:#137333;">${cr?'₹'+cr.toLocaleString('en-IN'):''}</td>
-      <td style="text-align:right;color:#a50e0e;">${dr?'₹'+dr.toLocaleString('en-IN'):''}</td>
+      <td style="font-size:11px;">${c?'<b>'+_esc(c.memNo||'')+' '+_esc(c.fname+' '+(c.lname||''))+'</b><br>':''}<span style="color:#555;">${_esc(e.desc||e.cat||'—')}</span><br><span style="color:#888;font-size:9px;">${_esc(mode)}</span>${c?'<br><span style="color:'+_settledCol+';font-size:9px;">'+_settledTxt+'</span>':''}</td>
+      <td style="text-align:right;color:#137333;font-weight:700;">${cr?'<span style="font-size:9px;font-weight:800;">Cr</span> ₹'+cr.toLocaleString('en-IN'):''}</td>
+      <td style="text-align:right;color:#a50e0e;font-weight:700;">${dr?'<span style="font-size:9px;font-weight:800;">Dr</span> ₹'+dr.toLocaleString('en-IN'):''}</td>
     </tr>`;
   }).join('');
   const period=(from?fmt(from):'start')+' to '+(to?fmt(to):'today');
   const html=`<table>
-    <tr><th>Date</th><th>Category</th><th>Particulars</th><th>Mode</th><th style="text-align:right;">Credit (₹)</th><th style="text-align:right;">Debit (₹)</th></tr>
+    <tr><th>Date</th><th>Particulars</th><th style="text-align:right;">Credit (₹)</th><th style="text-align:right;">Debit (₹)</th></tr>
     ${body}
-    <tr class="pr-tot"><td colspan="4" style="text-align:right;">TOTALS</td><td style="text-align:right;color:#137333;">₹${tIn.toLocaleString('en-IN')}</td><td style="text-align:right;color:#a50e0e;">₹${tOut.toLocaleString('en-IN')}</td></tr>
+    <tr class="pr-tot"><td colspan="2" style="text-align:right;">TOTALS</td><td style="text-align:right;color:#137333;">₹${tIn.toLocaleString('en-IN')}</td><td style="text-align:right;color:#a50e0e;">₹${tOut.toLocaleString('en-IN')}</td></tr>
     <tr class="pr-net"><td colspan="4" style="text-align:right;">NET (Credit − Debit)</td><td colspan="2" style="text-align:right;">₹${(tIn-tOut).toLocaleString('en-IN')}</td></tr>
   </table>
   ${tCon?`<div class="pr-note">Note: ₹${tCon.toLocaleString('en-IN')} in Contra (internal transfer) entries are shown in the list but excluded from Credit/Debit totals as they are not income or expense.</div>`:''}
