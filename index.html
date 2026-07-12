@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143c</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143e</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2083,7 +2083,7 @@ function renderClients(){
       <div style="display:flex;justify-content:space-between;margin-top:7px;${(()=>{const _fus=ld('pp_followups',[]).filter(x=>x.cid===c.id&&x.remindDate&&!x.done).sort((a,b)=>a.remindDate.localeCompare(b.remindDate));if(!_fus.length)return '';const _nr=_fus[0];const _over=_nr.remindDate<td();return '<div style="font-size:10.5px;margin-bottom:4px;color:'+(_over?'#e74c3c':'var(--amber)')+';">'+ (_over?'⚠ Follow up overdue':'🕐 Follow up due')+' '+fmt(_nr.remindDate)+'</div>';})()}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
         ${_isTr?`<span style="flex:1;white-space:nowrap;">Trial <span style="color:#afa9ec;">${c.trialDate?(()=>{const _p=c.trialDate.split('-');return _p[2]+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+_p[1]-1];})():'—'}</span></span><span style="color:var(--gold);cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();openFollowUp('${c.id}')">📞 Follow up</span>`
-        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;">${(st!=="expired"&&!c.archived)?'<span onclick="event.stopPropagation();_goBookSlot(\'${c.id}\')" title="Book a slot" style="cursor:pointer;">📅</span>':''}<span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
+        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;">${(st!=="expired"&&!c.archived)?'<span onclick="event.stopPropagation();_goBookSlot(\''+c.id+'\')" title="Book a slot" style="cursor:pointer;">📅</span>':''}<span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
       </div>
     </div>`;
   }).join('');
@@ -2679,25 +2679,15 @@ const RSEM='10px';
    rather than passed through the card's onclick string, to avoid fighting
    apostrophe-escaping across three nested layers of quotes. */
 function _goBookSlot(cid){
-  try{
-    toast('📅 opening…'); /* IMMEDIATE visible proof the tap registered */
-    const c=ld('pp_clients',[]).find(x=>x.id===cid);
-    if(!c){toast('⚠️ Client not found ('+cid+')');return;}
-    window._schedPrefillCid=cid;
-    _schedDate=td();
-    showTab('schedule');
-    setTimeout(()=>{
-      try{
-        const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
-        renderSchedule();
-        toast('📅 Tap any empty slot to book for '+c.fname);
-      }catch(_e2){
-        showConfirm('⚠️ Booking error (step 2)','',String(_e2&&_e2.message||_e2),[{label:'OK',color:'var(--gold)',action:null}]);
-      }
-    },80);
-  }catch(_e){
-    showConfirm('⚠️ Booking error (step 1)','',String(_e&&_e.message||_e),[{label:'OK',color:'var(--gold)',action:null}]);
-  }
+  const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
+  window._schedPrefillCid=cid;
+  _schedDate=td();
+  showTab('schedule');
+  setTimeout(()=>{
+    const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
+    renderSchedule();
+    toast('📅 Tap any empty slot to book for '+c.fname);
+  },80);
 }
 function pickSchedDate(val){
   if(!val)return;
@@ -6462,6 +6452,14 @@ function toggleRepSec(id){
   b.style.display=open?'none':'';
   if(a)a.textContent=open?'\u25B6':'\u25BC';
 }
+/* All report sections start collapsed — open only on demand */
+function _repDefaultCollapse(){
+  ['pnl','trial','comp','demand','arpm'].forEach(id=>{
+    const b=document.getElementById('rsb-'+id);
+    const a=document.getElementById('rsa-'+id);
+    if(b){b.style.display='none';if(a)a.textContent='\u25B6';}
+  });
+}
 function renderReports(){
   const {y,m}=_repM;
   const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -6604,6 +6602,7 @@ function renderReports(){
       </div>
     </div></div>`;
   document.getElementById('rep-content').innerHTML=html;
+  _repDefaultCollapse();
 }
 </script>
 
