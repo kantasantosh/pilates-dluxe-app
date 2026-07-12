@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142g</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142h</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2064,14 +2064,14 @@ function renderClients(){
         <span style="font-size:11px;color:var(--gold);white-space:nowrap;">${_left} left / ${_tot}</span>
       </div>`:''}
       <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px;">
-        ${_isTr?'<span class="badge" style="background:rgba(127,119,221,0.14);color:#afa9ec;border:1px solid rgba(127,119,221,0.4);font-size:10px;">🎯 Trial</span>':`<span class="badge ${badgeMap[st]||'badge-pending'}" style="font-size:10px;">${labelMap[st]||'No Plan'}</span>`}
+        ${_isTr?'<span class="badge" style="background:rgba(127,119,221,0.14);color:#afa9ec;border:1px solid rgba(127,119,221,0.4);font-size:10px;">🎯 Trial</span>':`<span class="badge ${badgeMap[st]||'badge-pending'}" style="font-size:10px;">${labelMap[st]||'No Plan'}</span>`}${!_isTr&&c.trialDate?'<span class="badge" style="background:rgba(201,168,76,0.12);color:var(--gold);border:1px solid rgba(201,168,76,0.4);font-size:10px;">✓ Converted</span>':''}
         ${mem&&mem.status==='frozen'?'<span class="badge" style="background:rgba(52,152,219,0.15);color:#3498db;border:1px solid rgba(52,152,219,0.4);font-size:10px;">🏖 On Leave</span>':''}
         ${!_isTr&&_unltd?'<span style="font-size:11px;color:var(--teal);">∞ Unlimited</span>':''}
         ${_due>0?'<span class="badge" style="background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);font-size:10px;font-weight:700;">₹ Due '+_due.toLocaleString('en-IN')+'</span>':''}
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:7px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
         ${_isTr?`<span>Trial on <span style="color:#afa9ec;">${c.trialDate?fmt(c.trialDate):'—'}</span></span><span style="color:var(--gold);">📞 Follow up</span>`
-        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;"><span onclick="event.stopPropagation();_goBookSlot('${c.id}')" title="Book a slot" style="cursor:pointer;">📅</span><span onclick="event.stopPropagation();openWhatsApp('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
+        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;"><span onclick="event.stopPropagation();_goBookSlot('${c.id}')" title="Book a slot" style="cursor:pointer;">📅</span><span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
       </div>
     </div>`;
   }).join('');
@@ -8146,6 +8146,7 @@ function _navConsume(tag){
      entry is ours for this layer, swallow it so Back stays in sync */
   if(history.state&&history.state.pdl===tag){window._navSkip++;try{history.back();}catch(_e){window._navSkip--;}}
 }
+window.addEventListener('keydown',function(e){if(e.key==='Escape'){e.preventDefault();try{history.back();}catch(_x){}}});
 window.addEventListener('popstate',function(){
   if(window._navSkip>0){window._navSkip--;return;} /* our own cleanup, not a user Back */
   const _openModal=document.querySelector('.mo.open');
