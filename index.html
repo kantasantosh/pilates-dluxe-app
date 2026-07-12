@@ -294,7 +294,7 @@ try{
      comes after this point in the file. */
   console.warn('Firebase unavailable, continuing in offline mode:',_fbErr&&_fbErr.message);
 }
-const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad'];
+const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups'];
 function _pSyncable(k){return _pSYNC.includes(k)||/^pp_(satt|sadv)_/.test(k);}
 
 async function _pfsSave(k,v){if(!_pdb)return;try{await _pdb.collection('pilates').doc(k).set({value:JSON.stringify(v),updated:Date.now()});}catch(e){}}
@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142g</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142y</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -758,13 +758,15 @@ try{
     <div style="position:sticky;top:var(--tbh,96px);z-index:9;background:var(--bg);padding-bottom:4px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
       <div class="st" style="flex-shrink:0;">Staff</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)">&#9664;</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex:1;">
         <div style="position:relative;cursor:pointer;" title="Tap to pick month">
           <div id="staff-ml" style="text-align:center;line-height:1.1;min-width:64px;"></div>
           <input type="month" id="staff-month-pick" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;-webkit-appearance:none;" onchange="pickStaffMonth(this.value)"/>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="chStaffM(1)">&#9654;</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)" style="padding:6px 14px;">◀</button>
+          <button class="btn btn-outline btn-sm" onclick="chStaffM(1)" style="padding:6px 14px;">▶</button>
+        </div>
       </div>
       <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance" style="flex-shrink:0;">🖨</button>
     </div>
@@ -775,30 +777,20 @@ try{
 
 <!-- CASH BOOK -->
 <div class="tab" id="tab-cash">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 14px 6px;">
-    <div style="font-size:14px;font-weight:700;color:var(--text);">Cash Book</div>
-    <div style="display:flex;gap:6px;">
-      <button class="btn btn-gold btn-sm" onclick="openCashEntry()" style="padding:4px 10px;">+ New</button>
-      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 10px;" onclick="openDaybook()">📒 Daybook</button>
-    </div>
-  </div>
+  <!-- Balance card + left/right chips — no header row, no filter row -->
   <div id="cash-summary"></div>
-  <!-- #5 sticky: from the 4 filter chips down to the search row -->
+  <!-- Sticky: search + category only -->
   <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding-bottom:4px;">
-  <div style="display:flex;gap:4px;margin-bottom:8px;">
-    <button class="ftab active" onclick="setCashFilter('all',this)" style="flex:1;text-align:center;">All</button>
-    <button class="ftab" onclick="setCashFilter('in',this)" style="flex:1;text-align:center;">💚 Credits</button>
-    <button class="ftab" onclick="setCashFilter('out',this)" style="flex:1;text-align:center;">🔴 Debits</button>
-    <button class="ftab" onclick="setCashFilter('contra',this)" style="flex:1;text-align:center;">🔁 Contra</button>
-  </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
-    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries (name, note, amount, mode)…" style="flex:2;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
-    <select id="cash-catfilter" onchange="renderCash()" style="flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries…" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
+    <select id="cash-catfilter" onchange="renderCash()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">All categories</option>
     </select>
   </div>
   </div>
   <div id="cash-list"></div>
+  <!-- Floating + button (shown only on cash tab) -->
+  <button onclick="openCashEntry()" id="cash-fab" style="position:fixed;bottom:80px;right:16px;width:46px;height:46px;border-radius:50%;background:var(--gold);border:none;color:#1a1a2e;font-size:24px;font-weight:300;cursor:pointer;z-index:50;box-shadow:0 3px 12px rgba(201,168,76,0.4);display:none;align-items:center;justify-content:center;">+</button>
 </div>
 <!-- Themed Confirm Modal -->
 <div class="mo" id="m-confirm" style="align-items:center;z-index:400;">
@@ -1370,6 +1362,9 @@ const SLOTS=['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','4:00 PM','5:00
 const MACHINES=5;
 const COLORS=['#c9a84c','#e8547a','#4ecdc4','#9b72cf','#4ade80','#fb923c','#60a5fa','#f472b6'];
 
+let _refreshTimer=null;
+function _inactiveBadge(c){return c.archived?"<span class='badge' style='background:rgba(120,120,120,0.15);color:#999;border:1px solid rgba(120,120,120,0.3);font-size:10px;'>Inactive</span>":"";}
+function _debouncedRefresh(){clearTimeout(_refreshTimer);_refreshTimer=setTimeout(()=>{try{if(typeof renderDash==='function'&&_activeTab==='dashboard')renderDash();}catch(_e){}try{if(typeof renderClients==='function'&&_activeTab==='clients')renderClients();}catch(_e){}},300);}
 function sv(k,v){
   localStorage.setItem(k,JSON.stringify(v));
   if(typeof _pSync!=='undefined'&&_pSync&&typeof _pdb!=='undefined'&&typeof _pSyncable!=='undefined'&&_pSyncable(k)){
@@ -1707,6 +1702,8 @@ function renderDash(){
 
   // Today's bookings - always use today, not _schedDate
   const todayKey=td();
+  const _closedDays=ld('pp_closed_days',{});
+  const _isTodayHoliday=!!_closedDays[todayKey];
   const todaySlots=bookings[todayKey]||{};
   let todayCount=0;
   const todayBookingDetails=[];
@@ -1752,6 +1749,12 @@ function renderDash(){
      surfaced again here for visibility. Low Sessions, Overdue Tasks, and
      Bills Due are genuinely new. */
   const _alerts=[];
+  const _todayStr=td();
+  ld('pp_followups',[]).filter(f=>f.remindDate&&f.remindDate<=_todayStr&&!f.done).forEach(f=>{
+    const _fc=clients.find(x=>x.id===f.cid);if(!_fc||_fc.archived)return;
+    const _dag=Math.round((new Date(_todayStr)-new Date(f.remindDate))/(864e5));
+    _alerts.push({icon:'📞',text:'Follow up · '+(_fc.fname||'')+(_fc.lname?' '+_fc.lname:'')+(_dag>0?' ('+_dag+'d ago)':''),action:"openFollowUp('"+f.cid+"')"});
+  });
   clients.filter(c=>!c.archived).forEach(c=>{
     const mem=mems[c.id];
     if(!mem||mem.plan==='trial'||mem.plan==='unlimited')return;
@@ -1825,19 +1828,23 @@ function renderDash(){
 
     ${bdayClients.length>0?`
     <div class="div-section">🎂 Birthdays This Week</div>
-    ${bdayClients.map(c=>`
-      <div class="client-card" onclick="openUnified('${c.id}')" style="cursor:pointer;">
+    ${bdayClients.map(c=>{
+      const _bdD=new Date(c.bday);const _tdN=new Date();
+      const _isToday=_bdD.getMonth()===_tdN.getMonth()&&_bdD.getDate()===_tdN.getDate();
+      return `
+      <div class="client-card" onclick="openUnified('${c.id}')" style="cursor:pointer;${_isToday?'border-color:var(--gold);':''}" >
         <div class="client-avatar" style="background:${c.photo?'transparent':colorFor(c.fname+c.lname)};overflow:hidden;">${c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initials(c.fname+' '+c.lname)}</div>
         <div class="client-info">
-          <div class="client-name">${c.fname} ${c.lname}</div>
+          <div class="client-name">${c.fname} ${c.lname}${_isToday?' <span style="color:var(--gold);font-size:11px;">🎂 Today!</span>':''}</div>
           <div class="client-sub">${fmt(c.bday)}</div>
         </div>
-        <button onclick="openWA('${c.id}')" style="background:none;border:none;font-size:22px;cursor:pointer;">🎂</button>
-      </div>`).join('')}`:''}
+        <button onclick="event.stopPropagation();openWA('${c.id}')" style="background:none;border:none;font-size:22px;cursor:pointer;">🎂</button>
+      </div>`;}).join('')}`:''}
 
     <!-- Today's Schedule Summary Card -->
     <div class="div-section">📅 Today's Schedule</div>
     <div class="card card-gold" style="margin-bottom:10px;">
+      ${_isTodayHoliday?'<div style="background:rgba(155,114,207,0.15);border-radius:8px;padding:7px 12px;margin-bottom:10px;font-size:13px;color:var(--purple);text-align:center;">🏖 Studio Holiday Today</div>':''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <div>
           <div style="font-size:20px;font-weight:800;color:var(--gold);">${todayCount} <span style="font-size:12px;font-weight:400;color:var(--text2);">bookings today</span></div>
@@ -2042,7 +2049,7 @@ function renderClients(){
     const _tot=mem?((mem.sessions||0)+(mem.bonus||0)):0;
     const _left=mem?getSessionsLeft(mem,c.id):0;
     const _pct=(_tot>0&&!_unltd)?Math.max(0,Math.min(100,Math.round(_left/_tot*100))):0;
-    const _planLbl=(()=>{if(!plan)return '';const d=plan.days||0;const dur=d>0&&d%30===0?(d/30)+'M':d>0&&d%7===0?(d/7)+'W':d+'d';const ss=_unltd?'∞':_tot+'s';return dur+' × '+ss;})();
+    const _planLbl=(()=>{if(!plan)return '';const d=plan.days||0;const dur=d>0&&d%30===0?(d/30)+'M':d>0&&d%7===0?(d/7)+'W':d+'d';const _INF='<span style="font-size:15px;line-height:1;vertical-align:-2px;color:#c9a84c;">∞</span>';const ss=_unltd?_INF:_tot+'s';return dur+' × '+ss;})();
     const _due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
     const _av=c.photo?`<img src="${c.photo}" class="client-avatar" style="width:42px;height:42px;"/>`:`<div class="client-avatar" style="width:42px;height:42px;font-size:16px;background:${colorFor(c.fname+(c.lname||''))};">${initials(c.fname+' '+(c.lname||''))}</div>`;
     return `<div class="client-card" onclick="openUnified('${c.id}')" style="padding:11px 12px;display:block;">
@@ -2054,7 +2061,7 @@ function renderClients(){
         <span style="font-size:11px;color:var(--gold);letter-spacing:0.5px;flex-shrink:0;margin-left:6px;">${!c.isTrial&&c.trialDate?'<span title="Came via trial" style="font-size:10px;">🎯</span> ':''}#${c.memNo||''}</span>
       </div>
       <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text2);margin-top:3px;">
-        <a href="tel:${c.phone}" onclick="event.stopPropagation()" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;">📱 ${_fmtPhone(c.phone)}</a>
+        <a href="tel:${c.phone}" onclick="event.stopPropagation()" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg> ${_fmtPhone(c.phone)}</a>
         ${_isTr?'':(_planLbl?`<span style="color:var(--gold);white-space:nowrap;">Plan: ${_planLbl}</span>`:'')}
       </div>
       </div>
@@ -2064,14 +2071,19 @@ function renderClients(){
         <span style="font-size:11px;color:var(--gold);white-space:nowrap;">${_left} left / ${_tot}</span>
       </div>`:''}
       <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px;">
-        ${_isTr?'<span class="badge" style="background:rgba(127,119,221,0.14);color:#afa9ec;border:1px solid rgba(127,119,221,0.4);font-size:10px;">🎯 Trial</span>':`<span class="badge ${badgeMap[st]||'badge-pending'}" style="font-size:10px;">${labelMap[st]||'No Plan'}</span>`}
+        ${_isTr?'<span class="badge" style="background:rgba(127,119,221,0.14);color:#afa9ec;border:1px solid rgba(127,119,221,0.4);font-size:10px;">🎯 Trial</span>':''}
+        ${!_isTr&&c.trialDate?'<span class="badge" style="background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.4);font-size:10px;">✓ Converted</span>':''}
+        ${st==='expiring'&&!_isTr?'<span class="badge badge-active" style="font-size:10px;">Active</span>':''}
+        ${!_isTr&&st?'<span class="badge '+(badgeMap[st]||'badge-pending')+'" style="font-size:10px;">'+(labelMap[st]||'No Plan')+'</span>':''}
         ${mem&&mem.status==='frozen'?'<span class="badge" style="background:rgba(52,152,219,0.15);color:#3498db;border:1px solid rgba(52,152,219,0.4);font-size:10px;">🏖 On Leave</span>':''}
-        ${!_isTr&&_unltd?'<span style="font-size:11px;color:var(--teal);">∞ Unlimited</span>':''}
+        ${!_isTr&&_unltd?'<span style="font-size:11px;color:var(--teal);"><span style="font-size:15px;line-height:1;vertical-align:-2px;color:#2ecc71;">∞</span> Unlimited</span>':''}
         ${_due>0?'<span class="badge" style="background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);font-size:10px;font-weight:700;">₹ Due '+_due.toLocaleString('en-IN')+'</span>':''}
+        ${_inactiveBadge(c)}
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:7px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
-        ${_isTr?`<span>Trial on <span style="color:#afa9ec;">${c.trialDate?fmt(c.trialDate):'—'}</span></span><span style="color:var(--gold);">📞 Follow up</span>`
-        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;"><span onclick="event.stopPropagation();_goBookSlot('${c.id}')" title="Book a slot" style="cursor:pointer;">📅</span><span onclick="event.stopPropagation();openWhatsApp('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
+      <div style="display:flex;justify-content:space-between;margin-top:7px;${(()=>{const _fus=ld('pp_followups',[]).filter(x=>x.cid===c.id&&x.remindDate&&!x.done).sort((a,b)=>a.remindDate.localeCompare(b.remindDate));if(!_fus.length)return '';const _nr=_fus[0];const _over=_nr.remindDate<td();return '<div style="font-size:10.5px;margin-bottom:4px;color:'+(_over?'#e74c3c':'var(--amber)')+';">'+ (_over?'⚠ Follow up overdue':'🕐 Follow up due')+' '+fmt(_nr.remindDate)+'</div>';})()}
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
+        ${_isTr?`<span style="flex:1;white-space:nowrap;">Trial <span style="color:#afa9ec;">${c.trialDate?(()=>{const _p=c.trialDate.split('-');return _p[2]+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+_p[1]-1];})():'—'}</span></span><span style="color:var(--gold);cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();openFollowUp('${c.id}')">📞 Follow up</span>`
+        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;">${(st!=="expired"&&!c.archived)?'<span onclick="event.stopPropagation();_goBookSlot(\'${c.id}\')" title="Book a slot" style="cursor:pointer;">📅</span>':''}<span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
       </div>
     </div>`;
   }).join('');
@@ -2668,9 +2680,11 @@ const RSEM='10px';
    apostrophe-escaping across three nested layers of quotes. */
 function _goBookSlot(cid){
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
-  window._schedPrefillCid=cid; /* prefill when user taps a slot */
+  window._schedPrefillCid=cid;
   _schedDate=td();
-  showTab('schedule');
+  /* Use _origShowTab to bypass nav wrapper history tracking (avoids dead Back presses) */
+  const _nav=(typeof _origShowTab==='function'?_origShowTab:showTab);
+  _nav('schedule');
   setTimeout(()=>{
     const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
     renderSchedule();
@@ -2715,6 +2729,14 @@ function toggleClosedDay(){
       renderSchedule();
     });
   }
+}
+function themedConfirm(msg,cb){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;';
+  ov.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;max-width:320px;width:100%;padding:22px;"><div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px;">'+msg+'</div><button id="tc-ok" class="sb2" style="background:var(--red);border-color:var(--red);margin-bottom:8px;">Delete</button><button id="tc-cancel" class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);">Cancel</button></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#tc-ok').onclick=function(){ov.remove();cb();};
+  ov.querySelector('#tc-cancel').onclick=function(){ov.remove();};
 }
 function themedPrompt(title,msg,defVal,cb){
   const ov=document.createElement('div');
@@ -2763,8 +2785,8 @@ function renderSchedule(){
       const closed=ld('pp_closed_days',{});
       const isClosed=!!closed[_schedDate];
       if(ppIsTrainer&&ppIsTrainer())return isClosed?`<div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.4);border-radius:10px;padding:10px;margin-bottom:12px;text-align:center;font-size:13px;color:var(--red);">🚫 Studio closed on this day${closed[_schedDate].reason?' — '+closed[_schedDate].reason:''}</div>`:'';
-      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:${isClosed?'rgba(248,113,113,0.12)':'var(--surface2)'};border:1px solid ${isClosed?'rgba(248,113,113,0.4)':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-        <div style="font-size:13px;color:${isClosed?'var(--red)':'var(--text2)'};">${isClosed?'🚫 Studio CLOSED this day'+(closed[_schedDate].reason?' — '+closed[_schedDate].reason:''):'Studio open on this day'}</div>
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:${isClosed?'rgba(150,150,150,0.08)':'var(--surface2)'};border:1px solid ${isClosed?'rgba(150,150,150,0.25)':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:13px;color:${isClosed?'var(--text3)':'var(--text2)'};">${isClosed?'🔒 Studio closed this day'+(closed[_schedDate].reason?' — '+closed[_schedDate].reason:''):'Studio open on this day'}</div>
         <button onclick="toggleClosedDay()" style="background:${isClosed?'var(--green)':'var(--surface3)'};border:1px solid ${isClosed?'var(--green)':'var(--border2)'};border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;color:${isClosed?'#1a1a2e':'var(--text2)'};font-family:'Jost',sans-serif;white-space:nowrap;">${isClosed?'Re-open day':'🚫 Mark closed'}</button>
       </div>`;
     })()}`;
@@ -2806,7 +2828,7 @@ function renderSchedule(){
             <div style="font-size:8px;color:var(--text3);">${bk.attended?'tap=remove':'tap=present'}</div>
           </div>`;
         } else {
-          html+=`<div title="${dayClosed?'🚫 Studio closed'+(_dayClosedReason?' — '+_dayClosedReason.replace(/"/g,'')+'. Tap for options.':'. Tap for options.'):'Tap to book this slot'}" style="flex:1;min-width:80px;background:${dayClosed?'rgba(248,113,113,0.10)':'var(--surface2)'};border:1px dashed ${dayClosed?'rgba(248,113,113,0.45)':'var(--border)'};border-radius:${RSEM};padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="openBookingModal(${slotIdx})">
+          html+=`<div title="${dayClosed?'🚫 Studio closed'+(_dayClosedReason?' — '+_dayClosedReason.replace(/"/g,'')+'. Tap for options.':'. Tap for options.'):'Tap to book this slot'}" style="flex:1;min-width:80px;background:${dayClosed?'rgba(150,150,150,0.07)':'var(--surface2)'};border:1px dashed ${dayClosed?'rgba(150,150,150,0.25)':'var(--border)'};border-radius:${RSEM};padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="openBookingModal(${slotIdx})">
             <span style="font-size:18px;color:${dayClosed?'rgba(248,113,113,0.7)':'var(--border2)'};">${dayClosed?'🚫':'+'}</span>
           </div>`;
         }
@@ -3004,6 +3026,58 @@ function openWA(cid){
   document.getElementById('wa-msg').value=msg;
   openM('m-whatsapp');
 }
+function openFollowUp(cid){
+  const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
+  document.getElementById('fu-cid').value=cid;
+  document.getElementById('fu-name').textContent=(c.fname||'')+' '+(c.lname||'');
+  document.getElementById('fu-note').value='';
+  const d=new Date();d.setDate(d.getDate()+3);
+  document.getElementById('fu-remind').value=d.toISOString().slice(0,10);
+  _renderFuHistory(cid);openM('m-followup');
+}
+function _renderFuHistory(cid){
+  const all=ld('pp_followups',[]).filter(x=>x.cid===cid).sort((a,b)=>b.loggedAt.localeCompare(a.loggedAt));
+  const box=document.getElementById('fu-history');if(!box)return;
+  if(!all.length){box.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px;">No follow-ups logged yet</div>';return;}
+  box.innerHTML=all.map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:4px 10px;margin-bottom:8px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="display:flex;justify-content:space-between;">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+(f.done?'':'<button onclick="markFollowUpDone(\''+f.id+'\');" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;">✓</button>')+'</div>'+'<div style="display:flex;justify-content:space-between;"><div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · by '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div>'+(f.done?'':'<span style="display:flex;gap:12px;"><button onclick="editFollowUp(\''+f.id+'\')" style="background:none;border:none;font-size:12px;cursor:pointer;padding:2px 4px;">✏️</button><button onclick="deleteFollowUp(\''+f.id+'\')" style="background:none;border:none;font-size:12px;cursor:pointer;color:var(--red);padding:2px 4px;">🗑</button></span>')+'</div></div>').join('');
+}
+function editFollowUp(id){
+  const all=ld('pp_followups',[]);const f=all.find(x=>x.id===id);if(!f)return;
+  document.getElementById('fu-note').value=f.note||'';
+  document.getElementById('fu-remind').value=f.remindDate||'';
+  const eid=document.getElementById('fu-edit-id');if(eid)eid.value=id;
+  toast('Editing — save when done');
+}
+function deleteFollowUp(id){
+  themedConfirm('Delete this follow-up note?',()=>{
+    sv('pp_followups',ld('pp_followups',[]).filter(x=>x.id!==id));
+    _renderFuHistory(document.getElementById('fu-cid').value);
+    toast('Deleted');try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
+  });
+}
+function markFollowUpDone(id){
+  const all=ld('pp_followups',[]);const f=all.find(x=>x.id===id);if(!f)return;
+  f.done=true;f.doneAt=new Date().toISOString().slice(0,10);sv('pp_followups',all);
+  _renderFuHistory(document.getElementById('fu-cid').value);
+  toast('✓ Follow-up marked done');try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
+}
+function saveFollowUp(){
+  const cid=document.getElementById('fu-cid').value;
+  const note=document.getElementById('fu-note').value.trim();
+  const remind=document.getElementById('fu-remind').value;
+  const eid=document.getElementById('fu-edit-id');const editId=eid?eid.value:'';
+  if(!note){toast('Please add a note');return;}
+  const all=ld('pp_followups',[]);
+  if(editId){
+    const f=all.find(x=>x.id===editId);if(f){f.note=note;f.remindDate=remind;}
+    if(eid)eid.value='';toast('Follow-up updated');
+  }else{
+    all.unshift({id:Date.now()+'',cid,note,remindDate:remind,by:(PPS&&PPS.name?PPS.name:'Admin'),loggedAt:new Date().toISOString().slice(0,10)});
+    toast('📞 Follow-up saved');
+  }
+  sv('pp_followups',all);_renderFuHistory(cid);document.getElementById('fu-note').value='';
+  try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
+}
 function applyWATemplate(){
   const t=document.getElementById('wa-template').value;
   if(!t)return;
@@ -3112,8 +3186,8 @@ function _updateFloatingNav(n){
   if(!scoped.includes(n)){box.classList.remove('show');box.innerHTML='';boxR.classList.remove('show');boxR.innerHTML='';return;}
   /* Left side: scroll up/down */
   const scrollTarget=box;
-  scrollTarget.innerHTML=`<button class="float-nav-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">▲</button>
-      <button class="float-nav-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
+  scrollTarget.innerHTML=`<button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll to top">▲</button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
   scrollTarget.classList.add('show');
   /* Schedule: floating ◀ ▶ opposite the ▲▼ pair (user direction) */
   if(n==='schedule'){
@@ -3620,7 +3694,7 @@ const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function renderCredits(){
   document.getElementById('credits-content').innerHTML=`
     <div id="admin-tools-slot"></div>
-    <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+    <div style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
       <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">💾 Data Backup</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5;">Export saves all data. Import restores on any device.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -3628,25 +3702,25 @@ function renderCredits(){
         <label style="background:linear-gradient(135deg,var(--purple),#6a5a7f);color:white;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;text-align:center;display:block;">⬆️ Import<input type="file" accept=".json" onchange="importPPData(this)" style="display:none;"/></label>
       </div>
     </div>
-    <div style="margin:0 16px 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+    <div style="margin:0 16px 10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
         <button onclick="sendFeedback()" style="width:100%;background:#25D366;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;color:white;">💬 Feedback via WhatsApp</button>
     </div>
-    <div style="margin:0 16px 14px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+    <div style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
       <div style="width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
       <div style="font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
       <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 4px;">Studio Admin</div>
       <div style="font-size:13px;color:var(--text2);letter-spacing:1px;margin-bottom:12px;">${typeof _appVer==='function'?_appVer():''}</div>
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Built with</div>
-      <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;">
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#d4a574;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#2d1810;">C</div><div style="font-size:12px;font-weight:500;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div>
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#ff9100;display:flex;align-items:center;justify-content:center;font-size:18px;">🔥</div><div style="font-size:12px;font-weight:500;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">Google</div></div>
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#f48120;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;">CF</div><div style="font-size:12px;font-weight:500;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div>
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#24292e;display:flex;align-items:center;justify-content:center;font-size:18px;">🐙</div><div style="font-size:12px;font-weight:500;color:var(--text);">GitHub</div><div style="font-size:9px;color:var(--text3);">Source</div></div>
-        <div style="text-align:center;"><div style="width:36px;height:36px;margin:0 auto 4px;border-radius:50%;background:#4285f4;display:flex;align-items:center;justify-content:center;font-size:18px;">✨</div><div style="font-size:12px;font-weight:500;color:var(--text);">Gemini</div><div style="font-size:9px;color:var(--text3);">Google</div></div>
+      <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:linear-gradient(135deg,#b5673e,#d4956a);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;font-family:'Playfair Display',serif;">C</div><div style="font-size:11px;font-weight:600;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div>
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:linear-gradient(135deg,#ffa000,#ff6f00);display:flex;align-items:center;justify-content:center;font-size:22px;">🔥</div><div style="font-size:11px;font-weight:600;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">Google</div></div>
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#f6821f;display:flex;align-items:center;justify-content:center;font-size:22px;">☁️</div><div style="font-size:11px;font-weight:600;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div>
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#24292e;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div><div style="font-size:11px;font-weight:600;color:var(--text);">GitHub</div><div style="font-size:9px;color:var(--text3);">Source</div></div>
+        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#f7df1e;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#323330;">JS</div><div style="font-size:11px;font-weight:600;color:var(--text);">JavaScript</div><div style="font-size:9px;color:var(--text3);">HTML · CSS</div></div>
       </div>
       <div style="font-size:11px;color:var(--text3);">Designed together with its user</div>
     </div>
-    <div style="margin:0 16px 14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+    <div style="margin:0 16px 10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🔒 Fingerprint / Face Unlock (this device)</div>
       <div id="bio-about-area"></div>
     </div>
@@ -4541,7 +4615,7 @@ function closeCashEntry(){
     setTimeout(()=>openUnified(cid),150);
   }
 }
-function openCashEntry(id,prefillCid){
+function openCashEntry(id,prefillCid,preType){
   document.getElementById('cash-modal-title').textContent=id?'Edit Entry':'New Entry';
   document.getElementById('ce-id').value=id||'';
   const clients=ld('pp_clients',[]);
@@ -4768,15 +4842,27 @@ function renderCash(){
   const allIn=cash.filter(e=>e.type==='in').reduce((s,e)=>s+e.amt,0);
   const allOut=cash.filter(e=>e.type==='out').reduce((s,e)=>s+e.amt,0);
   document.getElementById('cash-summary').innerHTML=`
-    <div class="card card-gold" style="width:fit-content;min-width:270px;margin:0 auto 10px;padding-left:22px;padding-right:22px;text-align:center;">
-      <div style="font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Overall Balance</div>
-      <div style="font-family:'Playfair Display',serif;font-size:32px;color:var(--gold);margin-bottom:10px;">₹${(allIn-allOut).toLocaleString('en-IN')}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:13px;text-align:center;">
-        <div><div style="color:var(--green);font-weight:700;">₹${totalIn.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Credits</div></div>
-        <div><div style="color:var(--red);font-weight:700;">₹${totalOut.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Debits</div></div>
-        <div><div style="color:var(--gold);font-weight:700;">₹${(totalIn-totalOut).toLocaleString('en-IN')}</div><div style="color:var(--text2);">Net Flow</div></div>
+    <div style="display:grid;grid-template-columns:72px 1fr 72px;gap:5px;align-items:stretch;margin-bottom:6px;">
+      <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
+        <button onclick="openStatement()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;">STATEMENT</button>
+        <button onclick="openDaybook()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">DAY BOOK</button>
+        <button onclick="_cashFilter='all';renderCash();" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">ALL</button>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;">Cash movement this month — not profit. See 📊 Business Reports for P&amp;L</div>
+      <div class="card card-gold" style="padding:8px 10px;text-align:center;min-width:0;overflow:hidden;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">Overall Balance</div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--gold);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">&#8377;${(allIn-allOut).toLocaleString('en-IN')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px;text-align:center;">
+          <div><div style="color:var(--green);font-weight:700;font-size:11px;">&#8377;${totalIn.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Credits</div></div>
+          <div><div style="color:var(--red);font-weight:700;font-size:11px;">&#8377;${totalOut.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Debits</div></div>
+          <div><div style="color:var(--gold);font-weight:700;font-size:11px;">&#8377;${(totalIn-totalOut).toLocaleString('en-IN')}</div><div style="color:var(--text2);">Net Flow</div></div>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-top:3px;">Cash movement · not profit</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
+        <button onclick="_cashFilter='in';renderCash();" style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--green);cursor:pointer;">CREDIT</button>
+        <button onclick="_cashFilter='out';renderCash();" style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--red);cursor:pointer;">DEBIT</button>
+        <button onclick="_cashFilter='contra';renderCash();" style="background:rgba(155,138,175,0.12);border:1px solid rgba(155,138,175,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--purple);cursor:pointer;">CONTRA</button>
+      </div>
     </div>`;
   // populate category filter dropdown (once per render, preserving selection)
   const catSel=document.getElementById('cash-catfilter');
@@ -4890,20 +4976,21 @@ function printDaybook(){
     const cr=e.type==='in'?e.amt:0, dr=e.type==='out'?e.amt:0;
     tIn+=cr;tOut+=dr;if(e.type==='contra')tCon+=e.amt;
     const mode=e.type==='contra'?((e.mode||'')+' → '+(e.mode2||'')):(e.mode||'');
+    const _due=c?(getClientTotalCharged(c.id)-getClientTotalPaid(c.id)):0;
+    const _settledTxt=c?(_due===0?'✓ settled':_due>0?'₹'+_due.toLocaleString('en-IN')+' due':'₹'+Math.abs(_due).toLocaleString('en-IN')+' advance'):'';
+    const _settledCol=_due>0?'#b00':_due<0?'#137333':'#137333';
     return `<tr>
       <td>${fmt(e.date)}</td>
-      <td>${_esc(e.cat||'—')}</td>
-      <td>${_esc(e.desc||'')}${c?'<br><span style="color:#888;font-size:9px;">'+_esc((c.memNo||'')+' '+c.fname+' '+(c.lname||''))+'</span>':''}</td>
-      <td>${_esc(mode)}</td>
-      <td style="text-align:right;color:#137333;">${cr?'₹'+cr.toLocaleString('en-IN'):''}</td>
-      <td style="text-align:right;color:#a50e0e;">${dr?'₹'+dr.toLocaleString('en-IN'):''}</td>
+      <td style="font-size:11px;">${c?'<b>'+_esc(c.memNo||'')+' '+_esc(c.fname+' '+(c.lname||''))+'</b><br><span style="color:#555;font-size:9px;">'+_esc(e.desc||e.cat||'')+'</span>':'<b style="color:#333;font-size:12px;">'+_esc(e.cat||'—')+'</b>'+(e.desc&&e.desc!==e.cat?'<br><span style="color:#555;font-size:9px;">'+_esc(e.desc)+'</span>':'')}${'<br><span style="color:#888;font-size:9px;">'+_esc(mode)+'</span>'}${c?'<br><span style="color:'+_settledCol+';font-size:9px;">'+_settledTxt+'</span>':''}</td>
+      <td style="text-align:right;color:#137333;font-weight:700;">${cr?'<span style="font-size:9px;font-weight:800;">Cr</span> ₹'+cr.toLocaleString('en-IN'):''}</td>
+      <td style="text-align:right;color:#a50e0e;font-weight:700;">${dr?'<span style="font-size:9px;font-weight:800;">Dr</span> ₹'+dr.toLocaleString('en-IN'):''}</td>
     </tr>`;
   }).join('');
   const period=(from?fmt(from):'start')+' to '+(to?fmt(to):'today');
   const html=`<table>
-    <tr><th>Date</th><th>Category</th><th>Particulars</th><th>Mode</th><th style="text-align:right;">Credit (₹)</th><th style="text-align:right;">Debit (₹)</th></tr>
+    <tr><th>Date</th><th>Particulars</th><th style="text-align:right;">Credit (₹)</th><th style="text-align:right;">Debit (₹)</th></tr>
     ${body}
-    <tr class="pr-tot"><td colspan="4" style="text-align:right;">TOTALS</td><td style="text-align:right;color:#137333;">₹${tIn.toLocaleString('en-IN')}</td><td style="text-align:right;color:#a50e0e;">₹${tOut.toLocaleString('en-IN')}</td></tr>
+    <tr class="pr-tot"><td colspan="2" style="text-align:right;">TOTALS</td><td style="text-align:right;color:#137333;">₹${tIn.toLocaleString('en-IN')}</td><td style="text-align:right;color:#a50e0e;">₹${tOut.toLocaleString('en-IN')}</td></tr>
     <tr class="pr-net"><td colspan="4" style="text-align:right;">NET (Credit − Debit)</td><td colspan="2" style="text-align:right;">₹${(tIn-tOut).toLocaleString('en-IN')}</td></tr>
   </table>
   ${tCon?`<div class="pr-note">Note: ₹${tCon.toLocaleString('en-IN')} in Contra (internal transfer) entries are shown in the list but excluded from Credit/Debit totals as they are not income or expense.</div>`:''}
@@ -7629,7 +7716,12 @@ function genStatement(){
   }
   const sel=_modesForAccount(_stmtSel); /* the real mode strings belonging to this account */
   const clients=ld('pp_clients',[]);
-  const cname=cid=>{const c=clients.find(x=>x.id===cid);return c?((c.memNo?c.memNo+' — ':'')+c.fname+' '+(c.lname||'')).trim():'';};
+  const cname=cid=>{
+    const c=clients.find(x=>x.id===cid);if(!c)return '';
+    const _due=getClientTotalCharged(cid)-getClientTotalPaid(cid);
+    const _s=_due===0?'\u2713 settled':_due>0?'\u20b9'+_due.toLocaleString('en-IN')+' due':'\u20b9'+Math.abs(_due).toLocaleString('en-IN')+' advance';
+    return (c.memNo||'')+' '+c.fname+' '+(c.lname||'')+'<br><span style="font-size:9px;color:'+(_due>0?'#b00':'#2e7d32')+';">'+_s+'</span>';
+  };
   /* opening balance: all entries for this account strictly before "from" */
   let opening=0;
   const all=_allCashEntries();
@@ -7658,7 +7750,7 @@ function genStatement(){
   let totIn=0,totOut=0;
   const body=rows.map(r=>{
     bal+=r.in-r.out;totIn+=r.in;totOut+=r.out;
-    return `<tr><td>${fmt(r.date)}</td><td>${r.desc}${r.who?'<br><span style="font-size:11px;color:#777;">'+r.who+'</span>':''}</td><td style="text-align:right;color:#2e7d32;">${r.in?'₹'+r.in.toLocaleString('en-IN'):''}</td><td style="text-align:right;color:#b00;">${r.out?'₹'+r.out.toLocaleString('en-IN'):''}</td><td style="text-align:right;font-weight:700;">₹${bal.toLocaleString('en-IN')}</td></tr>`;
+    return `<tr><td style="white-space:nowrap;padding:5px 7px;">${fmt(r.date)}</td><td style="padding:5px 7px;">${r.who?'<b>'+r.who+'</b><br>':''}<span style="color:#555;font-size:11px;">${r.desc}</span></td><td style="text-align:right;color:#2e7d32;font-weight:700;padding:5px 7px;">${r.in?'<small>Cr</small> \u20b9'+r.in.toLocaleString('en-IN'):''}</td><td style="text-align:right;color:#b00;font-weight:700;padding:5px 7px;">${r.out?'<small>Dr</small> \u20b9'+r.out.toLocaleString('en-IN'):''}</td><td style="text-align:right;font-weight:700;padding:5px 7px;">\u20b9${bal.toLocaleString('en-IN')}</td></tr>`;
   }).join('');
   const acctLabel=_stmtSel==='cash'?'Cash':'Bank (UPI/Card/Transfer/PhonePe)';
   const html=`<div style="background:#fff;color:#111;border-radius:10px;padding:16px;font-family:'Jost',Arial,sans-serif;" id="stmt-print-body">
@@ -8024,7 +8116,7 @@ function openUnified(cid,focusSection){
   const clients=ld('pp_clients',[]);
   const c=clients.find(x=>x.id===cid);
   if(!c){toast('Client not found');return;}
-  _ufReturnTab=document.querySelector('.tab.active')?.id||'tab-clients';
+  _ufReturnTab='tab-'+(_activeTab||'clients');
   /* Header — also wrapped now. These were unguarded even after the fix
      to the three section-populate calls below; any ONE of these four
      lines throwing (for any reason) would have stopped execution before
@@ -8073,6 +8165,15 @@ function openUnified(cid,focusSection){
      looking at an already-inactive client, even though tapping it
      correctly offered to reactivate her. Fixed so it's never ambiguous
      about what the button will actually do. */
+  /* follow-up log in unified form */
+  (function(){
+    const _fuAll=ld('pp_followups',[]).filter(x=>x.cid===cid).sort((a,b)=>b.loggedAt.localeCompare(a.loggedAt));
+    const _fuSumEl=document.getElementById('uf-followup-summary');
+    if(_fuSumEl)_fuSumEl.textContent=_fuAll.length?_fuAll.length+' note'+(_fuAll.length>1?'s':''):'';
+    const _fuBox=document.getElementById('uf-fu-history');
+    if(_fuBox){if(!_fuAll.length)_fuBox.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px;">No follow-ups yet</div>';
+    else _fuBox.innerHTML=_fuAll.slice(0,5).map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:3px 10px;margin-bottom:7px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+'<div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');}
+  })();
   const _deactBtn=document.getElementById('uf-deactivate-btn');
   if(_deactBtn){
     if(c.archived){
@@ -8130,7 +8231,7 @@ function closeUnified(fromPop){
   }
   /* All collapsed → close the form */
   closeM('m-unified',fromPop);
-  if(_ufReturnTab)showTab(_ufReturnTab.replace('tab-',''));
+  if(_ufReturnTab){const _rt=_ufReturnTab.replace('tab-','');_ufReturnTab='';(typeof _origShowTab==='function'?_origShowTab:showTab)(_rt);}
 }
 /* ===== CENTRAL NAVIGATION (balanced history) =====
    THE OLD BUG: only the unified form pushed a history entry, but Back
@@ -8146,6 +8247,7 @@ function _navConsume(tag){
      entry is ours for this layer, swallow it so Back stays in sync */
   if(history.state&&history.state.pdl===tag){window._navSkip++;try{history.back();}catch(_e){window._navSkip--;}}
 }
+window.addEventListener('keydown',function(e){if(e.key==='Escape'){e.preventDefault();try{history.back();}catch(_x){}}});
 window.addEventListener('popstate',function(){
   if(window._navSkip>0){window._navSkip--;return;} /* our own cleanup, not a user Back */
   const _openModal=document.querySelector('.mo.open');
@@ -8175,6 +8277,8 @@ closeM=function(id,fromPop){
 window._tabBackStack=[];
 const _origShowTab=showTab;
 showTab=function(n){
+  const _fab=document.getElementById('cash-fab');
+  if(_fab)_fab.style.display=(n==='cash')?'flex':'none';
   const _from=_activeTab;
   if(_from&&_from!==n){
     window._tabBackStack.push(_from);
@@ -9524,6 +9628,17 @@ function ufSavePayment(){
       </div>
     </div>
 
+    <div class="uf-section" id="uf-sec-followup">
+      <div class="uf-sec-hdr" style="background:rgba(201,168,76,0.1);border-left:3px solid var(--gold);" onclick="ufToggle('followup')">
+        <span>📞 Follow-up log</span>
+        <span id="uf-followup-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
+        <span id="uf-followup-arrow" style="font-size:12px;margin-left:auto;">▶</span>
+      </div>
+      <div class="uf-sec-body" id="uf-body-followup" style="display:none;padding:10px 12px;">
+        <div id="uf-fu-history" style="margin-bottom:10px;"></div>
+        <button onclick="openFollowUp(document.getElementById('uf-cid').value)" class="sb2" style="width:100%;padding:8px;font-size:13px;">+ Add follow-up</button>
+      </div>
+    </div>
     <!-- WhatsApp + Complimentary -->
     <div id="uf-chips-row" style="display:flex;gap:8px;margin:10px 0;">
       <button onclick="const _cid=document.getElementById('uf-cid').value;closeM('m-unified');setTimeout(()=>openWA(_cid),200)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
@@ -9543,6 +9658,26 @@ function ufSavePayment(){
   </div>
 </div>
 
+<div class="mo" id="m-followup" style="z-index:270;">
+  <div class="md" style="max-width:440px;">
+    <button class="mc2" onclick="closeM('m-followup')">✕</button>
+    <h2 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--gold);margin:0 0 4px;">📞 Follow-up</h2>
+    <div id="fu-name" style="font-size:13px;color:var(--text2);margin-bottom:14px;"></div>
+    <input type="hidden" id="fu-cid"/><input type="hidden" id="fu-edit-id"/>
+    <div class="fg"><label class="fl">Note</label>
+      <textarea id="fu-note" class="fi" style="height:64px;resize:none;" placeholder="e.g. Interested, will join after Diwali"></textarea>
+    </div>
+    <div class="fg" style="margin-top:8px;"><label class="fl">Remind me on</label>
+      <input type="date" id="fu-remind" class="fi"/>
+    </div>
+    <div style="display:flex;gap:8px;margin:10px 0 16px;">
+      <button onclick="closeM('m-followup')" style="flex:1;padding:9px;background:none;border:1px solid var(--border2);color:var(--text2);border-radius:var(--rsm);font-family:'Jost',sans-serif;cursor:pointer;">Cancel</button>
+      <button onclick="saveFollowUp()" class="sb2" style="flex:2;padding:9px;">Save follow-up</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">History</div>
+    <div id="fu-history" style="max-height:200px;overflow-y:auto;"></div>
+  </div>
+</div>
 <script>
 /* ===== DIAGNOSTIC PANEL — tap version number 5 times to open ===== */
 (function(){
