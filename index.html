@@ -160,7 +160,7 @@ input,select,textarea{color:var(--gold);}
 #m-unified .fr{gap:8px;}
 #m-unified .fr .fg{flex:1;min-width:0;}
 .fab{position:fixed;bottom:76px;right:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(201,168,76,0.4);z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
-.float-nav{position:fixed;left:16px;bottom:84px;display:none;flex-direction:column;gap:8px;z-index:85;}
+.float-nav{position:fixed;left:16px;bottom:150px;display:none;flex-direction:column;gap:8px;z-index:85;}
 .float-nav.float-nav-right{left:auto;right:16px;}
 .float-nav.show{display:flex;}
 .float-nav-row{display:flex;gap:8px;}
@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143a</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143c</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2679,15 +2679,25 @@ const RSEM='10px';
    rather than passed through the card's onclick string, to avoid fighting
    apostrophe-escaping across three nested layers of quotes. */
 function _goBookSlot(cid){
-  const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
-  window._schedPrefillCid=cid;
-  _schedDate=td();
-  showTab('schedule');
-  setTimeout(()=>{
-    const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
-    renderSchedule();
-    toast('📅 Tap any empty slot to book for '+c.fname);
-  },80);
+  try{
+    toast('📅 opening…'); /* IMMEDIATE visible proof the tap registered */
+    const c=ld('pp_clients',[]).find(x=>x.id===cid);
+    if(!c){toast('⚠️ Client not found ('+cid+')');return;}
+    window._schedPrefillCid=cid;
+    _schedDate=td();
+    showTab('schedule');
+    setTimeout(()=>{
+      try{
+        const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
+        renderSchedule();
+        toast('📅 Tap any empty slot to book for '+c.fname);
+      }catch(_e2){
+        showConfirm('⚠️ Booking error (step 2)','',String(_e2&&_e2.message||_e2),[{label:'OK',color:'var(--gold)',action:null}]);
+      }
+    },80);
+  }catch(_e){
+    showConfirm('⚠️ Booking error (step 1)','',String(_e&&_e.message||_e),[{label:'OK',color:'var(--gold)',action:null}]);
+  }
 }
 function pickSchedDate(val){
   if(!val)return;
