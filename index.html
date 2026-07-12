@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142l</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142m</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1370,6 +1370,8 @@ const SLOTS=['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','4:00 PM','5:00
 const MACHINES=5;
 const COLORS=['#c9a84c','#e8547a','#4ecdc4','#9b72cf','#4ade80','#fb923c','#60a5fa','#f472b6'];
 
+let _refreshTimer=null;
+function _debouncedRefresh(){clearTimeout(_refreshTimer);_refreshTimer=setTimeout(()=>{try{if(typeof renderDash==='function'&&_activeTab==='dashboard')renderDash();}catch(_e){}try{if(typeof renderClients==='function'&&_activeTab==='clients')renderClients();}catch(_e){}},300);}
 function sv(k,v){
   localStorage.setItem(k,JSON.stringify(v));
   if(typeof _pSync!=='undefined'&&_pSync&&typeof _pdb!=='undefined'&&typeof _pSyncable!=='undefined'&&_pSyncable(k)){
@@ -3030,7 +3032,13 @@ function _renderFuHistory(cid){
   const all=ld('pp_followups',[]).filter(x=>x.cid===cid).sort((a,b)=>b.loggedAt.localeCompare(a.loggedAt));
   const box=document.getElementById('fu-history');if(!box)return;
   if(!all.length){box.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px;">No follow-ups logged yet</div>';return;}
-  box.innerHTML=all.map(f=>'<div style="border-left:2px solid var(--gold);padding:4px 10px;margin-bottom:8px;"><div style="font-size:12px;color:var(--text);">'+_esc(f.note||'—')+'</div><div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · by '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');
+  box.innerHTML=all.map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:4px 10px;margin-bottom:8px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="display:flex;justify-content:space-between;">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+(f.done?'':'<button onclick="markFollowUpDone(\''+f.id+'\');" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;">✓</button>')+'</div>'+'<div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · by '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');
+}
+function markFollowUpDone(id){
+  const all=ld('pp_followups',[]);const f=all.find(x=>x.id===id);if(!f)return;
+  f.done=true;f.doneAt=new Date().toISOString().slice(0,10);sv('pp_followups',all);
+  _renderFuHistory(document.getElementById('fu-cid').value);
+  toast('✓ Follow-up marked done');try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
 }
 function saveFollowUp(){
   const cid=document.getElementById('fu-cid').value;
@@ -8119,7 +8127,7 @@ function openUnified(cid,focusSection){
     if(_fuSumEl)_fuSumEl.textContent=_fuAll.length?_fuAll.length+' note'+(_fuAll.length>1?'s':''):'';
     const _fuBox=document.getElementById('uf-fu-history');
     if(_fuBox){if(!_fuAll.length)_fuBox.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px;">No follow-ups yet</div>';
-    else _fuBox.innerHTML=_fuAll.slice(0,5).map(f=>'<div style="border-left:2px solid var(--gold);padding:3px 10px;margin-bottom:7px;"><div style="font-size:12px;color:var(--text);">'+_esc(f.note||'—')+'</div><div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');}
+    else _fuBox.innerHTML=_fuAll.slice(0,5).map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:3px 10px;margin-bottom:7px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+'<div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');}
   })();
   const _deactBtn=document.getElementById('uf-deactivate-btn');
   if(_deactBtn){
