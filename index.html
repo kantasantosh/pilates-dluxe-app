@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142m</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142q</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -775,30 +775,20 @@ try{
 
 <!-- CASH BOOK -->
 <div class="tab" id="tab-cash">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 14px 6px;">
-    <div style="font-size:14px;font-weight:700;color:var(--text);">Cash Book</div>
-    <div style="display:flex;gap:6px;">
-      <button class="btn btn-gold btn-sm" onclick="openCashEntry()" style="padding:4px 10px;">+ New</button>
-      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 10px;" onclick="openDaybook()">📒 Daybook</button>
-    </div>
-  </div>
+  <!-- Balance card + left/right chips — no header row, no filter row -->
   <div id="cash-summary"></div>
-  <!-- #5 sticky: from the 4 filter chips down to the search row -->
+  <!-- Sticky: search + category only -->
   <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding-bottom:4px;">
-  <div style="display:flex;gap:4px;margin-bottom:8px;">
-    <button class="ftab active" onclick="setCashFilter('all',this)" style="flex:1;text-align:center;">All</button>
-    <button class="ftab" onclick="setCashFilter('in',this)" style="flex:1;text-align:center;">💚 Credits</button>
-    <button class="ftab" onclick="setCashFilter('out',this)" style="flex:1;text-align:center;">🔴 Debits</button>
-    <button class="ftab" onclick="setCashFilter('contra',this)" style="flex:1;text-align:center;">🔁 Contra</button>
-  </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
-    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries (name, note, amount, mode)…" style="flex:2;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
-    <select id="cash-catfilter" onchange="renderCash()" style="flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries…" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
+    <select id="cash-catfilter" onchange="renderCash()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">All categories</option>
     </select>
   </div>
   </div>
   <div id="cash-list"></div>
+  <!-- Floating + button (shown only on cash tab) -->
+  <button onclick="openCashEntry()" id="cash-fab" style="position:fixed;bottom:80px;right:16px;width:46px;height:46px;border-radius:50%;background:var(--gold);border:none;color:#1a1a2e;font-size:24px;font-weight:300;cursor:pointer;z-index:50;box-shadow:0 3px 12px rgba(201,168,76,0.4);display:none;align-items:center;justify-content:center;">+</button>
 </div>
 <!-- Themed Confirm Modal -->
 <div class="mo" id="m-confirm" style="align-items:center;z-index:400;">
@@ -1371,6 +1361,7 @@ const MACHINES=5;
 const COLORS=['#c9a84c','#e8547a','#4ecdc4','#9b72cf','#4ade80','#fb923c','#60a5fa','#f472b6'];
 
 let _refreshTimer=null;
+function _inactiveBadge(c){return c.archived?"<span class='badge' style='background:rgba(120,120,120,0.15);color:#999;border:1px solid rgba(120,120,120,0.3);font-size:10px;'>Inactive</span>":"";}
 function _debouncedRefresh(){clearTimeout(_refreshTimer);_refreshTimer=setTimeout(()=>{try{if(typeof renderDash==='function'&&_activeTab==='dashboard')renderDash();}catch(_e){}try{if(typeof renderClients==='function'&&_activeTab==='clients')renderClients();}catch(_e){}},300);}
 function sv(k,v){
   localStorage.setItem(k,JSON.stringify(v));
@@ -2056,7 +2047,7 @@ function renderClients(){
     const _tot=mem?((mem.sessions||0)+(mem.bonus||0)):0;
     const _left=mem?getSessionsLeft(mem,c.id):0;
     const _pct=(_tot>0&&!_unltd)?Math.max(0,Math.min(100,Math.round(_left/_tot*100))):0;
-    const _planLbl=(()=>{if(!plan)return '';const d=plan.days||0;const dur=d>0&&d%30===0?(d/30)+'M':d>0&&d%7===0?(d/7)+'W':d+'d';const ss=_unltd?'∞':_tot+'s';return dur+' × '+ss;})();
+    const _planLbl=(()=>{if(!plan)return '';const d=plan.days||0;const dur=d>0&&d%30===0?(d/30)+'M':d>0&&d%7===0?(d/7)+'W':d+'d';const _INF='<svg width="13" height="8" viewBox="0 0 13 8" style="vertical-align:-1px;fill:#c9a84c"><path d="M6.5 4C5.8 2.8 4.7 2 3.5 2 1.6 2 0 3.1 0 4s1.6 2 3.5 2C4.7 6 5.8 5.2 6.5 4zM6.5 4C7.2 5.2 8.3 6 9.5 6 11.4 6 13 4.9 13 4s-1.6-2-3.5-2C8.3 2 7.2 2.8 6.5 4z"/></svg>';const ss=_unltd?_INF:_tot+'s';return dur+' × '+ss;})();
     const _due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
     const _av=c.photo?`<img src="${c.photo}" class="client-avatar" style="width:42px;height:42px;"/>`:`<div class="client-avatar" style="width:42px;height:42px;font-size:16px;background:${colorFor(c.fname+(c.lname||''))};">${initials(c.fname+' '+(c.lname||''))}</div>`;
     return `<div class="client-card" onclick="openUnified('${c.id}')" style="padding:11px 12px;display:block;">
@@ -2068,7 +2059,7 @@ function renderClients(){
         <span style="font-size:11px;color:var(--gold);letter-spacing:0.5px;flex-shrink:0;margin-left:6px;">${!c.isTrial&&c.trialDate?'<span title="Came via trial" style="font-size:10px;">🎯</span> ':''}#${c.memNo||''}</span>
       </div>
       <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text2);margin-top:3px;">
-        <a href="tel:${c.phone}" onclick="event.stopPropagation()" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;">📱 ${_fmtPhone(c.phone)}</a>
+        <a href="tel:${c.phone}" onclick="event.stopPropagation()" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg> ${_fmtPhone(c.phone)}</a>
         ${_isTr?'':(_planLbl?`<span style="color:var(--gold);white-space:nowrap;">Plan: ${_planLbl}</span>`:'')}
       </div>
       </div>
@@ -2078,15 +2069,19 @@ function renderClients(){
         <span style="font-size:11px;color:var(--gold);white-space:nowrap;">${_left} left / ${_tot}</span>
       </div>`:''}
       <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px;">
-        ${_isTr?'<span class="badge" style="background:rgba(127,119,221,0.14);color:#afa9ec;border:1px solid rgba(127,119,221,0.4);font-size:10px;">🎯 Trial</span>':`<span class="badge ${badgeMap[st]||'badge-pending'}" style="font-size:10px;">${labelMap[st]||'No Plan'}</span>`}${!_isTr&&c.trialDate?'<span class="badge" style="background:rgba(201,168,76,0.12);color:var(--gold);border:1px solid rgba(201,168,76,0.4);font-size:10px;">✓ Converted</span>':''}
+        ${_isTr?'<span class="badge" style="background:rgba(127,119,221,0.14);color:#afa9ec;border:1px solid rgba(127,119,221,0.4);font-size:10px;">🎯 Trial</span>':''}
+        ${!_isTr&&c.trialDate?'<span class="badge" style="background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.4);font-size:10px;">✓ Converted</span>':''}
+        ${st==='expiring'&&!_isTr?'<span class="badge badge-active" style="font-size:10px;">Active</span>':''}
+        ${!_isTr&&st?'<span class="badge '+(badgeMap[st]||'badge-pending')+'" style="font-size:10px;">'+(labelMap[st]||'No Plan')+'</span>':''}
         ${mem&&mem.status==='frozen'?'<span class="badge" style="background:rgba(52,152,219,0.15);color:#3498db;border:1px solid rgba(52,152,219,0.4);font-size:10px;">🏖 On Leave</span>':''}
-        ${!_isTr&&_unltd?'<span style="font-size:11px;color:var(--teal);">∞ Unlimited</span>':''}
+        ${!_isTr&&_unltd?'<span style="font-size:11px;color:var(--teal);"><svg width="13" height="8" viewBox="0 0 13 8" style="vertical-align:-1px;fill:#2ecc71"><path d="M6.5 4C5.8 2.8 4.7 2 3.5 2 1.6 2 0 3.1 0 4s1.6 2 3.5 2C4.7 6 5.8 5.2 6.5 4zM6.5 4C7.2 5.2 8.3 6 9.5 6 11.4 6 13 4.9 13 4s-1.6-2-3.5-2C8.3 2 7.2 2.8 6.5 4z"/></svg> Unlimited</span>':''}
         ${_due>0?'<span class="badge" style="background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);font-size:10px;font-weight:700;">₹ Due '+_due.toLocaleString('en-IN')+'</span>':''}
+        ${_inactiveBadge(c)}
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:7px;${(()=>{const _fus=ld('pp_followups',[]).filter(x=>x.cid===c.id&&x.remindDate&&!x.done).sort((a,b)=>a.remindDate.localeCompare(b.remindDate));if(!_fus.length)return '';const _nr=_fus[0];const _over=_nr.remindDate<td();return '<div style="font-size:10.5px;margin-bottom:4px;color:'+(_over?'#e74c3c':'var(--amber)')+';">'+ (_over?'⚠ Follow up overdue':'🕐 Follow up due')+' '+fmt(_nr.remindDate)+'</div>';})()}
       <div style="padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
-        ${_isTr?`<span>Trial on <span style="color:#afa9ec;">${c.trialDate?fmt(c.trialDate):'—'}</span></span><span style="color:var(--gold);cursor:pointer;" onclick="event.stopPropagation();openFollowUp('${c.id}')">📞 Follow up</span>`
-        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;"><span onclick="event.stopPropagation();_goBookSlot('${c.id}')" title="Book a slot" style="cursor:pointer;">📅</span><span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
+        ${_isTr?`<span style="flex:1;white-space:nowrap;">Trial <span style="color:#afa9ec;">${c.trialDate?(()=>{const _p=c.trialDate.split('-');return _p[2]+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+_p[1]-1];})():'—'}</span></span><span style="color:var(--gold);cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();openFollowUp('${c.id}')">📞 Follow up</span>`
+        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;">${(st!=="expired"&&!c.archived)?'<span onclick="event.stopPropagation();_goBookSlot(\'${c.id}\')" title="Book a slot" style="cursor:pointer;">📅</span>':''}<span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
       </div>
     </div>`;
   }).join('');
@@ -2778,8 +2773,8 @@ function renderSchedule(){
       const closed=ld('pp_closed_days',{});
       const isClosed=!!closed[_schedDate];
       if(ppIsTrainer&&ppIsTrainer())return isClosed?`<div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.4);border-radius:10px;padding:10px;margin-bottom:12px;text-align:center;font-size:13px;color:var(--red);">🚫 Studio closed on this day${closed[_schedDate].reason?' — '+closed[_schedDate].reason:''}</div>`:'';
-      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:${isClosed?'rgba(248,113,113,0.12)':'var(--surface2)'};border:1px solid ${isClosed?'rgba(248,113,113,0.4)':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-        <div style="font-size:13px;color:${isClosed?'var(--red)':'var(--text2)'};">${isClosed?'🚫 Studio CLOSED this day'+(closed[_schedDate].reason?' — '+closed[_schedDate].reason:''):'Studio open on this day'}</div>
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:${isClosed?'rgba(150,150,150,0.08)':'var(--surface2)'};border:1px solid ${isClosed?'rgba(150,150,150,0.25)':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:13px;color:${isClosed?'var(--text3)':'var(--text2)'};">${isClosed?'🔒 Studio closed this day'+(closed[_schedDate].reason?' — '+closed[_schedDate].reason:''):'Studio open on this day'}</div>
         <button onclick="toggleClosedDay()" style="background:${isClosed?'var(--green)':'var(--surface3)'};border:1px solid ${isClosed?'var(--green)':'var(--border2)'};border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;color:${isClosed?'#1a1a2e':'var(--text2)'};font-family:'Jost',sans-serif;white-space:nowrap;">${isClosed?'Re-open day':'🚫 Mark closed'}</button>
       </div>`;
     })()}`;
@@ -2821,7 +2816,7 @@ function renderSchedule(){
             <div style="font-size:8px;color:var(--text3);">${bk.attended?'tap=remove':'tap=present'}</div>
           </div>`;
         } else {
-          html+=`<div title="${dayClosed?'🚫 Studio closed'+(_dayClosedReason?' — '+_dayClosedReason.replace(/"/g,'')+'. Tap for options.':'. Tap for options.'):'Tap to book this slot'}" style="flex:1;min-width:80px;background:${dayClosed?'rgba(248,113,113,0.10)':'var(--surface2)'};border:1px dashed ${dayClosed?'rgba(248,113,113,0.45)':'var(--border)'};border-radius:${RSEM};padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="openBookingModal(${slotIdx})">
+          html+=`<div title="${dayClosed?'🚫 Studio closed'+(_dayClosedReason?' — '+_dayClosedReason.replace(/"/g,'')+'. Tap for options.':'. Tap for options.'):'Tap to book this slot'}" style="flex:1;min-width:80px;background:${dayClosed?'rgba(150,150,150,0.07)':'var(--surface2)'};border:1px dashed ${dayClosed?'rgba(150,150,150,0.25)':'var(--border)'};border-radius:${RSEM};padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="openBookingModal(${slotIdx})">
             <span style="font-size:18px;color:${dayClosed?'rgba(248,113,113,0.7)':'var(--border2)'};">${dayClosed?'🚫':'+'}</span>
           </div>`;
         }
@@ -3032,7 +3027,20 @@ function _renderFuHistory(cid){
   const all=ld('pp_followups',[]).filter(x=>x.cid===cid).sort((a,b)=>b.loggedAt.localeCompare(a.loggedAt));
   const box=document.getElementById('fu-history');if(!box)return;
   if(!all.length){box.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px;">No follow-ups logged yet</div>';return;}
-  box.innerHTML=all.map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:4px 10px;margin-bottom:8px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="display:flex;justify-content:space-between;">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+(f.done?'':'<button onclick="markFollowUpDone(\''+f.id+'\');" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;">✓</button>')+'</div>'+'<div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · by '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');
+  box.innerHTML=all.map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:4px 10px;margin-bottom:8px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="display:flex;justify-content:space-between;">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+(f.done?'':'<button onclick="markFollowUpDone(\''+f.id+'\');" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;">✓</button>')+'</div>'+'<div style="display:flex;justify-content:space-between;"><div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · by '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div>'+(f.done?'':'<span><button onclick="editFollowUp(\''+f.id+'\')" style="background:none;border:none;font-size:10px;cursor:pointer;">✏️</button><button onclick="deleteFollowUp(\''+f.id+'\')" style="background:none;border:none;font-size:10px;cursor:pointer;color:var(--red);">🗑</button></span>')+'</div></div>').join('');
+}
+function editFollowUp(id){
+  const all=ld('pp_followups',[]);const f=all.find(x=>x.id===id);if(!f)return;
+  document.getElementById('fu-note').value=f.note||'';
+  document.getElementById('fu-remind').value=f.remindDate||'';
+  const eid=document.getElementById('fu-edit-id');if(eid)eid.value=id;
+  toast('Editing — save when done');
+}
+function deleteFollowUp(id){
+  if(!confirm('Delete this follow-up?'))return;
+  sv('pp_followups',ld('pp_followups',[]).filter(x=>x.id!==id));
+  _renderFuHistory(document.getElementById('fu-cid').value);
+  toast('Deleted');try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
 }
 function markFollowUpDone(id){
   const all=ld('pp_followups',[]);const f=all.find(x=>x.id===id);if(!f)return;
@@ -3044,11 +3052,17 @@ function saveFollowUp(){
   const cid=document.getElementById('fu-cid').value;
   const note=document.getElementById('fu-note').value.trim();
   const remind=document.getElementById('fu-remind').value;
+  const eid=document.getElementById('fu-edit-id');const editId=eid?eid.value:'';
   if(!note){toast('Please add a note');return;}
-  const entry={id:Date.now()+'',cid,note,remindDate:remind,by:(PPS&&PPS.name?PPS.name:'Admin'),loggedAt:new Date().toISOString().slice(0,10)};
-  const all=ld('pp_followups',[]);all.unshift(entry);sv('pp_followups',all);
-  _renderFuHistory(cid);document.getElementById('fu-note').value='';
-  toast('📞 Follow-up saved');
+  const all=ld('pp_followups',[]);
+  if(editId){
+    const f=all.find(x=>x.id===editId);if(f){f.note=note;f.remindDate=remind;}
+    if(eid)eid.value='';toast('Follow-up updated');
+  }else{
+    all.unshift({id:Date.now()+'',cid,note,remindDate:remind,by:(PPS&&PPS.name?PPS.name:'Admin'),loggedAt:new Date().toISOString().slice(0,10)});
+    toast('📞 Follow-up saved');
+  }
+  sv('pp_followups',all);_renderFuHistory(cid);document.getElementById('fu-note').value='';
   try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
 }
 function applyWATemplate(){
@@ -4588,7 +4602,7 @@ function closeCashEntry(){
     setTimeout(()=>openUnified(cid),150);
   }
 }
-function openCashEntry(id,prefillCid){
+function openCashEntry(id,prefillCid,preType){
   document.getElementById('cash-modal-title').textContent=id?'Edit Entry':'New Entry';
   document.getElementById('ce-id').value=id||'';
   const clients=ld('pp_clients',[]);
@@ -4815,15 +4829,27 @@ function renderCash(){
   const allIn=cash.filter(e=>e.type==='in').reduce((s,e)=>s+e.amt,0);
   const allOut=cash.filter(e=>e.type==='out').reduce((s,e)=>s+e.amt,0);
   document.getElementById('cash-summary').innerHTML=`
-    <div class="card card-gold" style="width:fit-content;min-width:270px;margin:0 auto 10px;padding-left:22px;padding-right:22px;text-align:center;">
-      <div style="font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Overall Balance</div>
-      <div style="font-family:'Playfair Display',serif;font-size:32px;color:var(--gold);margin-bottom:10px;">₹${(allIn-allOut).toLocaleString('en-IN')}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:13px;text-align:center;">
-        <div><div style="color:var(--green);font-weight:700;">₹${totalIn.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Credits</div></div>
-        <div><div style="color:var(--red);font-weight:700;">₹${totalOut.toLocaleString('en-IN')}</div><div style="color:var(--text2);">Debits</div></div>
-        <div><div style="color:var(--gold);font-weight:700;">₹${(totalIn-totalOut).toLocaleString('en-IN')}</div><div style="color:var(--text2);">Net Flow</div></div>
+    <div style="display:grid;grid-template-columns:68px 1fr 68px;gap:5px;align-items:stretch;margin-bottom:6px;">
+      <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
+        <button onclick="showTab('about')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;">CASH BOOK</button>
+        <button onclick="openDaybook()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">DAY BOOK</button>
+        <button onclick="_cashFilter='all';renderCash();" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">ALL</button>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;">Cash movement this month — not profit. See 📊 Business Reports for P&amp;L</div>
+      <div class="card card-gold" style="padding:8px 12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">Overall Balance</div>
+        <div style="font-family:'Playfair Display',serif;font-size:26px;color:var(--gold);margin-bottom:5px;">₹\${(allIn-allOut).toLocaleString('en-IN')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;text-align:center;">
+          <div><div style="color:var(--green);font-weight:700;">₹\${totalIn.toLocaleString('en-IN')}</div><div style="color:var(--text2);font-size:10px;">Credits</div></div>
+          <div><div style="color:var(--red);font-weight:700;">₹\${totalOut.toLocaleString('en-IN')}</div><div style="color:var(--text2);font-size:10px;">Debits</div></div>
+          <div><div style="color:var(--gold);font-weight:700;">₹\${(totalIn-totalOut).toLocaleString('en-IN')}</div><div style="color:var(--text2);font-size:10px;">Net Flow</div></div>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-top:3px;">Cash movement · not profit</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
+        <button onclick="_cashFilter='in';renderCash();" style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--green);cursor:pointer;">CREDIT</button>
+        <button onclick="_cashFilter='out';renderCash();" style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--red);cursor:pointer;">DEBIT</button>
+        <button onclick="_cashFilter='contra';renderCash();" style="background:rgba(155,138,175,0.12);border:1px solid rgba(155,138,175,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--purple);cursor:pointer;">CONTRA</button>
+      </div>
     </div>`;
   // populate category filter dropdown (once per render, preserving selection)
   const catSel=document.getElementById('cash-catfilter');
@@ -8232,6 +8258,8 @@ closeM=function(id,fromPop){
 window._tabBackStack=[];
 const _origShowTab=showTab;
 showTab=function(n){
+  const _fab=document.getElementById('cash-fab');
+  if(_fab)_fab.style.display=(n==='cash')?'flex':'none';
   const _from=_activeTab;
   if(_from&&_from!==n){
     window._tabBackStack.push(_from);
@@ -9616,7 +9644,7 @@ function ufSavePayment(){
     <button class="mc2" onclick="closeM('m-followup')">✕</button>
     <h2 style="font-family:'Playfair Display',serif;font-size:17px;color:var(--gold);margin:0 0 4px;">📞 Follow-up</h2>
     <div id="fu-name" style="font-size:13px;color:var(--text2);margin-bottom:14px;"></div>
-    <input type="hidden" id="fu-cid"/>
+    <input type="hidden" id="fu-cid"/><input type="hidden" id="fu-edit-id"/>
     <div class="fg"><label class="fl">Note</label>
       <textarea id="fu-note" class="fi" style="height:64px;resize:none;" placeholder="e.g. Interested, will join after Diwali"></textarea>
     </div>
