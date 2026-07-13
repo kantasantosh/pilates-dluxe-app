@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143i</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143k</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1496,17 +1496,23 @@ function printClientList(){
       +'<td style="text-align:right;color:'+(due>0?'#b00':'#2e7d32')+';">'+(due>0?'₹'+due.toLocaleString('en-IN'):due<0?'₹'+Math.abs(due).toLocaleString('en-IN')+' adv':'—')+'</td></tr>';
   }).join('');
   const filterLabel=_clientFilter2==='all'?'All Clients':_clientFilter2.charAt(0).toUpperCase()+_clientFilter2.slice(1);
-  const html='<div style="background:#fff;color:#111;border-radius:10px;padding:16px;font-family:\'Jost\',Arial,sans-serif;"min-width:520px;"id="clientlist-print-body">'
+  const html='<div style="background:#fff;color:#111;border-radius:10px;padding:12px;font-family:\'Jost\',Arial,sans-serif;min-width:480px;" id="clientlist-print-body">'
     +'<div style="text-align:center;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:10px;">'
     +'<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:18px;letter-spacing:3px;">'+getStudio().name+'</div>'
     +'<div style="font-size:12px;color:#555;">Client List — '+filterLabel+'</div>'
     +'<div style="font-size:11px;color:#777;margin-top:3px;">'+filtered.length+' client(s) &bull; '+new Date().toLocaleDateString('en-IN')+'</div></div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:11px;">'
-    +'<tr style="background:#f3edd9;"><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">ID</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Name</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Phone</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Plan</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Status</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:right;">Due</th></tr>'
-    +rows.replace(/<td>/g,'<td style="border:1px solid #bbb;padding:4px 6px;">')
+    +'<table style="width:100%;border-collapse:collapse;font-size:10px;">'
+    +'<tr style="background:#f3edd9;"><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">ID</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">Name</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">Phone</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">Plan</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">Status</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:right;">Due</th></tr>'
+    +rows.replace(/<td>/g,'<td style="border:1px solid #bbb;padding:3px 4px;">')
     +'</table></div>'
     +'<button class="sb2" style="margin-top:12px;" onclick="ppPrintHTML(document.getElementById(\'clientlist-print-body\').outerHTML,\'Client List\')">🖨 Print / Save PDF</button>';
-  showConfirm('📋','Client List Preview','<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'+html+'</div>',[{label:'Close',color:'var(--gold)',action:null}]);
+  document.getElementById('confirm-icon').textContent='📋';
+  document.getElementById('confirm-title').textContent='Client List Preview';
+  document.getElementById('confirm-msg').innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -20px;padding:0 20px;">'+html+'</div>';
+  document.getElementById('confirm-btns').innerHTML='<button onclick="closeM(\'m-confirm\')" style="padding:12px;border-radius:30px;border:none;background:var(--gold);color:#1a1a2e;font-family:\'Jost\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Close</button>';
+  const _md=document.querySelector('#m-confirm .md');
+  if(_md)_md.style.maxWidth='94vw';
+  openM('m-confirm');
 }
 function getMembershipStatus(mem,cid){
   if(!mem)return 'none';
@@ -3281,6 +3287,8 @@ function fabAction(){
 // ===== THEMED CONFIRM =====
 function showConfirm(icon, title, msg, buttons){
   // buttons = [{label, color, action}]
+  const _md0=document.querySelector('#m-confirm .md');
+  if(_md0)_md0.style.maxWidth=''; /* reset any previous wide-mode from print preview */
   document.getElementById('confirm-icon').textContent=icon;
   document.getElementById('confirm-title').textContent=title;
   document.getElementById('confirm-msg').innerHTML=msg;
