@@ -159,7 +159,7 @@ input,select,textarea{color:var(--gold);}
 #m-unified .fg{margin-bottom:9px;}
 #m-unified .fr{gap:8px;}
 #m-unified .fr .fg{flex:1;min-width:0;}
-.fab{position:fixed;bottom:76px;right:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(201,168,76,0.4);z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
+.fab{position:fixed;bottom:150px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--surface2);color:var(--gold);border:1.5px solid var(--gold);font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.3);opacity:0.9;z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
 .float-nav{position:fixed;left:16px;bottom:150px;display:none;flex-direction:column;gap:8px;z-index:85;}
 .float-nav.float-nav-right{left:auto;right:16px;}
 .float-nav.show{display:flex;}
@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143l</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143p</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -791,7 +791,7 @@ try{
   </div>
   <div id="cash-list"></div>
   <!-- Floating + button (shown only on cash tab) -->
-  <button onclick="openCashEntry()" id="cash-fab" style="position:fixed;bottom:80px;right:16px;width:46px;height:46px;border-radius:50%;background:var(--gold);border:none;color:#1a1a2e;font-size:24px;font-weight:300;cursor:pointer;z-index:50;box-shadow:0 3px 12px rgba(201,168,76,0.4);display:none;align-items:center;justify-content:center;">+</button>
+  
 </div>
 <!-- Themed Confirm Modal -->
 <div class="mo" id="m-confirm" style="align-items:center;z-index:400;">
@@ -1123,12 +1123,12 @@ try{
 
 <!-- BOTTOM NAV -->
 <div class="bnav">
-  <button class="nb active" onclick="showTab('dashboard',this)"><span class="ni">🏠</span>Home</button>
-  <button class="nb" onclick="showTab('clients',this)"><span class="ni">👥</span>Clients</button>
-  <button class="nb" onclick="showTab('schedule',this)"><span class="ni">📅</span>Schedule</button>
-  <button class="nb" onclick="showTab('cash',this)"><span class="ni">💰</span>Cash</button>
-  <button class="nb" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni">📋</span>TnS</button>
-  <button class="nb" onclick="showTab('credits',this)"><span class="ni">ℹ️</span>About</button>
+  <button class="nb active" data-tab="dashboard" onclick="showTab('dashboard',this)"><span class="ni">🏠</span>Home</button>
+  <button class="nb" data-tab="clients" onclick="showTab('clients',this)"><span class="ni">👥</span>Clients</button>
+  <button class="nb" data-tab="schedule" onclick="showTab('schedule',this)"><span class="ni">📅</span>Schedule</button>
+  <button class="nb" data-tab="cash" onclick="showTab('cash',this)"><span class="ni">💰</span>Cash</button>
+  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni">📋</span>TnS</button>
+  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni">ℹ️</span>About</button>
 </div>
 
 <!-- ===== MODALS ===== -->
@@ -1848,7 +1848,7 @@ function renderDash(){
         <div class="dash-label">Ends Soon</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
       </div>
-      <div class="dash-card purple" style="cursor:pointer;" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('due',document.querySelector('#tab-clients .ftab:nth-child(5)'))">
+      <div class="dash-card purple" style="cursor:pointer;" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('due',document.querySelector('#tab-clients .ftab:nth-child(7)'))">
         <div class="dash-num">${due}</div>
         <div class="dash-label">Payment Due</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
@@ -2004,7 +2004,7 @@ function goExpiring(){
   setTimeout(()=>{
     _clientFilter2='expiring';
     const tabs=document.querySelectorAll('#tab-clients .ftab');
-    tabs.forEach(t=>{t.classList.remove('active');if(/expiring/i.test(t.textContent))t.classList.add('active');});
+    tabs.forEach(t=>{t.classList.remove('active');if(/ends soon/i.test(t.textContent))t.classList.add('active');});
     renderClients();
   },180);
 }
@@ -5260,6 +5260,21 @@ if('serviceWorker' in navigator){
       <div class="fg"><label class="fl">Active</label><select class="fi" id="ue-active"><option value="1">Yes</option><option value="0">No (disabled)</option></select></div>
     </div>
     <div class="fg"><label class="fl">Linked Staff Record (for own attendance &amp; tasks)</label><select class="fi" id="ue-staff"><option value="">— Not linked —</option></select></div>
+    <div class="fg">
+      <label class="fl">Access — which tabs this person can see</label>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Leave "Use role default" on unless this person needs a custom mix.</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:8px;cursor:pointer;">
+        <input type="checkbox" id="ue-custom-access" onchange="_ueToggleCustomAccess()" style="width:16px;height:16px;"/> Use custom access for this person
+      </label>
+      <div id="ue-tab-checks" style="display:none;grid-template-columns:1fr 1fr;gap:6px;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="dashboard" style="width:15px;height:15px;"/> 🏠 Home</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="clients" style="width:15px;height:15px;"/> 👥 Clients</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="schedule" style="width:15px;height:15px;"/> 📅 Schedule</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="cash" style="width:15px;height:15px;"/> 💰 Cash</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="tns" style="width:15px;height:15px;"/> 📋 TnS</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="credits" style="width:15px;height:15px;"/> ℹ️ About</label>
+      </div>
+    </div>
     <div class="fg"><label class="fl">PIN (4–6 digits)</label><input class="fi" id="ue-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Leave blank to keep current PIN" autocomplete="off" name="pdl-uepin" data-1p-ignore data-lpignore="true" data-form-type="other"/></div>
     <button class="sb2" id="ue-save-btn" onclick="saveUser()" disabled style="opacity:0.45;">Save User</button>
     <button id="ue-del" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteUser()">Delete User</button>
@@ -5513,7 +5528,7 @@ function ppMyStaffId(){
   const s2=ld('pp_staff',[]).find(x=>((x.fname||'')+' '+(x.lname||'')).trim().toLowerCase()===nm||(x.fname||'').trim().toLowerCase()===nm);
   return s2?s2.id:'';
 }
-function ppRefresh(){if(!PPS||!PPS.id)return;const u=ppUsers().find(x=>x.id===PPS.id);if(u)PPS=u;}
+function ppRefresh(){if(!PPS||!PPS.id)return;const u=ppUsers().find(x=>x.id===PPS.id);if(u)PPS=u;try{_applyTabAccess();}catch(_e){}}
 
 function ppAuthGate(){
   const users=ppUsers();
@@ -5685,6 +5700,7 @@ document.getElementById('lg-pin').addEventListener('keyup',e=>{if(e.key==='Enter
 
 /* ================= ROLE APPLICATION ================= */
 function applyRole(){
+  try{_applyTabAccess();}catch(_e){}
   /* HARD SAFETY NET: this full-screen login overlay has NO inline
      display:none by default — it's visible until JS hides it. If
      ppAuthGate() is ever re-triggered after a successful login (a real,
@@ -5735,6 +5751,31 @@ function applyRole(){
 }
 const _STAFF_BLOCKED_TABS=['cash','credits'];
 const _TRAINER_BLOCKED_TABS=['dashboard','clients','cash','credits'];
+const _ALL_TABS=['dashboard','clients','schedule','cash','tns','credits'];
+/* Effective allowed tabs for a user: custom per-person override (u.tabAccess,
+   an array) always wins if present; otherwise falls back to the role default
+   (admin=all, staff/trainer=role's blocked-list applied to the full set). */
+function _effectiveTabs(u){
+  if(!u)return _ALL_TABS.slice();
+  if(Array.isArray(u.tabAccess))return u.tabAccess;
+  if(u.role==='admin')return _ALL_TABS.slice();
+  if(u.role==='staff')return _ALL_TABS.filter(t=>!_STAFF_BLOCKED_TABS.includes(t));
+  if(u.role==='trainer')return _ALL_TABS.filter(t=>!_TRAINER_BLOCKED_TABS.includes(t));
+  return _ALL_TABS.slice();
+}
+/* Hide/show bottom-nav buttons + jump off a now-hidden tab if needed */
+function _applyTabAccess(){
+  if(!PPS||!PPS.id)return;
+  const allowed=_effectiveTabs(PPS);
+  document.querySelectorAll('.bnav .nb[data-tab]').forEach(b=>{
+    const t=b.dataset.tab;
+    b.style.display=allowed.includes(t)?'':'none';
+  });
+  if(_activeTab&&!allowed.includes(_activeTab)){
+    const firstOk=Array.from(document.querySelectorAll('.bnav .nb[data-tab]')).find(b=>b.style.display!=='none');
+    if(firstOk)firstOk.click();
+  }
+}
 
 /* ================= AUDIT LOG ================= */
 function AUD(action,detail){
@@ -5853,7 +5894,7 @@ function renderUsersList(){
     <div class="usr-row">
       <div class="av" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1a2e;background:${colorFor(u.name||'U')};">${initials(u.name||'U')}</div>
       <div style="flex:1;">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">${u.name} ${u.role==='admin'?'<span class="badge" style="background:rgba(201,169,110,0.15);color:var(--gold);border:1px solid rgba(201,169,110,0.4);">👑 Admin</span>':u.role==='trainer'?'<span class="badge" style="background:rgba(155,138,175,0.15);color:var(--purple);border:1px solid rgba(155,138,175,0.4);">🏋️ Trainer</span>':'<span class="badge" style="background:rgba(127,166,154,0.15);color:var(--teal);border:1px solid rgba(127,166,154,0.4);">Staff</span>'} ${u.active===false?'<span class="badge badge-expired">Disabled</span>':''}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">${u.name} ${u.role==='admin'?'<span class="badge" style="background:rgba(201,169,110,0.15);color:var(--gold);border:1px solid rgba(201,169,110,0.4);">👑 Admin</span>':u.role==='trainer'?'<span class="badge" style="background:rgba(155,138,175,0.15);color:var(--purple);border:1px solid rgba(155,138,175,0.4);">🏋️ Trainer</span>':'<span class="badge" style="background:rgba(127,166,154,0.15);color:var(--teal);border:1px solid rgba(127,166,154,0.4);">Staff</span>'} ${Array.isArray(u.tabAccess)?'<span class="badge" style="background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.4);">🔧 Custom</span>':''}${u.active===false?'<span class="badge badge-expired">Disabled</span>':''}</div>
         <div style="font-size:12px;color:var(--text3);">ID: ${u.uid}${u.staffId?' • 🔗 '+_staffName(u.staffId):''}</div>
       </div>
       <button onclick="openUserEdit('${u.id}')" style="background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:6px 9px;color:var(--text2);cursor:pointer;">✏️</button>
@@ -5872,9 +5913,26 @@ function openUserEdit(id){
   document.getElementById('ue-pin').value='';
   document.getElementById('ue-staff').innerHTML='<option value="">— Not linked —</option>'+
     ld('pp_staff',[]).map(s=>`<option value="${s.id}"${u&&u.staffId===s.id?' selected':''}>${(s.fname+' '+(s.lname||'')).trim()} (${s.role||''})</option>`).join('');
+  /* Custom access checkboxes */
+  const _hasCustom=u&&Array.isArray(u.tabAccess);
+  document.getElementById('ue-custom-access').checked=_hasCustom;
+  document.querySelectorAll('.ue-tab-cb').forEach(cb=>{
+    cb.checked=_hasCustom?u.tabAccess.includes(cb.value):_effectiveTabs(u||{role:'staff'}).includes(cb.value);
+  });
+  document.getElementById('ue-tab-checks').style.display=_hasCustom?'grid':'none';
   document.getElementById('ue-del').style.display=u?'block':'none';
   openM('m-useredit');
   setTimeout(()=>armDirty('m-useredit','ue-save-btn'),50);
+}
+function _ueToggleCustomAccess(){
+  const on=document.getElementById('ue-custom-access').checked;
+  document.getElementById('ue-tab-checks').style.display=on?'grid':'none';
+  if(on){
+    /* pre-fill from current role default so admin starts from a sensible set */
+    const role=document.getElementById('ue-role').value;
+    const defaults=_effectiveTabs({role});
+    document.querySelectorAll('.ue-tab-cb').forEach(cb=>{cb.checked=defaults.includes(cb.value);});
+  }
 }
 async function saveUser(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
@@ -5897,8 +5955,10 @@ async function saveUser(){
     const admins=users.filter(u=>u.role==='admin'&&u.active!==false);
     if(admins.length<=1){alert('Cannot disable or demote the only Admin');return;}
   }
+  const _useCustom=document.getElementById('ue-custom-access').checked;
+  const tabAccess=_useCustom?Array.from(document.querySelectorAll('.ue-tab-cb:checked')).map(cb=>cb.value):null;
   const data={
-    id:id||Date.now().toString(),name,uid,role,staffId,active,
+    id:id||Date.now().toString(),name,uid,role,staffId,active,tabAccess,
     email:(document.getElementById('ue-email').value||'').trim().toLowerCase(),
     created:existing?existing.created:td(),
     pinH:pin?await ppHash(uid,pin):(existing?existing.pinH:'')
@@ -5956,12 +6016,12 @@ try{
      though nothing was wrong with renderCredits itself. */
 
   try{
-  /* block restricted tabs for staff */
+  /* block restricted tabs — now checks per-user custom access first,
+     falling back to role defaults when no custom list is set */
   const _oShowTab=window.showTab;
   window.showTab=function(n,btn){
     ppRefresh();
-    if(ppIsStaff()&&_STAFF_BLOCKED_TABS.includes(n)){toast('🔒 Access restricted');return;}
-    if(ppIsTrainer()&&_TRAINER_BLOCKED_TABS.includes(n)){toast('🔒 Access restricted');return;}
+    if(PPS&&PPS.role!=='admin'&&!_effectiveTabs(PPS).includes(n)){toast('🔒 Access restricted');return;}
     return _oShowTab.apply(this,arguments);
   };
   }catch(_e){}
@@ -8350,8 +8410,6 @@ closeM=function(id,fromPop){
 window._tabBackStack=[];
 const _origShowTab=showTab;
 showTab=function(n){
-  const _fab=document.getElementById('cash-fab');
-  if(_fab)_fab.style.display=(n==='cash')?'flex':'none';
   const _from=_activeTab;
   if(_from&&_from!==n){
     window._tabBackStack.push(_from);
