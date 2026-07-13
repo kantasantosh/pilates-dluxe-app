@@ -159,8 +159,8 @@ input,select,textarea{color:var(--gold);}
 #m-unified .fg{margin-bottom:9px;}
 #m-unified .fr{gap:8px;}
 #m-unified .fr .fg{flex:1;min-width:0;}
-.fab{position:fixed;bottom:76px;right:16px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(201,168,76,0.4);z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
-.float-nav{position:fixed;left:16px;bottom:84px;display:none;flex-direction:column;gap:8px;z-index:85;}
+.fab{position:fixed;bottom:150px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--surface2);color:var(--gold);border:1.5px solid var(--gold);font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.3);opacity:0.9;z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
+.float-nav{position:fixed;left:16px;bottom:150px;display:none;flex-direction:column;gap:8px;z-index:85;}
 .float-nav.float-nav-right{left:auto;right:16px;}
 .float-nav.show{display:flex;}
 .float-nav-row{display:flex;gap:8px;}
@@ -189,7 +189,7 @@ input,select,textarea{color:var(--gold);}
 .dot-booked{background:var(--gold);}
 
 /* DIVIDER */
-.div-section{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 10px;display:flex;align-items:center;gap:10px;}
+.div-section{cursor:default;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 10px;display:flex;align-items:center;gap:10px;}
 .div-section::before,.div-section::after{content:'';flex:1;height:1px;background:var(--border);}
 
 /* TOAST */
@@ -241,6 +241,8 @@ input[type="date"],input[type="date"].fi{color-scheme:dark;}
 .card,.client-card,.dash-card{animation:fadeUp 0.3s ease both;}
 /* ===== Unified Member Form ===== */
 .uf-section{border:1px solid var(--border);border-radius:var(--rsm);margin-bottom:10px;overflow:hidden;}
+.ue-perm-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:3px 0;}
+.ue-perm-row input{width:14px;height:14px;}
 .uf-sec-hdr{display:flex;align-items:center;padding:12px 14px;background:var(--surface2);cursor:pointer;font-family:'Jost',sans-serif;font-weight:700;font-size:14px;color:var(--text);user-select:none;}
 .uf-sec-hdr:active{background:var(--surface3);}
 .uf-sec-body{padding:14px;border-top:1px solid var(--border);}
@@ -653,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v142y</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143w</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -681,6 +683,7 @@ try{
   <div style="display:flex;align-items:center;justify-content:center;padding:0 14px 6px;gap:8px;">
     <span class="btn btn-outline btn-sm" style="margin:0;pointer-events:none;">👥 Clients</span>
     <button class="btn btn-outline btn-sm" onclick="openAttendanceLookup()" title="Look up a member's attendance and validity" style="margin:0;">🔍 Attendance</button>
+    <button class="btn btn-outline btn-sm" onclick="printClientList()" title="Print / Save PDF of the current list" style="margin:0;">🖨 Print</button>
   </div>
   <!-- #5 sticky: from the plan/time dropdowns down to the search bar -->
   <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding-bottom:4px;">
@@ -764,8 +767,8 @@ try{
           <input type="month" id="staff-month-pick" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;-webkit-appearance:none;" onchange="pickStaffMonth(this.value)"/>
         </div>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)" style="padding:6px 14px;">◀</button>
-          <button class="btn btn-outline btn-sm" onclick="chStaffM(1)" style="padding:6px 14px;">▶</button>
+          <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)" style="padding:8px 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
+          <button class="btn btn-outline btn-sm" onclick="chStaffM(1)" style="padding:8px 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
         </div>
       </div>
       <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance" style="flex-shrink:0;">🖨</button>
@@ -790,7 +793,7 @@ try{
   </div>
   <div id="cash-list"></div>
   <!-- Floating + button (shown only on cash tab) -->
-  <button onclick="openCashEntry()" id="cash-fab" style="position:fixed;bottom:80px;right:16px;width:46px;height:46px;border-radius:50%;background:var(--gold);border:none;color:#1a1a2e;font-size:24px;font-weight:300;cursor:pointer;z-index:50;box-shadow:0 3px 12px rgba(201,168,76,0.4);display:none;align-items:center;justify-content:center;">+</button>
+  
 </div>
 <!-- Themed Confirm Modal -->
 <div class="mo" id="m-confirm" style="align-items:center;z-index:400;">
@@ -1122,12 +1125,12 @@ try{
 
 <!-- BOTTOM NAV -->
 <div class="bnav">
-  <button class="nb active" onclick="showTab('dashboard',this)"><span class="ni">🏠</span>Home</button>
-  <button class="nb" onclick="showTab('clients',this)"><span class="ni">👥</span>Clients</button>
-  <button class="nb" onclick="showTab('schedule',this)"><span class="ni">📅</span>Schedule</button>
-  <button class="nb" onclick="showTab('cash',this)"><span class="ni">💰</span>Cash</button>
-  <button class="nb" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni">📋</span>TnS</button>
-  <button class="nb" onclick="showTab('credits',this)"><span class="ni">ℹ️</span>About</button>
+  <button class="nb active" data-tab="dashboard" onclick="showTab('dashboard',this)"><span class="ni">🏠</span>Home</button>
+  <button class="nb" data-tab="clients" onclick="showTab('clients',this)"><span class="ni">👥</span>Clients</button>
+  <button class="nb" data-tab="schedule" onclick="showTab('schedule',this)"><span class="ni">📅</span>Schedule</button>
+  <button class="nb" data-tab="cash" onclick="showTab('cash',this)"><span class="ni">💰</span>Cash</button>
+  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni">📋</span>TnS</button>
+  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni">ℹ️</span>About</button>
 </div>
 
 <!-- ===== MODALS ===== -->
@@ -1459,6 +1462,59 @@ function getSessionsLeft(mem,cid){
      adding bonus again wrongly gave 16). */
   const sessTotal=mem.plan==='trial'?1:(mem.sessions!=null?(mem.sessions+(mem.bonus||0)):(mem.sessionsTotal||0));
   return Math.max(0,sessTotal-sessUsed);
+}
+function printClientList(){
+  const clients=ld('pp_clients',[]);
+  const mems=ld('pp_memberships',{});
+  const q=(document.getElementById('client-search')||{}).value||'';
+  const _q=q.trim().toLowerCase();
+  const filtered=clients.filter(c=>{
+    if(c.archived&&_clientFilter2!=='inactive')return false;
+    const mem=mems[c.id];
+    const st=mem?getMembershipStatus(mem,c.id):'none';
+    if(_clientFilter2==='active'&&!(st==='active'||st==='expiring'))return false;
+    if(_clientFilter2==='expiring'&&st!=='expiring')return false;
+    if(_clientFilter2==='expired'&&st!=='expired')return false;
+    if(_clientFilter2==='trial'&&!c.isTrial)return false;
+    if(_clientFilter2==='converted'){const hasTrial=c.trialDate||c.isTrial;if(!(hasTrial&&mem&&mem.plan&&mem.plan!=='trial'))return false;}
+    if(_clientFilter2==='due'){const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);if(due<=0)return false;}
+    if(_clientFilter2==='inactive'&&!c.archived)return false;
+    if(_q){
+      const hay=[c.fname,c.lname,c.memNo,c.phone,c.email].join(' ').toLowerCase();
+      if(!hay.includes(_q))return false;
+    }
+    return true;
+  });
+  if(!filtered.length){toast('No clients match the current filter');return;}
+  const badgeLabel=(st)=>({active:'Active',expiring:'Ends Soon',expired:'Ended',none:'—'}[st]||'—');
+  const rows=filtered.map(c=>{
+    const mem=mems[c.id];
+    const st=mem?getMembershipStatus(mem,c.id):'none';
+    const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
+    const _totSess=(mem&&mem.sessions||0)+(mem&&mem.bonus||0);const _isUnl=mem&&(mem.plan==='unlimited'||_totSess>=999);const planLbl=mem&&mem.plan?(_isUnl?'Unlimited':(getSessionsLeft(mem,c.id)+'/'+_totSess+' sessions')):'—';
+    return '<tr><td>'+_esc(c.memNo||'')+'</td><td>'+_esc(c.fname+' '+(c.lname||''))+'</td>'
+      +'<td>'+_esc(_fmtPhone(c.phone)||'')+'</td><td>'+_esc(planLbl)+'</td>'
+      +'<td>'+_esc(c.isTrial?'Trial':badgeLabel(st))+'</td>'
+      +'<td style="text-align:right;color:'+(due>0?'#b00':'#2e7d32')+';">'+(due>0?'₹'+due.toLocaleString('en-IN'):due<0?'₹'+Math.abs(due).toLocaleString('en-IN')+' adv':'—')+'</td></tr>';
+  }).join('');
+  const filterLabel=_clientFilter2==='all'?'All Clients':_clientFilter2.charAt(0).toUpperCase()+_clientFilter2.slice(1);
+  const html='<div style="background:#fff;color:#111;border-radius:10px;padding:12px;font-family:\'Jost\',Arial,sans-serif;min-width:480px;" id="clientlist-print-body">'
+    +'<div style="text-align:center;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:10px;">'
+    +'<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:18px;letter-spacing:3px;">'+getStudio().name+'</div>'
+    +'<div style="font-size:12px;color:#555;">Client List — '+filterLabel+'</div>'
+    +'<div style="font-size:11px;color:#777;margin-top:3px;">'+filtered.length+' client(s) &bull; '+new Date().toLocaleDateString('en-IN')+'</div></div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:10px;">'
+    +'<tr style="background:#f3edd9;"><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">ID</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">Name</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">Phone</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">Plan</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:left;">Status</th><th style="border:1px solid #bbb;padding:3px 4px;text-align:right;">Due</th></tr>'
+    +rows.replace(/<td>/g,'<td style="border:1px solid #bbb;padding:3px 4px;">')
+    +'</table></div>'
+    +'<button class="sb2" style="margin-top:12px;" onclick="ppPrintHTML(document.getElementById(\'clientlist-print-body\').outerHTML,\'Client List\')">🖨 Print / Save PDF</button>';
+  document.getElementById('confirm-icon').textContent='📋';
+  document.getElementById('confirm-title').textContent='Client List Preview';
+  document.getElementById('confirm-msg').innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -20px;padding:0 20px;">'+html+'</div>';
+  document.getElementById('confirm-btns').innerHTML='<button onclick="closeM(\'m-confirm\')" style="padding:12px;border-radius:30px;border:none;background:var(--gold);color:#1a1a2e;font-family:\'Jost\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Close</button>';
+  const _md=document.querySelector('#m-confirm .md');
+  if(_md)_md.style.maxWidth='94vw';
+  openM('m-confirm');
 }
 function getMembershipStatus(mem,cid){
   if(!mem)return 'none';
@@ -1794,7 +1850,7 @@ function renderDash(){
         <div class="dash-label">Ends Soon</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
       </div>
-      <div class="dash-card purple" style="cursor:pointer;" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('due',document.querySelector('#tab-clients .ftab:nth-child(5)'))">
+      <div class="dash-card purple" style="cursor:pointer;" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('due',document.querySelector('#tab-clients .ftab:nth-child(7)'))">
         <div class="dash-num">${due}</div>
         <div class="dash-label">Payment Due</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
@@ -1819,7 +1875,7 @@ function renderDash(){
         <div id="dash-quote-text" style="font-size:13px;color:var(--text);line-height:1.5;font-style:italic;">Loading…</div>
         <div id="dash-quote-author" style="font-size:11px;color:var(--gold);margin-top:6px;text-align:right;"></div>
       </div>
-      <div class="dash-card gold dash-wide" style="padding:16px;cursor:pointer;" onclick="showTab('cash',document.querySelector('.nb:nth-child(4)'))">
+      <div class="dash-card gold dash-wide" style="padding:16px;cursor:pointer;" onclick="_cashFilter='revenue';showTab('cash',document.querySelector('.nb:nth-child(4)'))">
         <div class="dash-label" style="margin-bottom:4px;">Membership Revenue</div>
         <div class="dash-num" style="font-size:28px;">₹${monthRevenue.toLocaleString('en-IN')}</div>
         <div style="font-size:12px;color:var(--text3);margin-top:4px;">Total Credits: ₹${totalCredits.toLocaleString('en-IN')}</div>
@@ -1950,7 +2006,7 @@ function goExpiring(){
   setTimeout(()=>{
     _clientFilter2='expiring';
     const tabs=document.querySelectorAll('#tab-clients .ftab');
-    tabs.forEach(t=>{t.classList.remove('active');if(/expiring/i.test(t.textContent))t.classList.add('active');});
+    tabs.forEach(t=>{t.classList.remove('active');if(/ends soon/i.test(t.textContent))t.classList.add('active');});
     renderClients();
   },180);
 }
@@ -2083,7 +2139,7 @@ function renderClients(){
       <div style="display:flex;justify-content:space-between;margin-top:7px;${(()=>{const _fus=ld('pp_followups',[]).filter(x=>x.cid===c.id&&x.remindDate&&!x.done).sort((a,b)=>a.remindDate.localeCompare(b.remindDate));if(!_fus.length)return '';const _nr=_fus[0];const _over=_nr.remindDate<td();return '<div style="font-size:10.5px;margin-bottom:4px;color:'+(_over?'#e74c3c':'var(--amber)')+';">'+ (_over?'⚠ Follow up overdue':'🕐 Follow up due')+' '+fmt(_nr.remindDate)+'</div>';})()}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
         ${_isTr?`<span style="flex:1;white-space:nowrap;">Trial <span style="color:#afa9ec;">${c.trialDate?(()=>{const _p=c.trialDate.split('-');return _p[2]+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+_p[1]-1];})():'—'}</span></span><span style="color:var(--gold);cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();openFollowUp('${c.id}')">📞 Follow up</span>`
-        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;">${(st!=="expired"&&!c.archived)?'<span onclick="event.stopPropagation();_goBookSlot(\'${c.id}\')" title="Book a slot" style="cursor:pointer;">📅</span>':''}<span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
+        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;">${(st!=="expired"&&!c.archived)?'<span onclick="event.stopPropagation();_goBookSlot(\''+c.id+'\')" title="Book a slot" style="cursor:pointer;">📅</span>':''}<span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
       </div>
     </div>`;
   }).join('');
@@ -2682,9 +2738,7 @@ function _goBookSlot(cid){
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
   window._schedPrefillCid=cid;
   _schedDate=td();
-  /* Use _origShowTab to bypass nav wrapper history tracking (avoids dead Back presses) */
-  const _nav=(typeof _origShowTab==='function'?_origShowTab:showTab);
-  _nav('schedule');
+  showTab('schedule');
   setTimeout(()=>{
     const dp=document.getElementById('sched-date-pick');if(dp)dp.value=_schedDate;
     renderSchedule();
@@ -2839,8 +2893,8 @@ function renderSchedule(){
 
   /* Add bottom navigation */
   html+=`<div style="display:flex;justify-content:space-between;padding:16px 0 8px;">
-    <button class="btn btn-outline btn-sm" onclick="chDay(-1)">◀ Prev day</button>
-    <button class="btn btn-outline btn-sm" onclick="chDay(1)">Next day ▶</button>
+    <button class="btn btn-outline btn-sm" onclick="chDay(-1)" style="padding:5px 12px;">◀</button>
+    <button class="btn btn-outline btn-sm" onclick="chDay(1)" style="padding:5px 12px;">▶</button>
   </div>`;
   document.getElementById('schedule-content').innerHTML=html;
 }
@@ -3150,8 +3204,11 @@ function showTab(n,btn){
   /* Update fab button: purple "Trial" on dashboard, gold "+" elsewhere,
      hidden on schedule and about (no action needed there) */
   const _fab=document.getElementById('fab-btn');
+  const _scopedForArrows=['clients','cash','tns','schedule'];
   if(_fab){
-    if(n==='schedule'||n==='credits'){
+    if(n==='credits'||_scopedForArrows.includes(n)){
+      /* hidden here: these tabs get their + inside the float-nav-r
+         vertical stack instead, so all 3 controls sit in one column */
       _fab.style.display='none';
     }else if(n==='dashboard'){
       _fab.style.display='';
@@ -3184,17 +3241,20 @@ function _updateFloatingNav(n){
   if(!box||!boxR)return;
   const scoped=['clients','cash','tns','schedule'];
   if(!scoped.includes(n)){box.classList.remove('show');box.innerHTML='';boxR.classList.remove('show');boxR.innerHTML='';return;}
-  /* Left side: scroll up/down */
-  const scrollTarget=box;
-  scrollTarget.innerHTML=`<button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll to top">▲</button>
-      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll to bottom">▼</button>`;
-  scrollTarget.classList.add('show');
-  /* Schedule: floating ◀ ▶ opposite the ▲▼ pair (user direction) */
+  /* RIGHT side only: + / up / down (and day-nav on schedule) all in ONE column */
+  box.classList.remove('show');box.innerHTML=''; /* left box unused */
+  const PLUS_BTN='<button class="float-nav-btn" onclick="fabAction()" title="Add"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>';
   if(n==='schedule'){
-    boxR.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day">◀</button>
-      <button class="float-nav-btn" onclick="chDay(1)" title="Next day">▶</button>`;
-    boxR.classList.add('show');
-  }else{boxR.classList.remove('show');boxR.innerHTML='';}
+    /* Schedule: ◀▶ day nav + ▲▼ scroll stacked on right */
+    boxR.innerHTML=PLUS_BTN+`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
+      <button class="float-nav-btn" onclick="chDay(1)" title="Next day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="6"/><polyline points="6 11 12 5 18 11"/></svg></button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="18"/><polyline points="6 13 12 19 18 13"/></svg></button>`;
+  }else{
+    boxR.innerHTML=PLUS_BTN+`<button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="6"/><polyline points="6 11 12 5 18 11"/></svg></button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="18"/><polyline points="6 13 12 19 18 13"/></svg></button>`;
+  }
+  boxR.classList.add('show');
 }
 function renderPlanChips(selected){
   const plans=getPlans().filter(p=>p.id!=='trial');
@@ -3233,6 +3293,8 @@ function fabAction(){
 // ===== THEMED CONFIRM =====
 function showConfirm(icon, title, msg, buttons){
   // buttons = [{label, color, action}]
+  const _md0=document.querySelector('#m-confirm .md');
+  if(_md0)_md0.style.maxWidth=''; /* reset any previous wide-mode from print preview */
   document.getElementById('confirm-icon').textContent=icon;
   document.getElementById('confirm-title').textContent=title;
   document.getElementById('confirm-msg').innerHTML=msg;
@@ -3263,6 +3325,7 @@ function confirmCycleSlot(slotIdx,cellIdx,clientName){
         }
       }},
       {label:'Remove Slot',color:'var(--rose)',action:()=>{
+        if(typeof ppIsStaff==='function'&&ppIsStaff()&&!_hasPerm('slot_remove')){toast('🔒 Only admin can remove a booked slot — ask admin');return;}
         const bookings=ld('pp_bookings',{});
         const slot=SLOTS[slotIdx];
         if(bookings[_schedDate]&&bookings[_schedDate][slot]){
@@ -3318,7 +3381,7 @@ function archiveClient(cid){
 }
 
 function deleteClient(cid){
-  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Only an admin can delete a client');return;}
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()&&!_hasPerm('client_delete')){toast('🔒 Only an admin can delete a client');return;}
   const clients=ld('pp_clients',[]);
   const c=clients.find(x=>x.id===cid);
   if(!c)return;
@@ -4875,7 +4938,8 @@ function renderCash(){
   const catFilter=catSel?catSel.value:'';
   const _q=((document.getElementById('cash-search')||{}).value||'').trim().toLowerCase();
   let filtered=[...cash].filter(e=>{
-    if(!(_cashFilter==='all'||e.type===_cashFilter))return false;
+    if(_cashFilter==='revenue'){if(e.type!=='in')return false;if(!['Membership Fee','Renewal','Drop-in','Drop-in Session'].includes(e.cat||''))return false;}
+    else if(!(_cashFilter==='all'||e.type===_cashFilter))return false;
     if(catFilter&&e.cat!==catFilter)return false;
     if(_q){
       const c=e.cid?clients.find(cl=>cl.id===e.cid):null;
@@ -5020,7 +5084,7 @@ function exportDaybookCSV(){
   });
   const from=document.getElementById('db-from').value||'start';
   const to=document.getElementById('db-to').value||'end';
-  const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const blob=new Blob([String.fromCharCode(0xFEFF)+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;a.download='PilatesDLuxe_Daybook_'+from+'_to_'+to+'.csv';
@@ -5204,6 +5268,44 @@ if('serviceWorker' in navigator){
       <div class="fg"><label class="fl">Active</label><select class="fi" id="ue-active"><option value="1">Yes</option><option value="0">No (disabled)</option></select></div>
     </div>
     <div class="fg"><label class="fl">Linked Staff Record (for own attendance &amp; tasks)</label><select class="fi" id="ue-staff"><option value="">— Not linked —</option></select></div>
+    <div class="fg">
+      <label class="fl">Access — which tabs this person can see</label>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Leave "Use role default" on unless this person needs a custom mix.</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:8px;cursor:pointer;">
+        <input type="checkbox" id="ue-custom-access" onchange="_ueToggleCustomAccess()" style="width:16px;height:16px;"/> Use custom access for this person
+      </label>
+      <div id="ue-tab-checks" style="display:none;grid-template-columns:1fr 1fr;gap:6px;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="dashboard" style="width:15px;height:15px;"/> 🏠 Home</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="clients" style="width:15px;height:15px;"/> 👥 Clients</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="schedule" style="width:15px;height:15px;"/> 📅 Schedule</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="cash" style="width:15px;height:15px;"/> 💰 Cash</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="tns" style="width:15px;height:15px;"/> 📋 TnS</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="credits" style="width:15px;height:15px;"/> ℹ️ About</label>
+      </div>
+      <div id="ue-perm-checks" style="display:none;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">Fine-grained permissions</div>
+        <div style="background:var(--surface2);border-radius:var(--rsm);padding:10px;">
+          <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:6px;">👥 Clients</div>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="client_edit"/> Edit saved client</label>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="client_delete"/> Delete client</label>
+          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">📋 Plan actions (existing plan)</div>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="plan_change"/> Change plan (mid-term)</label>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="plan_freeze"/> Freeze plan</label>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="plan_extend"/> Extend plan</label>
+          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">📅 Schedule</div>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="slot_remove"/> Remove / cancel a booked slot</label>
+          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">🏠 Dashboard</div>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="dash_revenue"/> View Membership Revenue</label>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="dash_conversion"/> View Trial Conversion %</label>
+          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">📋 TnS — Staff &amp; Tasks</div>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="staff_mark_own"/> Mark own attendance</label>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="staff_view_all"/> View everyone's attendance</label>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="staff_manage"/> Manage staff / salary / advances</label>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="tasks_view_all"/> View everyone's tasks (not just own)</label>
+          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="tasks_manage"/> Create / edit / delete tasks</label>
+        </div>
+      </div>
+    </div>
     <div class="fg"><label class="fl">PIN (4–6 digits)</label><input class="fi" id="ue-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Leave blank to keep current PIN" autocomplete="off" name="pdl-uepin" data-1p-ignore data-lpignore="true" data-form-type="other"/></div>
     <button class="sb2" id="ue-save-btn" onclick="saveUser()" disabled style="opacity:0.45;">Save User</button>
     <button id="ue-del" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteUser()">Delete User</button>
@@ -5457,7 +5559,7 @@ function ppMyStaffId(){
   const s2=ld('pp_staff',[]).find(x=>((x.fname||'')+' '+(x.lname||'')).trim().toLowerCase()===nm||(x.fname||'').trim().toLowerCase()===nm);
   return s2?s2.id:'';
 }
-function ppRefresh(){if(!PPS||!PPS.id)return;const u=ppUsers().find(x=>x.id===PPS.id);if(u)PPS=u;}
+function ppRefresh(){if(!PPS||!PPS.id)return;const u=ppUsers().find(x=>x.id===PPS.id);if(u)PPS=u;try{_applyTabAccess();}catch(_e){}}
 
 function ppAuthGate(){
   const users=ppUsers();
@@ -5629,6 +5731,7 @@ document.getElementById('lg-pin').addEventListener('keyup',e=>{if(e.key==='Enter
 
 /* ================= ROLE APPLICATION ================= */
 function applyRole(){
+  try{_applyTabAccess();}catch(_e){}
   /* HARD SAFETY NET: this full-screen login overlay has NO inline
      display:none by default — it's visible until JS hides it. If
      ppAuthGate() is ever re-triggered after a successful login (a real,
@@ -5679,6 +5782,31 @@ function applyRole(){
 }
 const _STAFF_BLOCKED_TABS=['cash','credits'];
 const _TRAINER_BLOCKED_TABS=['dashboard','clients','cash','credits'];
+const _ALL_TABS=['dashboard','clients','schedule','cash','tns','credits'];
+/* Effective allowed tabs for a user: custom per-person override (u.tabAccess,
+   an array) always wins if present; otherwise falls back to the role default
+   (admin=all, staff/trainer=role's blocked-list applied to the full set). */
+function _effectiveTabs(u){
+  if(!u)return _ALL_TABS.slice();
+  if(Array.isArray(u.tabAccess))return u.tabAccess;
+  if(u.role==='admin')return _ALL_TABS.slice();
+  if(u.role==='staff')return _ALL_TABS.filter(t=>!_STAFF_BLOCKED_TABS.includes(t));
+  if(u.role==='trainer')return _ALL_TABS.filter(t=>!_TRAINER_BLOCKED_TABS.includes(t));
+  return _ALL_TABS.slice();
+}
+/* Hide/show bottom-nav buttons + jump off a now-hidden tab if needed */
+function _applyTabAccess(){
+  if(!PPS||!PPS.id)return;
+  const allowed=_effectiveTabs(PPS);
+  document.querySelectorAll('.bnav .nb[data-tab]').forEach(b=>{
+    const t=b.dataset.tab;
+    b.style.display=allowed.includes(t)?'':'none';
+  });
+  if(_activeTab&&!allowed.includes(_activeTab)){
+    const firstOk=Array.from(document.querySelectorAll('.bnav .nb[data-tab]')).find(b=>b.style.display!=='none');
+    if(firstOk)firstOk.click();
+  }
+}
 
 /* ================= AUDIT LOG ================= */
 function AUD(action,detail){
@@ -5797,7 +5925,7 @@ function renderUsersList(){
     <div class="usr-row">
       <div class="av" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1a2e;background:${colorFor(u.name||'U')};">${initials(u.name||'U')}</div>
       <div style="flex:1;">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">${u.name} ${u.role==='admin'?'<span class="badge" style="background:rgba(201,169,110,0.15);color:var(--gold);border:1px solid rgba(201,169,110,0.4);">👑 Admin</span>':u.role==='trainer'?'<span class="badge" style="background:rgba(155,138,175,0.15);color:var(--purple);border:1px solid rgba(155,138,175,0.4);">🏋️ Trainer</span>':'<span class="badge" style="background:rgba(127,166,154,0.15);color:var(--teal);border:1px solid rgba(127,166,154,0.4);">Staff</span>'} ${u.active===false?'<span class="badge badge-expired">Disabled</span>':''}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">${u.name} ${u.role==='admin'?'<span class="badge" style="background:rgba(201,169,110,0.15);color:var(--gold);border:1px solid rgba(201,169,110,0.4);">👑 Admin</span>':u.role==='trainer'?'<span class="badge" style="background:rgba(155,138,175,0.15);color:var(--purple);border:1px solid rgba(155,138,175,0.4);">🏋️ Trainer</span>':'<span class="badge" style="background:rgba(127,166,154,0.15);color:var(--teal);border:1px solid rgba(127,166,154,0.4);">Staff</span>'} ${Array.isArray(u.tabAccess)?'<span class="badge" style="background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.4);">🔧 Custom</span>':''}${u.active===false?'<span class="badge badge-expired">Disabled</span>':''}</div>
         <div style="font-size:12px;color:var(--text3);">ID: ${u.uid}${u.staffId?' • 🔗 '+_staffName(u.staffId):''}</div>
       </div>
       <button onclick="openUserEdit('${u.id}')" style="background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:6px 9px;color:var(--text2);cursor:pointer;">✏️</button>
@@ -5816,9 +5944,48 @@ function openUserEdit(id){
   document.getElementById('ue-pin').value='';
   document.getElementById('ue-staff').innerHTML='<option value="">— Not linked —</option>'+
     ld('pp_staff',[]).map(s=>`<option value="${s.id}"${u&&u.staffId===s.id?' selected':''}>${(s.fname+' '+(s.lname||'')).trim()} (${s.role||''})</option>`).join('');
+  /* Custom access checkboxes */
+  const _hasCustom=u&&Array.isArray(u.tabAccess);
+  document.getElementById('ue-custom-access').checked=_hasCustom;
+  document.querySelectorAll('.ue-tab-cb').forEach(cb=>{
+    cb.checked=_hasCustom?u.tabAccess.includes(cb.value):_effectiveTabs(u||{role:'staff'}).includes(cb.value);
+  });
+  document.getElementById('ue-tab-checks').style.display=_hasCustom?'grid':'none';
+  document.getElementById('ue-perm-checks').style.display=_hasCustom?'block':'none';
+  const _p=_effectivePerms(u||{role:'staff'});
+  document.querySelectorAll('.ue-perm-cb').forEach(cb=>{
+    cb.checked=(u&&u.perms&&cb.value in u.perms)?!!u.perms[cb.value]:!!_p[cb.value];
+  });
   document.getElementById('ue-del').style.display=u?'block':'none';
   openM('m-useredit');
   setTimeout(()=>armDirty('m-useredit','ue-save-btn'),50);
+}
+const _PERM_DEFAULTS_BY_ROLE={
+  admin:{client_edit:1,client_delete:1,plan_change:1,plan_freeze:1,plan_extend:1,slot_remove:1,dash_revenue:1,dash_conversion:1,staff_mark_own:1,staff_view_all:1,staff_manage:1,tasks_view_all:1,tasks_manage:1},
+  staff:{client_edit:0,client_delete:0,plan_change:0,plan_freeze:0,plan_extend:0,slot_remove:0,dash_revenue:0,dash_conversion:0,staff_mark_own:0,staff_view_all:0,staff_manage:0,tasks_view_all:0,tasks_manage:0},
+  trainer:{client_edit:0,client_delete:0,plan_change:0,plan_freeze:0,plan_extend:0,slot_remove:0,dash_revenue:0,dash_conversion:0,staff_mark_own:0,staff_view_all:0,staff_manage:0,tasks_view_all:0,tasks_manage:0}
+};
+function _effectivePerms(u){
+  if(!u)return _PERM_DEFAULTS_BY_ROLE.staff;
+  if(u.perms&&typeof u.perms==='object')return Object.assign({},_PERM_DEFAULTS_BY_ROLE[u.role||'staff'],u.perms);
+  return _PERM_DEFAULTS_BY_ROLE[u.role||'staff']||_PERM_DEFAULTS_BY_ROLE.staff;
+}
+function _hasPerm(key){
+  if(!PPS)return false;
+  if(PPS.role==='admin')return true;
+  return !!_effectivePerms(PPS)[key];
+}
+function _ueToggleCustomAccess(){
+  const on=document.getElementById('ue-custom-access').checked;
+  document.getElementById('ue-tab-checks').style.display=on?'grid':'none';
+  document.getElementById('ue-perm-checks').style.display=on?'block':'none';
+  if(on){
+    const role=document.getElementById('ue-role').value;
+    const defaults=_effectiveTabs({role});
+    document.querySelectorAll('.ue-tab-cb').forEach(cb=>{cb.checked=defaults.includes(cb.value);});
+    const pdef=_PERM_DEFAULTS_BY_ROLE[role]||_PERM_DEFAULTS_BY_ROLE.staff;
+    document.querySelectorAll('.ue-perm-cb').forEach(cb=>{cb.checked=!!pdef[cb.value];});
+  }
 }
 async function saveUser(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
@@ -5841,8 +6008,15 @@ async function saveUser(){
     const admins=users.filter(u=>u.role==='admin'&&u.active!==false);
     if(admins.length<=1){alert('Cannot disable or demote the only Admin');return;}
   }
+  const _useCustom=document.getElementById('ue-custom-access').checked;
+  const tabAccess=_useCustom?Array.from(document.querySelectorAll('.ue-tab-cb:checked')).map(cb=>cb.value):null;
+  let perms=null;
+  if(_useCustom){
+    perms={};
+    document.querySelectorAll('.ue-perm-cb').forEach(cb=>{perms[cb.value]=cb.checked;});
+  }
   const data={
-    id:id||Date.now().toString(),name,uid,role,staffId,active,
+    id:id||Date.now().toString(),name,uid,role,staffId,active,tabAccess,perms,
     email:(document.getElementById('ue-email').value||'').trim().toLowerCase(),
     created:existing?existing.created:td(),
     pinH:pin?await ppHash(uid,pin):(existing?existing.pinH:'')
@@ -5900,12 +6074,12 @@ try{
      though nothing was wrong with renderCredits itself. */
 
   try{
-  /* block restricted tabs for staff */
+  /* block restricted tabs — now checks per-user custom access first,
+     falling back to role defaults when no custom list is set */
   const _oShowTab=window.showTab;
   window.showTab=function(n,btn){
     ppRefresh();
-    if(ppIsStaff()&&_STAFF_BLOCKED_TABS.includes(n)){toast('🔒 Access restricted');return;}
-    if(ppIsTrainer()&&_TRAINER_BLOCKED_TABS.includes(n)){toast('🔒 Access restricted');return;}
+    if(PPS&&PPS.role!=='admin'&&!_effectiveTabs(PPS).includes(n)){toast('🔒 Access restricted');return;}
     return _oShowTab.apply(this,arguments);
   };
   }catch(_e){}
@@ -5928,7 +6102,8 @@ try{
     if(ppIsStaff()){
       document.querySelectorAll('#dash-content .dash-card').forEach(c=>{
         const t=c.textContent||'';
-        if(t.indexOf('Membership Revenue')>-1||t.indexOf('Payment Due')>-1)c.remove();
+        if(t.indexOf('Membership Revenue')>-1&&!_hasPerm('dash_revenue'))c.remove();
+        if(t.indexOf('Trial Conversion')>-1&&!_hasPerm('dash_conversion'))c.remove();
       });
     }
     return r;
@@ -5947,7 +6122,8 @@ try{
   window.renderStaff=function(){
     ppRefresh();
     if(!ppIsStaff()&&!ppIsTrainer())return _oStaff.apply(this,arguments);
-    const _canMark=ppIsStaff();
+    const _canMark=ppIsStaff()&&(typeof _hasPerm!=='function'||_hasPerm('staff_mark_own'));
+    const _viewAllStaff=typeof _hasPerm==='function'&&_hasPerm('staff_view_all');
     const staff=ld('pp_staff',[]);
     const now=new Date();
     if(!_staffM)_staffM={y:now.getFullYear(),m:now.getMonth()};
@@ -5957,8 +6133,12 @@ try{
     const me=ppMyStaffId()?staff.find(s=>s.id===ppMyStaffId()):null;
     const vendors=_canMark?staff.filter(s=>/water/i.test((s.role||'')+' '+(s.fname||'')+' '+(s.lname||''))):[];
     const visible=[];
-    if(me)visible.push(me);
-    vendors.forEach(v=>{if(!me||v.id!==me.id)visible.push(v);});
+    if(_viewAllStaff){
+      staff.forEach(s=>visible.push(s));
+    }else{
+      if(me)visible.push(me);
+      vendors.forEach(v=>{if(!me||v.id!==me.id)visible.push(v);});
+    }
     const dim=new Date(y,m+1,0).getDate();
     const today=new Date();today.setHours(0,0,0,0);
     let html='';
@@ -6033,8 +6213,9 @@ try{
     const container=document.getElementById('bills-list');
     if(!container)return;
     const sid=ppMyStaffId();
-    const tasks=ld('pp_todos',[]).filter(t=>sid&&t.assignedTo===sid);
-    container.innerHTML=`<div class="div-section">My Assigned Tasks</div>`+(tasks.length?tasks.map(t=>`
+    const _viewAll=typeof _hasPerm==='function'&&_hasPerm('tasks_view_all');
+    const tasks=_viewAll?ld('pp_todos',[]):ld('pp_todos',[]).filter(t=>sid&&t.assignedTo===sid);
+    container.innerHTML=`<div class="div-section">${_viewAll?'All Tasks':'My Assigned Tasks'}</div>`+(tasks.length?tasks.map(t=>`
       <div class="card" style="margin-bottom:8px;${t.done?'opacity:0.55;':''}">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
           <div style="flex:1;">
@@ -6050,11 +6231,29 @@ try{
 
   try{
   /* block financial/edit modals for staff (safety net) */
-  ['openCashEntry','openEditPayment','openAddStaff','openAddBillTodo','openStaffAdv','openManagePlans','openAddReferralBonus','exportPPData','importPPData','resetAllData'].forEach(fn=>{
+  ['openCashEntry','exportPPData','importPPData','resetAllData'].forEach(fn=>{
     const o=window[fn];
     if(typeof o!=='function')return;
     window[fn]=function(){
       if(ppIsStaff()||ppIsTrainer()){toast('🔒 Admin only');return;}
+      return o.apply(this,arguments);
+    };
+  });
+  ['openEditPayment','openAddStaff','openStaffAdv','openManagePlans','openAddReferralBonus'].forEach(fn=>{
+    const o=window[fn];
+    if(typeof o!=='function')return;
+    window[fn]=function(){
+      if(ppIsTrainer()){toast('🔒 Admin only');return;}
+      if(ppIsStaff()&&!(typeof _hasPerm==='function'&&_hasPerm('staff_manage'))){toast('🔒 Admin only');return;}
+      return o.apply(this,arguments);
+    };
+  });
+  ['openAddBillTodo'].forEach(fn=>{
+    const o=window[fn];
+    if(typeof o!=='function')return;
+    window[fn]=function(){
+      if(ppIsTrainer()){toast('🔒 Admin only');return;}
+      if(ppIsStaff()&&!(typeof _hasPerm==='function'&&_hasPerm('tasks_manage'))){toast('🔒 Admin only');return;}
       return o.apply(this,arguments);
     };
   });
@@ -6065,7 +6264,7 @@ try{
   (function(){
     const oEdit=window.openEditClient;
     if(typeof oEdit==='function')window.openEditClient=function(){
-      if(ppIsStaff()){toast('🔒 Only admin can edit a saved member');return;}
+      if(ppIsStaff()&&!_hasPerm('client_edit')){toast('🔒 Only admin can edit a saved member');return;}
       return oEdit.apply(this,arguments);
     };
     const oAssign=window.openAssignMembership;
@@ -6397,10 +6596,12 @@ function _applyComp(mem,classes,cash){
   <div class="md" style="max-height:92vh;overflow-y:auto;">
     <button class="mc2" onclick="closeM('m-reports')">✕</button>
     <h2>📊 Business Reports</h2>
-    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px;">
-      <button class="btn btn-outline btn-sm" onclick="chRepM(-1)">&#9664;</button>
-      <div id="rep-ml" style="font-size:15px;font-weight:700;color:var(--gold);min-width:130px;text-align:center;"></div>
-      <button class="btn btn-outline btn-sm" onclick="chRepM(1)">&#9654;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
+      <div id="rep-ml" style="font-size:15px;font-weight:700;color:var(--gold);min-width:130px;"></div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-outline btn-sm" onclick="chRepM(-1)" style="padding:8px 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
+        <button class="btn btn-outline btn-sm" onclick="chRepM(1)" style="padding:8px 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
+      </div>
     </div>
     <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-bottom:12px;" onclick="printPnL()">🖨 Print / Save PDF — P&amp;L Statement</button>
     <div id="rep-content"></div>
@@ -6443,6 +6644,20 @@ function _bar(label,val,max,color){
     <div style="height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:4px;"></div></div>
   </div>`;
 }
+function toggleRepSec(id){
+  var b=document.getElementById('rsb-'+id);
+  var a=document.getElementById('rsa-'+id);
+  if(!b)return;var open=b.style.display!=='none';
+  b.style.display=open?'none':'';
+  if(a)a.textContent=open?'▶':'▼';
+}
+function _repDefaultCollapse(){
+  ['pnl','trial','comp','demand','arpm'].forEach(function(id){
+    var b=document.getElementById('rsb-'+id);
+    var a=document.getElementById('rsa-'+id);
+    if(b){b.style.display='none';if(a)a.textContent='▶';}
+  });
+}
 function renderReports(){
   const {y,m}=_repM;
   const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -6462,7 +6677,7 @@ function renderReports(){
   const byCat=arr=>{const o={};arr.forEach(e=>{const k=e.cat||'Other';o[k]=(o[k]||0)+e.amt;});return Object.entries(o).sort((a,b)=>b[1]-a[1]);};
   const revCats=byCat(rev),expCats=byCat(exp);
   const maxRev=revCats.length?revCats[0][1]:0,maxExp=expCats.length?expCats[0][1]:0;
-  let html=`<div class="div-section">💰 Profit &amp; Loss (Operating)</div>
+  let html=`<div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('pnl')"><span>💰 Profit &amp; Loss (Operating)</span><span id="rsa-pnl" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-pnl" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:14px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--green);">₹${revTotal.toLocaleString('en-IN')}</div><div style="font-size:11px;color:var(--text2);">Revenue</div></div>
@@ -6496,7 +6711,7 @@ function renderReports(){
      cohort removes the contradiction entirely. */
   const convMCohort=trialsM.filter(c=>c.convertedFrom==='trial');
   const pctM=trialsM.length?Math.round(convMCohort.length/trialsM.length*100):0;
-  html+=`<div class="div-section">🎯 Trial Conversion</div>
+  html+=`</div><div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('trial')"><span>🎯 Trial Conversion</span><span id="rsa-trial" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-trial" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:12px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--text);">${trialsM.length}</div><div style="font-size:11px;color:var(--text2);">Trials (month)</div></div>
@@ -6530,7 +6745,7 @@ function renderReports(){
     _compCash.push({name:cl?(cl.fname+' '+(cl.lname||'')).trim():(e.desc||'—'),amt:e.amt,src:fmt(e.date)});
     _compCashTotal+=e.amt;
   });
-  html+=`<div class="div-section">🎁 Complimentary</div>
+  html+=`</div><div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('comp')"><span>🎁 Complimentary</span><span id="rsa-comp" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-comp" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;margin-bottom:12px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--gold);">${_compClassTotal}</div><div style="font-size:11px;color:var(--text2);">Complimentary Classes</div></div>
@@ -6562,7 +6777,7 @@ function renderReports(){
   const maxSlot=Math.max(0,...slotRows.map(r=>r[1]));
   const peakDay=dayRows.slice().sort((a,b)=>b[1]-a[1])[0];
   const peakSlot=slotRows.slice().sort((a,b)=>b[1]-a[1])[0];
-  html+=`<div class="div-section">📈 Session Demand</div>
+  html+=`</div><div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('demand')"><span>📈 Session Demand</span><span id="rsa-demand" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-demand" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:14px;">
       ${totalBk?`
       <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">${totalBk} bookings this month${peakDay?' • Peak day: <b style="color:var(--gold)">'+peakDay[0]+'</b>':''}${peakSlot?' • Peak slot: <b style="color:var(--gold)">'+peakSlot[0]+'</b>':''}</div>
@@ -6577,15 +6792,16 @@ function renderReports(){
   /* ===== D4: Average Revenue Per Member ===== */
   const activeMembers=clients.filter(c=>!c.archived&&mems[c.id]&&getMembershipStatus(mems[c.id],c.id)!=='expired'&&mems[c.id].plan!=='trial');
   const arpm=activeMembers.length?Math.round(revTotal/activeMembers.length):0;
-  html+=`<div class="div-section">👤 Average Revenue / Member</div>
+  html+=`</div><div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('arpm')"><span>👤 Average Revenue / Member</span><span id="rsa-arpm" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-arpm" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:6px;">
       <div style="text-align:center;">
         <div style="font-family:'Playfair Display',serif;font-size:30px;color:var(--gold);">₹${arpm.toLocaleString('en-IN')}</div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px;">₹${revTotal.toLocaleString('en-IN')} revenue ÷ ${activeMembers.length} active member${activeMembers.length!==1?'s':''} (${MN[m]})</div>
       </div>
-    </div>`;
-
+    </div></div></div>`;
+  
   document.getElementById('rep-content').innerHTML=html;
+  _repDefaultCollapse();
 }
 </script>
 
@@ -8277,8 +8493,6 @@ closeM=function(id,fromPop){
 window._tabBackStack=[];
 const _origShowTab=showTab;
 showTab=function(n){
-  const _fab=document.getElementById('cash-fab');
-  if(_fab)_fab.style.display=(n==='cash')?'flex':'none';
   const _from=_activeTab;
   if(_from&&_from!==n){
     window._tabBackStack.push(_from);
@@ -8915,6 +9129,16 @@ function _ufSaveDates(){
 
 /* ---- PLAN ACTIONS ---- */
 function ufPlanAction(action){
+  /* Change / Freeze / Extend require owner judgment (used-vs-unused
+     calculation, case-by-case discretion) — Renew is the one trouble-free
+     action a receptionist can do on her own. */
+  if(typeof ppIsStaff==='function'&&ppIsStaff()){
+    const _permKey={change:'plan_change',freeze:'plan_freeze',extend:'plan_extend'}[action];
+    if(_permKey&&!_hasPerm(_permKey)){
+      toast('🔒 '+({change:'Plan change',freeze:'Freeze',extend:'Extend'}[action])+' needs admin — please ask');
+      return;
+    }
+  }
   const cid=document.getElementById('uf-cid').value;
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m)return;
@@ -9521,7 +9745,7 @@ function ufSavePayment(){
 
     <!-- ===== SECTION 1: PROFILE ===== -->
     <div class="uf-section" id="uf-sec-profile">
-      <div class="uf-sec-hdr" style="background:rgba(90,130,200,0.14);border-left:3px solid #5a82c8;" onclick="ufToggle('profile')">
+      <div class="uf-sec-hdr" style="background:rgba(90,130,200,0.14);border-left:3px solid #5a82c8;" onclick="if(event.target.closest('a'))return;ufToggle('profile')">
         <span>👤 Profile</span>
         <span id="uf-profile-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
         <span id="uf-profile-arrow" style="font-size:12px;margin-left:auto;">▼</span>
