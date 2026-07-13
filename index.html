@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143h</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143i</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1467,16 +1467,16 @@ function printClientList(){
   const q=(document.getElementById('client-search')||{}).value||'';
   const _q=q.trim().toLowerCase();
   const filtered=clients.filter(c=>{
-    if(c.archived&&_clientFilter!=='inactive')return false;
+    if(c.archived&&_clientFilter2!=='inactive')return false;
     const mem=mems[c.id];
     const st=mem?getMembershipStatus(mem,c.id):'none';
-    if(_clientFilter==='active'&&!(st==='active'||st==='expiring'))return false;
-    if(_clientFilter==='expiring'&&st!=='expiring')return false;
-    if(_clientFilter==='expired'&&st!=='expired')return false;
-    if(_clientFilter==='trial'&&!c.isTrial)return false;
-    if(_clientFilter==='converted'){const hasTrial=c.trialDate||c.isTrial;if(!(hasTrial&&mem&&mem.plan&&mem.plan!=='trial'))return false;}
-    if(_clientFilter==='due'){const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);if(due<=0)return false;}
-    if(_clientFilter==='inactive'&&!c.archived)return false;
+    if(_clientFilter2==='active'&&!(st==='active'||st==='expiring'))return false;
+    if(_clientFilter2==='expiring'&&st!=='expiring')return false;
+    if(_clientFilter2==='expired'&&st!=='expired')return false;
+    if(_clientFilter2==='trial'&&!c.isTrial)return false;
+    if(_clientFilter2==='converted'){const hasTrial=c.trialDate||c.isTrial;if(!(hasTrial&&mem&&mem.plan&&mem.plan!=='trial'))return false;}
+    if(_clientFilter2==='due'){const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);if(due<=0)return false;}
+    if(_clientFilter2==='inactive'&&!c.archived)return false;
     if(_q){
       const hay=[c.fname,c.lname,c.memNo,c.phone,c.email].join(' ').toLowerCase();
       if(!hay.includes(_q))return false;
@@ -1489,14 +1489,14 @@ function printClientList(){
     const mem=mems[c.id];
     const st=mem?getMembershipStatus(mem,c.id):'none';
     const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
-    const planLbl=mem&&mem.plan?(mem.plan==='unlimited'?'Unlimited':(getSessionsLeft(mem,c.id)+'/'+((mem.sessions||0)+(mem.bonus||0))+' sessions')):'—';
+    const _totSess=(mem&&mem.sessions||0)+(mem&&mem.bonus||0);const _isUnl=mem&&(mem.plan==='unlimited'||_totSess>=999);const planLbl=mem&&mem.plan?(_isUnl?'Unlimited':(getSessionsLeft(mem,c.id)+'/'+_totSess+' sessions')):'—';
     return '<tr><td>'+_esc(c.memNo||'')+'</td><td>'+_esc(c.fname+' '+(c.lname||''))+'</td>'
       +'<td>'+_esc(_fmtPhone(c.phone)||'')+'</td><td>'+_esc(planLbl)+'</td>'
       +'<td>'+_esc(c.isTrial?'Trial':badgeLabel(st))+'</td>'
       +'<td style="text-align:right;color:'+(due>0?'#b00':'#2e7d32')+';">'+(due>0?'₹'+due.toLocaleString('en-IN'):due<0?'₹'+Math.abs(due).toLocaleString('en-IN')+' adv':'—')+'</td></tr>';
   }).join('');
-  const filterLabel=_clientFilter==='all'?'All Clients':_clientFilter.charAt(0).toUpperCase()+_clientFilter.slice(1);
-  const html='<div style="background:#fff;color:#111;border-radius:10px;padding:16px;font-family:\'Jost\',Arial,sans-serif;" id="clientlist-print-body">'
+  const filterLabel=_clientFilter2==='all'?'All Clients':_clientFilter2.charAt(0).toUpperCase()+_clientFilter2.slice(1);
+  const html='<div style="background:#fff;color:#111;border-radius:10px;padding:16px;font-family:\'Jost\',Arial,sans-serif;"min-width:520px;"id="clientlist-print-body">'
     +'<div style="text-align:center;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:10px;">'
     +'<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:18px;letter-spacing:3px;">'+getStudio().name+'</div>'
     +'<div style="font-size:12px;color:#555;">Client List — '+filterLabel+'</div>'
@@ -1506,7 +1506,7 @@ function printClientList(){
     +rows.replace(/<td>/g,'<td style="border:1px solid #bbb;padding:4px 6px;">')
     +'</table></div>'
     +'<button class="sb2" style="margin-top:12px;" onclick="ppPrintHTML(document.getElementById(\'clientlist-print-body\').outerHTML,\'Client List\')">🖨 Print / Save PDF</button>';
-  showConfirm('📋','Client List Preview',html,[{label:'Close',color:'var(--gold)',action:null}]);
+  showConfirm('📋','Client List Preview','<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'+html+'</div>',[{label:'Close',color:'var(--gold)',action:null}]);
 }
 function getMembershipStatus(mem,cid){
   if(!mem)return 'none';
