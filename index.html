@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143e</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143h</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -681,6 +681,7 @@ try{
   <div style="display:flex;align-items:center;justify-content:center;padding:0 14px 6px;gap:8px;">
     <span class="btn btn-outline btn-sm" style="margin:0;pointer-events:none;">👥 Clients</span>
     <button class="btn btn-outline btn-sm" onclick="openAttendanceLookup()" title="Look up a member's attendance and validity" style="margin:0;">🔍 Attendance</button>
+    <button class="btn btn-outline btn-sm" onclick="printClientList()" title="Print / Save PDF of the current list" style="margin:0;">🖨 Print</button>
   </div>
   <!-- #5 sticky: from the plan/time dropdowns down to the search bar -->
   <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding-bottom:4px;">
@@ -1459,6 +1460,53 @@ function getSessionsLeft(mem,cid){
      adding bonus again wrongly gave 16). */
   const sessTotal=mem.plan==='trial'?1:(mem.sessions!=null?(mem.sessions+(mem.bonus||0)):(mem.sessionsTotal||0));
   return Math.max(0,sessTotal-sessUsed);
+}
+function printClientList(){
+  const clients=ld('pp_clients',[]);
+  const mems=ld('pp_memberships',{});
+  const q=(document.getElementById('client-search')||{}).value||'';
+  const _q=q.trim().toLowerCase();
+  const filtered=clients.filter(c=>{
+    if(c.archived&&_clientFilter!=='inactive')return false;
+    const mem=mems[c.id];
+    const st=mem?getMembershipStatus(mem,c.id):'none';
+    if(_clientFilter==='active'&&!(st==='active'||st==='expiring'))return false;
+    if(_clientFilter==='expiring'&&st!=='expiring')return false;
+    if(_clientFilter==='expired'&&st!=='expired')return false;
+    if(_clientFilter==='trial'&&!c.isTrial)return false;
+    if(_clientFilter==='converted'){const hasTrial=c.trialDate||c.isTrial;if(!(hasTrial&&mem&&mem.plan&&mem.plan!=='trial'))return false;}
+    if(_clientFilter==='due'){const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);if(due<=0)return false;}
+    if(_clientFilter==='inactive'&&!c.archived)return false;
+    if(_q){
+      const hay=[c.fname,c.lname,c.memNo,c.phone,c.email].join(' ').toLowerCase();
+      if(!hay.includes(_q))return false;
+    }
+    return true;
+  });
+  if(!filtered.length){toast('No clients match the current filter');return;}
+  const badgeLabel=(st)=>({active:'Active',expiring:'Ends Soon',expired:'Ended',none:'—'}[st]||'—');
+  const rows=filtered.map(c=>{
+    const mem=mems[c.id];
+    const st=mem?getMembershipStatus(mem,c.id):'none';
+    const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
+    const planLbl=mem&&mem.plan?(mem.plan==='unlimited'?'Unlimited':(getSessionsLeft(mem,c.id)+'/'+((mem.sessions||0)+(mem.bonus||0))+' sessions')):'—';
+    return '<tr><td>'+_esc(c.memNo||'')+'</td><td>'+_esc(c.fname+' '+(c.lname||''))+'</td>'
+      +'<td>'+_esc(_fmtPhone(c.phone)||'')+'</td><td>'+_esc(planLbl)+'</td>'
+      +'<td>'+_esc(c.isTrial?'Trial':badgeLabel(st))+'</td>'
+      +'<td style="text-align:right;color:'+(due>0?'#b00':'#2e7d32')+';">'+(due>0?'₹'+due.toLocaleString('en-IN'):due<0?'₹'+Math.abs(due).toLocaleString('en-IN')+' adv':'—')+'</td></tr>';
+  }).join('');
+  const filterLabel=_clientFilter==='all'?'All Clients':_clientFilter.charAt(0).toUpperCase()+_clientFilter.slice(1);
+  const html='<div style="background:#fff;color:#111;border-radius:10px;padding:16px;font-family:\'Jost\',Arial,sans-serif;" id="clientlist-print-body">'
+    +'<div style="text-align:center;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:10px;">'
+    +'<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:18px;letter-spacing:3px;">'+getStudio().name+'</div>'
+    +'<div style="font-size:12px;color:#555;">Client List — '+filterLabel+'</div>'
+    +'<div style="font-size:11px;color:#777;margin-top:3px;">'+filtered.length+' client(s) &bull; '+new Date().toLocaleDateString('en-IN')+'</div></div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:11px;">'
+    +'<tr style="background:#f3edd9;"><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">ID</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Name</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Phone</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Plan</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:left;">Status</th><th style="border:1px solid #bbb;padding:4px 6px;text-align:right;">Due</th></tr>'
+    +rows.replace(/<td>/g,'<td style="border:1px solid #bbb;padding:4px 6px;">')
+    +'</table></div>'
+    +'<button class="sb2" style="margin-top:12px;" onclick="ppPrintHTML(document.getElementById(\'clientlist-print-body\').outerHTML,\'Client List\')">🖨 Print / Save PDF</button>';
+  showConfirm('📋','Client List Preview',html,[{label:'Close',color:'var(--gold)',action:null}]);
 }
 function getMembershipStatus(mem,cid){
   if(!mem)return 'none';
@@ -6450,14 +6498,13 @@ function toggleRepSec(id){
   var a=document.getElementById('rsa-'+id);
   if(!b)return;var open=b.style.display!=='none';
   b.style.display=open?'none':'';
-  if(a)a.textContent=open?'\u25B6':'\u25BC';
+  if(a)a.textContent=open?'▶':'▼';
 }
-/* All report sections start collapsed — open only on demand */
 function _repDefaultCollapse(){
-  ['pnl','trial','comp','demand','arpm'].forEach(id=>{
-    const b=document.getElementById('rsb-'+id);
-    const a=document.getElementById('rsa-'+id);
-    if(b){b.style.display='none';if(a)a.textContent='\u25B6';}
+  ['pnl','trial','comp','demand','arpm'].forEach(function(id){
+    var b=document.getElementById('rsb-'+id);
+    var a=document.getElementById('rsa-'+id);
+    if(b){b.style.display='none';if(a)a.textContent='▶';}
   });
 }
 function renderReports(){
@@ -6479,7 +6526,7 @@ function renderReports(){
   const byCat=arr=>{const o={};arr.forEach(e=>{const k=e.cat||'Other';o[k]=(o[k]||0)+e.amt;});return Object.entries(o).sort((a,b)=>b[1]-a[1]);};
   const revCats=byCat(rev),expCats=byCat(exp);
   const maxRev=revCats.length?revCats[0][1]:0,maxExp=expCats.length?expCats[0][1]:0;
-  let html=`<div class="div-section" onclick="toggleRepSec('pnl')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>💰 Profit &amp; Loss (Operating)</span><span id="rsa-pnl" style="font-size:11px;color:var(--text3);">&#9660;</span></div><div id="rsb-pnl">
+  let html=`<div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('pnl')"><span>💰 Profit &amp; Loss (Operating)</span><span id="rsa-pnl" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-pnl" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:14px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--green);">₹${revTotal.toLocaleString('en-IN')}</div><div style="font-size:11px;color:var(--text2);">Revenue</div></div>
@@ -6513,7 +6560,7 @@ function renderReports(){
      cohort removes the contradiction entirely. */
   const convMCohort=trialsM.filter(c=>c.convertedFrom==='trial');
   const pctM=trialsM.length?Math.round(convMCohort.length/trialsM.length*100):0;
-  html+=`<div class="div-section" onclick="toggleRepSec('trial')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>🎯 Trial Conversion</span><span id="rsa-trial" style="font-size:11px;color:var(--text3);">&#9660;</span></div></div><div id="rsb-trial">
+  html+=`</div><div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('trial')"><span>🎯 Trial Conversion</span><span id="rsa-trial" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-trial" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:12px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--text);">${trialsM.length}</div><div style="font-size:11px;color:var(--text2);">Trials (month)</div></div>
@@ -6547,7 +6594,7 @@ function renderReports(){
     _compCash.push({name:cl?(cl.fname+' '+(cl.lname||'')).trim():(e.desc||'—'),amt:e.amt,src:fmt(e.date)});
     _compCashTotal+=e.amt;
   });
-  html+=`<div class="div-section" onclick="toggleRepSec('comp')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>🎁 Complimentary</span><span id="rsa-comp" style="font-size:11px;color:var(--text3);">&#9660;</span></div></div><div id="rsb-comp">
+  html+=`</div><div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('comp')"><span>🎁 Complimentary</span><span id="rsa-comp" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-comp" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;margin-bottom:12px;">
         <div><div style="font-size:17px;font-weight:800;color:var(--gold);">${_compClassTotal}</div><div style="font-size:11px;color:var(--text2);">Complimentary Classes</div></div>
@@ -6579,7 +6626,7 @@ function renderReports(){
   const maxSlot=Math.max(0,...slotRows.map(r=>r[1]));
   const peakDay=dayRows.slice().sort((a,b)=>b[1]-a[1])[0];
   const peakSlot=slotRows.slice().sort((a,b)=>b[1]-a[1])[0];
-  html+=`<div class="div-section" onclick="toggleRepSec('demand')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>📈 Session Demand</span><span id="rsa-demand" style="font-size:11px;color:var(--text3);">&#9660;</span></div></div><div id="rsb-demand">
+  html+=`</div><div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('demand')"><span>📈 Session Demand</span><span id="rsa-demand" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-demand" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:14px;">
       ${totalBk?`
       <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">${totalBk} bookings this month${peakDay?' • Peak day: <b style="color:var(--gold)">'+peakDay[0]+'</b>':''}${peakSlot?' • Peak slot: <b style="color:var(--gold)">'+peakSlot[0]+'</b>':''}</div>
@@ -6594,13 +6641,14 @@ function renderReports(){
   /* ===== D4: Average Revenue Per Member ===== */
   const activeMembers=clients.filter(c=>!c.archived&&mems[c.id]&&getMembershipStatus(mems[c.id],c.id)!=='expired'&&mems[c.id].plan!=='trial');
   const arpm=activeMembers.length?Math.round(revTotal/activeMembers.length):0;
-  html+=`<div class="div-section" onclick="toggleRepSec('arpm')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>👤 Average Revenue / Member</span><span id="rsa-arpm" style="font-size:11px;color:var(--text3);">&#9660;</span></div></div><div id="rsb-arpm">
+  html+=`</div><div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('arpm')"><span>👤 Average Revenue / Member</span><span id="rsa-arpm" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-arpm" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:6px;">
       <div style="text-align:center;">
         <div style="font-family:'Playfair Display',serif;font-size:30px;color:var(--gold);">₹${arpm.toLocaleString('en-IN')}</div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px;">₹${revTotal.toLocaleString('en-IN')} revenue ÷ ${activeMembers.length} active member${activeMembers.length!==1?'s':''} (${MN[m]})</div>
       </div>
-    </div></div>`;
+    </div></div></div>`;
+  
   document.getElementById('rep-content').innerHTML=html;
   _repDefaultCollapse();
 }
@@ -9538,7 +9586,7 @@ function ufSavePayment(){
 
     <!-- ===== SECTION 1: PROFILE ===== -->
     <div class="uf-section" id="uf-sec-profile">
-      <div class="uf-sec-hdr" style="background:rgba(90,130,200,0.14);border-left:3px solid #5a82c8;" onclick="ufToggle('profile')">
+      <div class="uf-sec-hdr" style="background:rgba(90,130,200,0.14);border-left:3px solid #5a82c8;" onclick="if(event.target.closest('a'))return;ufToggle('profile')">
         <span>👤 Profile</span>
         <span id="uf-profile-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
         <span id="uf-profile-arrow" style="font-size:12px;margin-left:auto;">▼</span>
