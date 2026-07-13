@@ -653,7 +653,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143k</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143l</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -765,8 +765,8 @@ try{
           <input type="month" id="staff-month-pick" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;-webkit-appearance:none;" onchange="pickStaffMonth(this.value)"/>
         </div>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)" style="padding:6px 14px;">◀</button>
-          <button class="btn btn-outline btn-sm" onclick="chStaffM(1)" style="padding:6px 14px;">▶</button>
+          <button class="btn btn-outline btn-sm" onclick="chStaffM(-1)" style="padding:8px 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
+          <button class="btn btn-outline btn-sm" onclick="chStaffM(1)" style="padding:8px 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
         </div>
       </div>
       <button class="btn btn-outline btn-sm" id="staff-print-btn" onclick="printStaffAtt()" title="Print salary & attendance" style="flex-shrink:0;">🖨</button>
@@ -3240,13 +3240,13 @@ function _updateFloatingNav(n){
   box.classList.remove('show');box.innerHTML=''; /* left box unused */
   if(n==='schedule'){
     /* Schedule: ◀▶ day nav + ▲▼ scroll stacked on right */
-    boxR.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day">◀</button>
-      <button class="float-nav-btn" onclick="chDay(1)" title="Next day">▶</button>
-      <button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up">▲</button>
-      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down">▼</button>`;
+    boxR.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
+      <button class="float-nav-btn" onclick="chDay(1)" title="Next day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="6"/><polyline points="6 11 12 5 18 11"/></svg></button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="18"/><polyline points="6 13 12 19 18 13"/></svg></button>`;
   }else{
-    boxR.innerHTML=`<button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up">▲</button>
-      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down">▼</button>`;
+    boxR.innerHTML=`<button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="6"/><polyline points="6 11 12 5 18 11"/></svg></button>
+      <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="18"/><polyline points="6 13 12 19 18 13"/></svg></button>`;
   }
   boxR.classList.add('show');
 }
@@ -6456,8 +6456,8 @@ function _applyComp(mem,classes,cash){
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
       <div id="rep-ml" style="font-size:15px;font-weight:700;color:var(--gold);min-width:130px;"></div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-outline btn-sm" onclick="chRepM(-1)" style="padding:6px 14px;">◀</button>
-        <button class="btn btn-outline btn-sm" onclick="chRepM(1)" style="padding:6px 14px;">▶</button>
+        <button class="btn btn-outline btn-sm" onclick="chRepM(-1)" style="padding:8px 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
+        <button class="btn btn-outline btn-sm" onclick="chRepM(1)" style="padding:8px 14px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
       </div>
     </div>
     <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-bottom:12px;" onclick="printPnL()">🖨 Print / Save PDF — P&amp;L Statement</button>
