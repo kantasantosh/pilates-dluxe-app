@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144q</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144s</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -3127,6 +3127,7 @@ function markFollowUpDone(id){
   toast('✓ Follow-up marked done');try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
 }
 function saveFollowUp(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','followup','edit')){toast('🔒 View-only access');return;}
   const cid=document.getElementById('fu-cid').value;
   const note=document.getElementById('fu-note').value.trim();
   const remind=document.getElementById('fu-remind').value;
@@ -5236,7 +5237,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144q</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144s</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -8701,6 +8702,7 @@ function _ufPopulateProfile(c){
 }
 
 function ufSaveProfile(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','profile','edit')){toast('🔒 View-only access');return;}
   const cid=document.getElementById('uf-cid').value;
   const fname=document.getElementById('uf-fname').value.trim();
   if(!fname){alert('First name is required');return;}
@@ -9425,6 +9427,8 @@ function ufCalcChange(){
 
 /* ---- FREEZE ---- */
 function ufDoFreeze(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const freezeFrom=document.getElementById('uf-freeze-from').value;
   const returnDate=document.getElementById('uf-freeze-return').value;
@@ -9455,6 +9459,8 @@ function ufDoFreeze(){
 
 /* ---- RESUME FROM FREEZE ---- */
 function ufDoResume(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const returnDate=document.getElementById('uf-resume-date').value;
   if(!returnDate){alert('Please enter the return date');return;}
@@ -9488,6 +9494,8 @@ function ufDoResume(){
 
 /* ---- EXTEND ---- */
 function ufDoExtend(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const days=parseInt(document.getElementById('uf-extend-days').value)||0;
   const reason=document.getElementById('uf-extend-reason').value.trim();
@@ -9511,6 +9519,8 @@ function ufDoExtend(){
 
 /* ---- RENEW (reuses ufAssignPlan entirely — no separate calculation) ---- */
 function ufDoRenew(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m)return;
@@ -9622,6 +9632,8 @@ function ufAssignPlan(){
 
 /* ---- CHANGE PLAN (upgrade/downgrade) ---- */
 function ufDoChange(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const newPid=document.getElementById('uf-change-plan').value;
   const startDate=document.getElementById('uf-change-start').value;
