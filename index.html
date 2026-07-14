@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144l</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144n</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -3255,7 +3255,7 @@ function _updateFloatingNav(n){
   const PLUS_BTN='<button class="float-nav-btn" onclick="fabAction()" title="Add"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>';
   if(n==='schedule'){
     /* Schedule: ◀▶ day nav + ▲▼ scroll stacked on right */
-    boxR.innerHTML=PLUS_BTN+`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
+    boxR.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
       <button class="float-nav-btn" onclick="chDay(1)" title="Next day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
       <button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="6"/><polyline points="6 11 12 5 18 11"/></svg></button>
       <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="18"/><polyline points="6 13 12 19 18 13"/></svg></button>`;
@@ -5601,10 +5601,16 @@ function _secAccess(u,sec){
   if(!u)return 'no';
   if(u.role==='admin')return 'full';
   if(u.perm2&&u.perm2[sec])return u.perm2[sec];
-  /* fall back to the old system for anyone not yet migrated to perm2 */
-  const tabs=_effectiveTabs(u);
-  const tabKey={dashboard:'dashboard',clients:'clients',schedule:'schedule',cash:'cash',tns:'tns',about:'credits'}[sec];
-  return tabs.includes(tabKey)?'full':'no';
+  /* Only trust the old "tab visible = full access" fallback if this user
+     was genuinely configured under the OLD checkbox system (a real saved
+     tabAccess array). A brand-new, never-configured non-admin user must
+     default SAFE — restricted, not silently full — until an admin
+     explicitly sets each section via the new UI. */
+  if(Array.isArray(u.tabAccess)){
+    const tabKey={dashboard:'dashboard',clients:'clients',schedule:'schedule',cash:'cash',tns:'tns',about:'credits'}[sec];
+    return u.tabAccess.includes(tabKey)?'full':'no';
+  }
+  return 'restricted';
 }
 function _itemTier(u,sec,item){
   const acc=_secAccess(u,sec);
@@ -6047,10 +6053,10 @@ function _renderSecRows(u){
     const reg=_PERM_REGISTRY[sec];
     return '<div style="background:var(--surface2);border-radius:var(--rsm);padding:8px 10px;margin-bottom:6px;">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-      +'<span style="font-size:13px;color:var(--text);">'+reg.label+'</span>'
+      +'<span style="font-size:13px;color:var(--text);cursor:pointer;" onclick="_ueSecCollapse(\''+sec+'\')">'+reg.label+' <span id="ue-chev-'+sec+'" style="font-size:10px;color:var(--text3);">▶</span></span>'
       +'<select class="ue-sec-select" data-sec="'+sec+'" onchange="_ueSecChanged(this)" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:3px 6px;">'+_secOptions(acc)+'</select>'
       +'</div>'
-      +'<div class="ue-item-list" id="ue-items-'+sec+'" style="display:'+(acc==='restricted'?'block':'none')+';margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
+      +'<div class="ue-item-list" id="ue-items-'+sec+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
       +Object.keys(reg.items).map(it=>{
         const item=reg.items[it];
         const curTier=(u&&u.perm2items&&u.perm2items[sec]&&u.perm2items[sec][it])||(item.type==='action'?'edit':'view');
@@ -6067,8 +6073,15 @@ function _renderSecRows(u){
 }
 function _ueSecChanged(sel){
   const sec=sel.dataset.sec;
+  if(sel.value==='restricted')_ueSecCollapse(sec,true); /* auto-open when switched to Restricted */
+}
+function _ueSecCollapse(sec,forceOpen){
   const box=document.getElementById('ue-items-'+sec);
-  if(box)box.style.display=sel.value==='restricted'?'block':'none';
+  const chev=document.getElementById('ue-chev-'+sec);
+  if(!box)return;
+  const open=forceOpen||box.style.display==='none';
+  box.style.display=open?'block':'none';
+  if(chev)chev.textContent=open?'▼':'▶';
 }
 async function saveUser(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
