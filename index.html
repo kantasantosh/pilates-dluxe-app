@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144c</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144l</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2204,6 +2204,7 @@ function _crefPick(id,name,memNo){
   document.getElementById('c-ref-suggest').style.display='none';
 }
 function openAddClient(forceCat){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','addClient','edit')){toast('🔒 View-only access');return;}
   document.getElementById('client-modal-title').textContent='Add Client';
   document.getElementById('c-id').value='';
   document.getElementById('c-memno-row').style.display='none';
@@ -2381,6 +2382,7 @@ function _doSaveClient(category){
 
 // ===== MEMBERSHIP =====
 function openAssignMembership(cid){
+  if(typeof ppIsVisitor==='function'&&ppIsVisitor()){toast('🔒 View-only access');return;}
   const clients=ld('pp_clients',[]);
   const c=clients.find(cl=>cl.id===cid);if(!c)return;
   const mems=ld('pp_memberships',{});
@@ -3046,6 +3048,7 @@ async function saveBooking(){
 }
 // Tap cycle: Booked → Present → Remove
 function cycleSlot(slotIdx,cellIdx){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('schedule','markAttend','edit')){toast('🔒 View-only access');return;}
   const slot=SLOTS[slotIdx];
   const bookings=ld('pp_bookings',{});
   if(!bookings[_schedDate]||!bookings[_schedDate][slot])return;
@@ -3331,7 +3334,7 @@ function confirmCycleSlot(slotIdx,cellIdx,clientName){
         }
       }},
       {label:'Remove Slot',color:'var(--rose)',action:()=>{
-        if(typeof ppIsStaff==='function'&&ppIsStaff()&&!_hasPerm('slot_remove')){toast('🔒 Only admin can remove a booked slot — ask admin');return;}
+        if(PPS&&PPS.role!=='admin'&&!_permCheck('schedule','removeSlot','edit')){toast('🔒 Only admin can remove a booked slot — ask admin');return;}
         const bookings=ld('pp_bookings',{});
         const slot=SLOTS[slotIdx];
         if(bookings[_schedDate]&&bookings[_schedDate][slot]){
@@ -3387,7 +3390,7 @@ function archiveClient(cid){
 }
 
 function deleteClient(cid){
-  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()&&!_hasPerm('client_delete')){toast('🔒 Only an admin can delete a client');return;}
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()&&!_permCheck('clients','deleteClient','edit')){toast('🔒 Only an admin can delete a client');return;}
   const clients=ld('pp_clients',[]);
   const c=clients.find(x=>x.id===cid);
   if(!c)return;
@@ -5270,47 +5273,14 @@ if('serviceWorker' in navigator){
     <div class="fg"><label class="fl">Login ID</label><input class="fi" id="ue-uid" placeholder="e.g. priyanka" autocapitalize="none"/></div>
     <div class="fg"><label class="fl">Email <span style="color:var(--text3);font-weight:400;">(for booking-page login)</span></label><input class="fi" id="ue-email" type="email" autocapitalize="none" placeholder="name@gmail.com" autocomplete="off"/></div>
     <div class="fr">
-      <div class="fg"><label class="fl">Role</label><select class="fi" id="ue-role"><option value="staff">Staff</option><option value="trainer">Trainer (view-only)</option><option value="admin">Admin</option></select></div>
+      <div class="fg"><label class="fl">Role</label><select class="fi" id="ue-role"><option value="staff">Staff</option><option value="trainer">Trainer (view-only)</option><option value="visitor">Visitor (view-only, no staff record)</option><option value="admin">Admin</option></select></div>
       <div class="fg"><label class="fl">Active</label><select class="fi" id="ue-active"><option value="1">Yes</option><option value="0">No (disabled)</option></select></div>
     </div>
     <div class="fg"><label class="fl">Linked Staff Record (for own attendance &amp; tasks)</label><select class="fi" id="ue-staff"><option value="">— Not linked —</option></select></div>
     <div class="fg">
-      <label class="fl">Access — which tabs this person can see</label>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Leave "Use role default" on unless this person needs a custom mix.</div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:8px;cursor:pointer;">
-        <input type="checkbox" id="ue-custom-access" onchange="_ueToggleCustomAccess()" style="width:16px;height:16px;"/> Use custom access for this person
-      </label>
-      <div id="ue-tab-checks" style="display:none;grid-template-columns:1fr 1fr;gap:6px;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:10px;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="dashboard" style="width:15px;height:15px;"/> 🏠 Home</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="clients" style="width:15px;height:15px;"/> 👥 Clients</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="schedule" style="width:15px;height:15px;"/> 📅 Schedule</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="cash" style="width:15px;height:15px;"/> 💰 Cash</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="tns" style="width:15px;height:15px;"/> 📋 TnS</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="credits" style="width:15px;height:15px;"/> ℹ️ About</label>
-      </div>
-      <div id="ue-perm-checks" style="display:none;">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">Fine-grained permissions</div>
-        <div style="background:var(--surface2);border-radius:var(--rsm);padding:10px;">
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:6px;">👥 Clients</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="client_edit"/> Edit saved client</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="client_delete"/> Delete client</label>
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">📋 Plan actions (existing plan)</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="plan_change"/> Change plan (mid-term)</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="plan_freeze"/> Freeze plan</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="plan_extend"/> Extend plan</label>
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">📅 Schedule</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="slot_remove"/> Remove / cancel a booked slot</label>
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">🏠 Dashboard</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="dash_revenue"/> View Membership Revenue</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="dash_conversion"/> View Trial Conversion %</label>
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">📋 TnS — Staff &amp; Tasks</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="staff_mark_own"/> Mark own attendance</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="staff_view_all"/> View everyone's attendance</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="staff_manage"/> Manage staff / salary / advances</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="tasks_view_all"/> View everyone's tasks (not just own)</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="tasks_manage"/> Create / edit / delete tasks</label>
-        </div>
-      </div>
+      <label class="fl">Access — per section</label>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Full = everything in that section. Restricted = pick exactly what's allowed. No = section hidden entirely.</div>
+      <div id="ue-sec-rows"></div>
     </div>
     <div class="fg"><label class="fl">PIN (4–6 digits)</label><input class="fi" id="ue-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Leave blank to keep current PIN" autocomplete="off" name="pdl-uepin" data-1p-ignore data-lpignore="true" data-form-type="other"/></div>
     <button class="sb2" id="ue-save-btn" onclick="saveUser()" disabled style="opacity:0.45;">Save User</button>
@@ -5553,6 +5523,108 @@ function ppIsAdmin(){
 }
 function ppIsStaff(){return !!(PPS&&PPS.role==='staff');}
 function ppIsTrainer(){return !!(PPS&&PPS.role==='trainer');}
+function ppIsVisitor(){return !!(PPS&&PPS.role==='visitor');}
+/* ===== CENTRAL PERMISSION REGISTRY (v2) =====
+   Every controllable feature in the app is ONE line here. Adding a new
+   feature later = add one line here + wrap it with _permCheck() at its
+   call site. That's the entire "every feature ships with a rider"
+   mechanism — no scattered one-off role checks to remember. */
+const _PERM_REGISTRY={
+  dashboard:{label:'🏠 Home',items:{
+    needsAttention:{label:'Needs Attention bar',type:'action'},
+    activeCard:{label:'Active Members card',type:'action'},
+    endsSoonCard:{label:'Ends Soon card',type:'action'},
+    dueCard:{label:'Payment Due card',type:'action'},
+    trialsCard:{label:'Trials Not Converted card',type:'action'},
+    conversionCard:{label:'Trial Conversion % card',type:'action'},
+    revenueCard:{label:'Membership Revenue card',type:'action'},
+    birthdays:{label:'Birthdays This Week',type:'action'},
+    todaySched:{label:"Today's Schedule",type:'action'},
+  }},
+  clients:{label:'👥 Clients',items:{
+    profile:{label:'Profile details',type:'data'},
+    plan:{label:'Plan & History (assign/renew/change/freeze/extend)',type:'data'},
+    payment:{label:'Payment / Receipts',type:'data'},
+    followup:{label:'Follow-up log',type:'data'},
+    addClient:{label:'Add brand-new client / trial',type:'action'},
+    deleteClient:{label:'Delete client',type:'action'},
+    printQr:{label:'Print Profile / QR ID Card',type:'action'},
+    whatsapp:{label:'WhatsApp message',type:'action'},
+    complimentary:{label:'Add Complimentary',type:'action'},
+    deactivate:{label:'Deactivate / Reactivate',type:'action'},
+    resetPin:{label:'Reset booking-login PIN',type:'action'},
+  }},
+  schedule:{label:'📅 Slots',items:{
+    view:{label:'View slots',type:'action'},
+    book:{label:'Book a new slot',type:'action'},
+    removeSlot:{label:'Remove / cancel a booked slot',type:'action'},
+    markAttend:{label:'Mark attendance',type:'action'},
+    markClosed:{label:'Mark studio closed/open',type:'action'},
+    scan:{label:'Scanner check-in',type:'action'},
+  }},
+  cash:{label:'💰 Cash',items:{
+    statement:{label:'View Statement',type:'action'},
+    daybook:{label:'View Daybook',type:'action'},
+    addEntry:{label:'Add Credit/Debit/Contra entry',type:'action'},
+    editEntry:{label:'Edit an entry',type:'action'},
+    deleteEntry:{label:'Delete an entry',type:'action'},
+    receiptPrint:{label:'Receipt print/forward',type:'action'},
+    exportPrint:{label:'Export/print reports',type:'action'},
+  }},
+  tns:{label:'📋 TnS',items:{
+    ownAttendance:{label:'Own attendance',type:'data'},
+    allAttendance:{label:"Everyone's attendance",type:'data'},
+    salary:{label:'Salary / advances / increments',type:'data'},
+    ownTasks:{label:'Own tasks',type:'data'},
+    allTasks:{label:"Everyone's tasks",type:'data'},
+    bills:{label:'Bills',type:'data'},
+    printAttSal:{label:'Print attendance/salary',type:'action'},
+  }},
+  about:{label:'ℹ️ About',items:{
+    reports:{label:'Reports',type:'action'},
+    plans:{label:'Plan definitions',type:'data'},
+    studio:{label:'Studio details',type:'data'},
+    announce:{label:'Announcements',type:'data'},
+    referral:{label:'Referral bonus rule',type:'data'},
+    auditLog:{label:'Audit log',type:'action'},
+    exportBackup:{label:'Export backup',type:'action'},
+    fingerprint:{label:'Fingerprint enroll/remove',type:'action'},
+    /* usersAccess / importBackup / resetData deliberately NOT in this
+       registry — permanently Admin-only per Santosh's decision, never
+       delegatable regardless of any Restricted setting. */
+  }},
+};
+/* Section-level access: 'full' | 'restricted' | 'no'. Item-level tiers
+   (only meaningful when section='restricted'): 'none'|'view'|'edit'|'delete'
+   for type:'data', or 'none'|'edit' for type:'action'. */
+function _secAccess(u,sec){
+  if(!u)return 'no';
+  if(u.role==='admin')return 'full';
+  if(u.perm2&&u.perm2[sec])return u.perm2[sec];
+  /* fall back to the old system for anyone not yet migrated to perm2 */
+  const tabs=_effectiveTabs(u);
+  const tabKey={dashboard:'dashboard',clients:'clients',schedule:'schedule',cash:'cash',tns:'tns',about:'credits'}[sec];
+  return tabs.includes(tabKey)?'full':'no';
+}
+function _itemTier(u,sec,item){
+  const acc=_secAccess(u,sec);
+  if(acc==='no')return 'none';
+  if(acc==='full')return 'delete'; /* full = everything, top tier */
+  const reg=_PERM_REGISTRY[sec]&&_PERM_REGISTRY[sec].items[item];
+  const dflt=reg&&reg.type==='action'?'edit':'view';
+  if(u.perm2items&&u.perm2items[sec]&&item in u.perm2items[sec])return u.perm2items[sec][item];
+  return dflt; /* restricted section, item not explicitly set = safe default */
+}
+/* THE central checker. Every gated action calls this instead of
+   ppIsStaff()/ppIsVisitor()/etc. minTier: 'view'|'edit'|'delete'. */
+function _permCheck(sec,item,minTier){
+  if(!PPS)return false;
+  if(PPS.role==='admin')return true;
+  const order={none:0,view:1,edit:2,delete:3};
+  const have=_itemTier(PPS,sec,item);
+  return order[have]>=order[minTier];
+}
+
 function ppMyStaffId(){
   if(!PPS)return'';
   if(PPS.staffId){
@@ -5798,12 +5870,20 @@ function _effectiveTabs(u){
   if(u.role==='admin')return _ALL_TABS.slice();
   if(u.role==='staff')return _ALL_TABS.filter(t=>!_STAFF_BLOCKED_TABS.includes(t));
   if(u.role==='trainer')return _ALL_TABS.filter(t=>!_TRAINER_BLOCKED_TABS.includes(t));
+  if(u.role==='visitor')return ['dashboard','clients','schedule'];
   return _ALL_TABS.slice();
 }
 /* Hide/show bottom-nav buttons + jump off a now-hidden tab if needed */
 function _applyTabAccess(){
   if(!PPS||!PPS.id)return;
-  const allowed=_effectiveTabs(PPS);
+  /* New system: perm2-configured users check _secAccess per section.
+     Anyone not yet migrated to perm2 falls back to _effectiveTabs (old system),
+     preserving existing setups until re-saved under the new UI. */
+  const tabKeyToSec={dashboard:'dashboard',clients:'clients',schedule:'schedule',cash:'cash',tns:'tns',credits:'about'};
+  const usesNewSystem=PPS.role==='admin'||(PPS.perm2&&Object.keys(PPS.perm2).length>0);
+  const allowed=usesNewSystem
+    ?Object.keys(tabKeyToSec).filter(t=>_secAccess(PPS,tabKeyToSec[t])!=='no')
+    :_effectiveTabs(PPS);
   document.querySelectorAll('.bnav .nb[data-tab]').forEach(b=>{
     const t=b.dataset.tab;
     b.style.display=allowed.includes(t)?'':'none';
@@ -5950,48 +6030,45 @@ function openUserEdit(id){
   document.getElementById('ue-pin').value='';
   document.getElementById('ue-staff').innerHTML='<option value="">— Not linked —</option>'+
     ld('pp_staff',[]).map(s=>`<option value="${s.id}"${u&&u.staffId===s.id?' selected':''}>${(s.fname+' '+(s.lname||'')).trim()} (${s.role||''})</option>`).join('');
-  /* Custom access checkboxes */
-  const _hasCustom=u&&Array.isArray(u.tabAccess);
-  document.getElementById('ue-custom-access').checked=_hasCustom;
-  document.querySelectorAll('.ue-tab-cb').forEach(cb=>{
-    cb.checked=_hasCustom?u.tabAccess.includes(cb.value):_effectiveTabs(u||{role:'staff'}).includes(cb.value);
-  });
-  document.getElementById('ue-tab-checks').style.display=_hasCustom?'grid':'none';
-  document.getElementById('ue-perm-checks').style.display=_hasCustom?'block':'none';
-  const _p=_effectivePerms(u||{role:'staff'});
-  document.querySelectorAll('.ue-perm-cb').forEach(cb=>{
-    cb.checked=(u&&u.perms&&cb.value in u.perms)?!!u.perms[cb.value]:!!_p[cb.value];
-  });
+  /* Compact section-first access UI */
+  _renderSecRows(u);
   document.getElementById('ue-del').style.display=u?'block':'none';
   openM('m-useredit');
   setTimeout(()=>armDirty('m-useredit','ue-save-btn'),50);
 }
-const _PERM_DEFAULTS_BY_ROLE={
-  admin:{client_edit:1,client_delete:1,plan_change:1,plan_freeze:1,plan_extend:1,slot_remove:1,dash_revenue:1,dash_conversion:1,staff_mark_own:1,staff_view_all:1,staff_manage:1,tasks_view_all:1,tasks_manage:1},
-  staff:{client_edit:0,client_delete:0,plan_change:0,plan_freeze:0,plan_extend:0,slot_remove:0,dash_revenue:0,dash_conversion:0,staff_mark_own:0,staff_view_all:0,staff_manage:0,tasks_view_all:0,tasks_manage:0},
-  trainer:{client_edit:0,client_delete:0,plan_change:0,plan_freeze:0,plan_extend:0,slot_remove:0,dash_revenue:0,dash_conversion:0,staff_mark_own:0,staff_view_all:0,staff_manage:0,tasks_view_all:0,tasks_manage:0}
-};
-function _effectivePerms(u){
-  if(!u)return _PERM_DEFAULTS_BY_ROLE.staff;
-  if(u.perms&&typeof u.perms==='object')return Object.assign({},_PERM_DEFAULTS_BY_ROLE[u.role||'staff'],u.perms);
-  return _PERM_DEFAULTS_BY_ROLE[u.role||'staff']||_PERM_DEFAULTS_BY_ROLE.staff;
+function _secOptions(cur){
+  return ['full','restricted','no'].map(v=>'<option value="'+v+'"'+(cur===v?' selected':'')+'>'+({full:'Full',restricted:'Restricted',no:'No'}[v])+'</option>').join('');
 }
-function _hasPerm(key){
-  if(!PPS)return false;
-  if(PPS.role==='admin')return true;
-  return !!_effectivePerms(PPS)[key];
+function _renderSecRows(u){
+  const box=document.getElementById('ue-sec-rows');
+  const sections=Object.keys(_PERM_REGISTRY);
+  box.innerHTML=sections.map(sec=>{
+    const acc=(u&&u.perm2&&u.perm2[sec])||(u?_secAccess(u,sec):'no');
+    const reg=_PERM_REGISTRY[sec];
+    return '<div style="background:var(--surface2);border-radius:var(--rsm);padding:8px 10px;margin-bottom:6px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+      +'<span style="font-size:13px;color:var(--text);">'+reg.label+'</span>'
+      +'<select class="ue-sec-select" data-sec="'+sec+'" onchange="_ueSecChanged(this)" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:3px 6px;">'+_secOptions(acc)+'</select>'
+      +'</div>'
+      +'<div class="ue-item-list" id="ue-items-'+sec+'" style="display:'+(acc==='restricted'?'block':'none')+';margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
+      +Object.keys(reg.items).map(it=>{
+        const item=reg.items[it];
+        const curTier=(u&&u.perm2items&&u.perm2items[sec]&&u.perm2items[sec][it])||(item.type==='action'?'edit':'view');
+        const opts=item.type==='action'
+          ?['none','edit'].map(v=>'<option value="'+v+'"'+(curTier===v?' selected':'')+'>'+({none:'🚫',edit:'✅'}[v])+'</option>').join('')
+          :['none','view','edit','delete'].map(v=>'<option value="'+v+'"'+(curTier===v?' selected':'')+'>'+({none:'🚫',view:'👁',edit:'✏️',delete:'🗑'}[v])+'</option>').join('');
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;">'
+          +'<span style="font-size:12px;color:var(--text2);">'+item.label+'</span>'
+          +'<select class="ue-item-select" data-sec="'+sec+'" data-item="'+it+'" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;padding:2px 5px;">'+opts+'</select>'
+          +'</div>';
+      }).join('')
+      +'</div></div>';
+  }).join('');
 }
-function _ueToggleCustomAccess(){
-  const on=document.getElementById('ue-custom-access').checked;
-  document.getElementById('ue-tab-checks').style.display=on?'grid':'none';
-  document.getElementById('ue-perm-checks').style.display=on?'block':'none';
-  if(on){
-    const role=document.getElementById('ue-role').value;
-    const defaults=_effectiveTabs({role});
-    document.querySelectorAll('.ue-tab-cb').forEach(cb=>{cb.checked=defaults.includes(cb.value);});
-    const pdef=_PERM_DEFAULTS_BY_ROLE[role]||_PERM_DEFAULTS_BY_ROLE.staff;
-    document.querySelectorAll('.ue-perm-cb').forEach(cb=>{cb.checked=!!pdef[cb.value];});
-  }
+function _ueSecChanged(sel){
+  const sec=sel.dataset.sec;
+  const box=document.getElementById('ue-items-'+sec);
+  if(box)box.style.display=sel.value==='restricted'?'block':'none';
 }
 async function saveUser(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
@@ -6017,15 +6094,16 @@ async function saveUser(){
     const admins=users.filter(u=>u.role==='admin'&&u.active!==false);
     if(admins.length<=1){alert('Cannot disable or demote the only Admin');return;}
   }
-  const _useCustom=document.getElementById('ue-custom-access').checked;
-  const tabAccess=_useCustom?Array.from(document.querySelectorAll('.ue-tab-cb:checked')).map(cb=>cb.value):null;
-  let perms=null;
-  if(_useCustom){
-    perms={};
-    document.querySelectorAll('.ue-perm-cb').forEach(cb=>{perms[cb.value]=cb.checked;});
-  }
+  const perm2={};
+  const perm2items={};
+  document.querySelectorAll('.ue-sec-select').forEach(sel=>{perm2[sel.dataset.sec]=sel.value;});
+  document.querySelectorAll('.ue-item-select').forEach(sel=>{
+    const sec=sel.dataset.sec;
+    if(!perm2items[sec])perm2items[sec]={};
+    perm2items[sec][sel.dataset.item]=sel.value;
+  });
   const data={
-    id:id||Date.now().toString(),name,uid,role,staffId,active,tabAccess,perms,
+    id:id||Date.now().toString(),name,uid,role,staffId,active,perm2,perm2items,
     email:(document.getElementById('ue-email').value||'').trim().toLowerCase(),
     created:existing?existing.created:td(),
     pinH:pin?await ppHash(uid,pin):(existing?existing.pinH:'')
@@ -6108,11 +6186,11 @@ try{
   const _oDash=window.renderDash;
   window.renderDash=function(){
     const r=_oDash.apply(this,arguments);
-    if(ppIsStaff()){
+    if(PPS&&PPS.role!=='admin'){
       document.querySelectorAll('#dash-content .dash-card').forEach(c=>{
         const t=c.textContent||'';
-        if(t.indexOf('Membership Revenue')>-1&&!_hasPerm('dash_revenue'))c.remove();
-        if(t.indexOf('Trial Conversion')>-1&&!_hasPerm('dash_conversion'))c.remove();
+        if(t.indexOf('Membership Revenue')>-1&&!_permCheck('dashboard','revenueCard','edit'))c.remove();
+        if(t.indexOf('Trial Conversion')>-1&&!_permCheck('dashboard','conversionCard','edit'))c.remove();
       });
     }
     return r;
@@ -6273,7 +6351,7 @@ try{
   (function(){
     const oEdit=window.openEditClient;
     if(typeof oEdit==='function')window.openEditClient=function(){
-      if(ppIsStaff()&&!_hasPerm('client_edit')){toast('🔒 Only admin can edit a saved member');return;}
+      if(!PPS||PPS.role!=='admin'){if(!_permCheck('clients','profile','edit')){toast('🔒 Only admin can edit a saved member');return;}}
       return oEdit.apply(this,arguments);
     };
     const oAssign=window.openAssignMembership;
@@ -9147,9 +9225,8 @@ function ufPlanAction(action){
   /* Change / Freeze / Extend require owner judgment (used-vs-unused
      calculation, case-by-case discretion) — Renew is the one trouble-free
      action a receptionist can do on her own. */
-  if(typeof ppIsStaff==='function'&&ppIsStaff()){
-    const _permKey={change:'plan_change',freeze:'plan_freeze',extend:'plan_extend'}[action];
-    if(_permKey&&!_hasPerm(_permKey)){
+  if(PPS&&PPS.role!=='admin'&&['change','freeze','extend'].includes(action)){
+    if(!_permCheck('clients','plan','edit')){
       toast('🔒 '+({change:'Plan change',freeze:'Freeze',extend:'Extend'}[action])+' needs admin — please ask');
       return;
     }
