@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144w</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144z</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1661,7 +1661,7 @@ function openM(id){
   if(!el){console.error('[openM] element not found:',id);return;}
   el.classList.add('open');
   el.style.display='flex';
-  /* v144w: PROACTIVE read-only. Any modal a user may see but not edit now
+  /* v144z: PROACTIVE read-only. Any modal a user may see but not edit now
      opens visibly locked — fields greyed + non-typeable, Save/Add/Delete
      hidden — instead of letting them fill it in and rejecting on Save. */
   try{ _lockModalIfReadOnly(id,el); }catch(_e){}
@@ -2200,7 +2200,7 @@ function renderClients(){
         <span style="font-size:11px;color:var(--gold);letter-spacing:0.5px;flex-shrink:0;margin-left:6px;">${!c.isTrial&&c.trialDate?'<span title="Came via trial" style="font-size:10px;">🎯</span> ':''}#${c.memNo||''}</span>
       </div>
       <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text2);margin-top:3px;">
-        <a href="tel:${c.phone}" onclick="event.stopPropagation()" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg> ${_fmtPhone(c.phone)}</a>
+        <a href="${(typeof _permCheck!=='function'||_permCheck('clients','contact','edit'))?'tel:'+c.phone:'javascript:void(0)'}" onclick="event.stopPropagation();if(typeof _permCheck==='function'&&!_permCheck('clients','contact','edit')){toast('🔒 Calling is not permitted');}" style="${(typeof _permCheck==='function'&&!_permCheck('clients','contact','view'))?'display:none;':''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg> ${_fmtPhone(c.phone)}</a>
         ${_isTr?'':(_planLbl?`<span style="color:var(--gold);white-space:nowrap;">Plan: ${_planLbl}</span>`:'')}
       </div>
       </div>
@@ -5354,7 +5354,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144w</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144z</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5672,6 +5672,7 @@ const _PERM_REGISTRY={
     deleteClient:{label:'Delete client',type:'action'},
     printQr:{label:'Print Profile / QR ID Card',type:'action'},
     whatsapp:{label:'WhatsApp message',type:'action'},
+    contact:{label:'Contact details (mobile / email / Insta)',type:'data'},
     complimentary:{label:'Add Complimentary',type:'action'},
     deactivate:{label:'Deactivate / Reactivate',type:'action'},
     resetPin:{label:'Reset booking-login PIN',type:'action'},
@@ -5753,7 +5754,7 @@ function _permCheck(sec,item,minTier){
   return order[have]>=order[minTier];
 }
 
-/* ---- v144w: shared gate helpers. Every Cash/TnS/About doer calls one of
+/* ---- v144z: shared gate helpers. Every Cash/TnS/About doer calls one of
    these. Returns true if allowed, else toasts and returns false. ---- */
 function _gate(sec,item,minTier,msg){
   if(typeof _permCheck!=='function')return true;
@@ -6217,16 +6218,35 @@ function _renderSecRows(u){
       }).join('')
       +'</div></div>';
   }).join('');
+  /* Reflect each section's current state into its items immediately on open,
+     so the form never shows a stale/contradictory picture. */
+  document.querySelectorAll('.ue-sec-select').forEach(sel=>_ueSecChanged(sel));
 }
 function _ueSecChanged(sel){
   const sec=sel.dataset.sec;
-  if(sel.value==='restricted')_ueSecCollapse(sec,true); /* auto-open when switched to Restricted */
+  const v=sel.value;
+  /* v144z: the section dropdown now CASCADES into its item list, so what the
+     admin sees always matches what will actually be saved.
+       No   -> every item forced to 🚫 (none), list locked + collapsed
+       Full -> every item forced to its top tier (🗑 / ✅), list locked + collapsed
+       Restricted -> items unlocked and expanded so they can be picked one by one */
+  const reg=_PERM_REGISTRY[sec];
+  document.querySelectorAll('.ue-item-select[data-sec="'+sec+'"]').forEach(is=>{
+    const it=reg&&reg.items[is.dataset.item];
+    const isAction=it&&it.type==='action';
+    if(v==='no')        is.value='none';
+    else if(v==='full') is.value=isAction?'edit':'delete';
+    is.disabled=(v!=='restricted');
+    is.style.opacity=(v!=='restricted')?'0.5':'';
+  });
+  if(v==='restricted')_ueSecCollapse(sec,true);
+  else _ueSecCollapse(sec,false,true);
 }
-function _ueSecCollapse(sec,forceOpen){
+function _ueSecCollapse(sec,forceOpen,forceClose){
   const box=document.getElementById('ue-items-'+sec);
   const chev=document.getElementById('ue-chev-'+sec);
   if(!box)return;
-  const open=forceOpen||box.style.display==='none';
+  const open=forceClose?false:(forceOpen||box.style.display==='none');
   box.style.display=open?'block':'none';
   if(chev)chev.textContent=open?'▼':'▶';
 }
@@ -6552,7 +6572,7 @@ try{
     const _existing=document.getElementById('admin-tools');
     if(_existing)_existing.remove();
 
-    /* v144w: Admin Tools is no longer all-or-nothing. Each tool is shown
+    /* v144z: Admin Tools is no longer all-or-nothing. Each tool is shown
        only if the logged-in user actually has the matching permission.
        Users & Access + cloud Sign-out remain permanently admin-only. */
     const _P=(sec,item,tier)=>(typeof _permCheck==='function')&&_permCheck(sec,item,tier);
@@ -7173,7 +7193,7 @@ function printProfile(cid){
   let html=`<h2>👤 Profile — ${_esc(c.fname+' '+(c.lname||''))} (${_esc(c.memNo)})</h2>
     <table><tr><th style="width:28%">Phone</th><td>${_esc(c.phone)||'—'}</td></tr>
     <tr><th>Email</th><td>${_esc(c.email)||'—'}</td></tr>
-    <tr><th>Address</th><td>${_esc(c.addr||c.address)||'—'}</td></tr>
+    ${((typeof _permCheck!=='function')||_permCheck('clients','contact','view'))?`<tr><th>Address</th><td>${_esc(c.addr||c.address)||'—'}</td></tr>`:''}
     ${c.insta?`<tr><th>Instagram</th><td>${_esc(c.insta)}</td></tr>`:''}
     ${c.bday?`<tr><th>Birthday</th><td>${fmt(c.bday)}</td></tr>`:''}
     ${c.anni?`<tr><th>Anniversary</th><td>${fmt(c.anni)}</td></tr>`:''}
@@ -8622,7 +8642,26 @@ function openUnified(cid,focusSection){
     if(_mEdit)_mEdit.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin())?'':'none';
     const _pinReset=document.getElementById('uf-pinreset');
     if(_pinReset)_pinReset.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin()&&c.bookingPinH)?'':'none';
-    document.getElementById('uf-profile-summary').innerHTML=(c.phone?'<a href="tel:'+_esc(c.phone)+'" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">📱 '+_esc(_fmtPhone(c.phone))+'</a>':'')+(c.email?' · <a href="mailto:'+_esc(c.email)+'" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">✉️ '+_esc(c.email)+'</a>':'')+(c.insta?' · <a href="https://instagram.com/'+_esc((c.insta||'').replace(/^@/,''))+'" target="_blank" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">📷 @'+_esc((c.insta||'').replace(/^@/,''))+'</a>':'');
+    /* v144z: clients:contact is a 3-tier DATA permission —
+         🚫 none  = mobile / email / Insta are HIDDEN completely (private info)
+         👁 view  = visible, but inert text: no dialling, no mailing, no IG
+         ✏️ edit  = fully live, tap to call / mail / open Instagram            */
+    const _pc=(t)=>(typeof _permCheck!=='function')||_permCheck('clients','contact',t);
+    const _seeContact=_pc('view'), _useContact=_pc('edit');
+    const _lnk=(href,label,blank)=>_useContact
+      ?'<a href="'+href+'"'+(blank?' target="_blank"':'')+' onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">'+label+'</a>'
+      :'<span style="color:inherit;opacity:0.75;">'+label+'</span>';
+    const _ig=(c.insta||'').replace(/^@/,'');
+    document.getElementById('uf-profile-summary').innerHTML=!_seeContact?'':(
+      (c.phone?_lnk('tel:'+_esc(c.phone),'📱 '+_esc(_fmtPhone(c.phone))):'')
+      +(c.email?' · '+_lnk('mailto:'+_esc(c.email),'✉️ '+_esc(c.email)):'')
+      +(c.insta?' · '+_lnk('https://instagram.com/'+_esc(_ig),'📷 @'+_esc(_ig),true):''));
+    /* And hide the raw fields in the profile form too — otherwise the number
+       is still readable there, which defeats the whole point of hiding it. */
+    ['uf-row-phone','uf-row-email','uf-row-insta','uf-row-addr'].forEach(rid=>{
+      const row=document.getElementById(rid);
+      if(row)row.style.display=_seeContact?'':'none';
+    });
     const phEl=document.getElementById('uf-photo');
     if(phEl)phEl.innerHTML=c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;"/>`:'👤';
   }catch(_e){console.warn('Header failed to render:',_e);}
@@ -8853,6 +8892,12 @@ function _ufPopulateProfile(c){
   document.getElementById('uf-phone').value=(c.phone||'').replace(/^\+91/,'');
   document.getElementById('uf-email').value=c.email||'';
   document.getElementById('uf-insta').value=c.insta||'';
+  /* v144z: Address was write-once — captured at Add Client, shown only on the
+     printed card, editable nowhere (openEditClient became an orphan when the
+     Unified Form replaced it). Now it lives here. `c.address` is read as a
+     fallback because some legacy records used that key. */
+  const _addrEl=document.getElementById('uf-addr');
+  if(_addrEl)_addrEl.value=c.addr||c.address||'';
   const _bday=document.getElementById('uf-bday');
   const _anni=document.getElementById('uf-anni');
   if(c.bday){_bday.type='date';_bday.value=c.bday;}else{_bday.type='text';_bday.value='';}
@@ -8890,6 +8935,7 @@ function ufSaveProfile(){
     phone:(function(){const p=document.getElementById('uf-phone').value.replace(/\D/g,'');return p?'+91'+p:'';})(),
     email:document.getElementById('uf-email').value.trim(),
     insta:document.getElementById('uf-insta').value.trim(),
+    addr:(document.getElementById('uf-addr')||{}).value!==undefined?document.getElementById('uf-addr').value.trim():(old.addr||''),
     bday:document.getElementById('uf-bday').value,
     anni:document.getElementById('uf-anni').value,
     join:document.getElementById('uf-join').value||old.join||td(),
@@ -10055,8 +10101,11 @@ function ufSavePayment(){
           <div class="fg"><label class="fl">👤 Last Name</label><input class="fi" id="uf-lname" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
         </div>
         <div class="fr">
-          <div class="fg"><label class="fl">📱 Mobile <span style="display:inline-block;vertical-align:-2px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg></span></label><input class="fi" id="uf-phone" type="tel" inputmode="numeric" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"/></div>
-          <div class="fg"><label class="fl">📧 Email</label><input class="fi" id="uf-email" type="email" autocomplete="off" autocapitalize="none"/></div>
+          <div class="fg" id="uf-row-phone"><label class="fl">📱 Mobile <span style="display:inline-block;vertical-align:-2px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg></span></label><input class="fi" id="uf-phone" type="tel" inputmode="numeric" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"/></div>
+          <div class="fg" id="uf-row-email"><label class="fl">📧 Email</label><input class="fi" id="uf-email" type="email" autocomplete="off" autocapitalize="none"/></div>
+        </div>
+        <div class="fr" id="uf-row-addr">
+          <div class="fg" style="flex:1;"><label class="fl">📍 Address</label><input class="fi" id="uf-addr" placeholder="Model Town, Delhi" autocapitalize="words"/></div>
         </div>
         <div class="fr">
           <div class="fg"><label class="fl">🎂 Birthday</label><input class="fi" id="uf-bday" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
@@ -10067,7 +10116,7 @@ function ufSavePayment(){
           <div class="fg"><label class="fl">🎯 Trial Date</label><input class="fi" id="uf-trialdate" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
         </div>
         <div class="fr">
-          <div class="fg"><label class="fl"><span style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:white;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;vertical-align:1px;">IG</span> Insta ID</label><input class="fi" id="uf-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
+          <div class="fg" id="uf-row-insta"><label class="fl"><span style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:white;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;vertical-align:1px;">IG</span> Insta ID</label><input class="fi" id="uf-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
           <div class="fg">
             <label class="fl">🔗 Referred By</label>
             <div style="position:relative;">
