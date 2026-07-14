@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144o</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144q</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -5236,7 +5236,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144o</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144q</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -10041,6 +10041,24 @@ function ufSavePayment(){
   }
   window._refreshDiag=function(){
     const out=document.getElementById('diag-output');if(!out)return;
+    /* PERMISSION STATE — exactly what's making a decision right now */
+    let permHtml='<div style="background:var(--surface2);border:1px solid var(--gold);border-radius:10px;padding:10px;margin-bottom:12px;">'
+      +'<b style="color:var(--gold);">👤 Current Login</b><br>';
+    if(PPS){
+      permHtml+='Name: <b>'+(PPS.name||'?')+'</b> · Role: <b style="color:#38bdf8;">'+(PPS.role||'?')+'</b><br>';
+      permHtml+='Has tabAccess (old system): <b>'+(Array.isArray(PPS.tabAccess)?'YES: '+PPS.tabAccess.join(','):'no')+'</b><br>';
+      permHtml+='Has perm2 (new system): <b>'+(PPS.perm2?'YES':'NO — using safe default')+'</b><br>';
+      if(PPS.perm2)permHtml+='<pre style="font-size:10px;background:var(--surface3);padding:6px;border-radius:6px;overflow-x:auto;">'+JSON.stringify(PPS.perm2,null,1)+'</pre>';
+      if(PPS.perm2items)permHtml+='<pre style="font-size:10px;background:var(--surface3);padding:6px;border-radius:6px;overflow-x:auto;">'+JSON.stringify(PPS.perm2items,null,1)+'</pre>';
+      permHtml+='<br><b style="color:var(--gold);">Live permission checks:</b><br>';
+      ['clients:profile','clients:plan','clients:followup','clients:addClient','schedule:book','schedule:scan','cash:addEntry'].forEach(pair=>{
+        const [sec,item]=pair.split(':');
+        const allowed=typeof _permCheck==='function'?_permCheck(sec,item,'edit'):'?';
+        permHtml+=pair+' → edit allowed: <b style="color:'+(allowed?'#5dcaa5':'#e74c3c')+';">'+allowed+'</b><br>';
+      });
+    }else{permHtml+='PPS is null/undefined!';}
+    permHtml+='</div>';
+    window._diagPermHtml=permHtml; /* stashed — final render appends it, see bottom of this function */
     const lg=document.getElementById('pp-login');
     const cl=document.getElementById('pp-cloud');
     const modals=document.querySelectorAll('.mo');
@@ -10074,7 +10092,7 @@ function ufSavePayment(){
       }
     });
     html+='</div>';
-    out.innerHTML=html;
+    out.innerHTML=(window._diagPermHtml||'')+html;
   };
 })();
 </script>
