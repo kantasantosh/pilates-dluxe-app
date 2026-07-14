@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144n</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144o</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2979,6 +2979,7 @@ document.addEventListener('click',e=>{
   if(row&&!row.contains(e.target)&&e.target.id!=='bk-client-search')row.style.display='none';
 });
 async function saveBooking(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('schedule','book','edit')){toast('🔒 View-only access');return;}
   const slotIdx=parseInt(document.getElementById('bk-slot').value);
   const slot=SLOTS[slotIdx];
   const date=document.getElementById('bk-date').value;
@@ -3090,6 +3091,7 @@ function openWA(cid){
   openM('m-whatsapp');
 }
 function openFollowUp(cid){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','followup','edit')){toast('🔒 View-only access');return;}
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
   document.getElementById('fu-cid').value=cid;
   document.getElementById('fu-name').textContent=(c.fname||'')+' '+(c.lname||'');
@@ -5234,6 +5236,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144o</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -8252,6 +8255,7 @@ function showScanBanner(msg,color,bg){
   b.innerHTML=msg;
 }
 function openScanner(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('schedule','scan','edit')){toast('🔒 View-only access');return;}
   if(typeof ppIsTrainer==='function'&&ppIsTrainer()){toast('🔒 Staff/Admin only');return;}
   _scanRecent=[];_scanLastCid='';_scanLastTime=0;
   const _b=document.getElementById('scan-result-banner');if(_b)_b.style.display='none';
@@ -9238,8 +9242,9 @@ function ufPlanAction(action){
   /* Change / Freeze / Extend require owner judgment (used-vs-unused
      calculation, case-by-case discretion) — Renew is the one trouble-free
      action a receptionist can do on her own. */
-  if(PPS&&PPS.role!=='admin'&&['change','freeze','extend'].includes(action)){
-    if(!_permCheck('clients','plan','edit')){
+  if(PPS&&PPS.role!=='admin'){
+    if(action==='renew'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+    if(['change','freeze','extend'].includes(action)&&!_permCheck('clients','plan','edit')){
       toast('🔒 '+({change:'Plan change',freeze:'Freeze',extend:'Extend'}[action])+' needs admin — please ask');
       return;
     }
