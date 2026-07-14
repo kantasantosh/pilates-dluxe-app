@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143w</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2105,6 +2105,9 @@ function renderClients(){
     const _tot=mem?((mem.sessions||0)+(mem.bonus||0)):0;
     const _left=mem?getSessionsLeft(mem,c.id):0;
     const _pct=(_tot>0&&!_unltd)?Math.max(0,Math.min(100,Math.round(_left/_tot*100))):0;
+    const _unltdUsed=_unltd?_sessUsedInPlan(c.id,mem):0;
+    const _unltdBase=26; /* soft realistic monthly max — informational only, not enforced */
+    const _unltdPct=Math.max(0,Math.min(100,Math.round((_unltdBase-Math.min(_unltdUsed,_unltdBase))/_unltdBase*100)));
     const _planLbl=(()=>{if(!plan)return '';const d=plan.days||0;const dur=d>0&&d%30===0?(d/30)+'M':d>0&&d%7===0?(d/7)+'W':d+'d';const _INF='<span style="font-size:15px;line-height:1;vertical-align:-2px;color:#c9a84c;">∞</span>';const ss=_unltd?_INF:_tot+'s';return dur+' × '+ss;})();
     const _due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
     const _av=c.photo?`<img src="${c.photo}" class="client-avatar" style="width:42px;height:42px;"/>`:`<div class="client-avatar" style="width:42px;height:42px;font-size:16px;background:${colorFor(c.fname+(c.lname||''))};">${initials(c.fname+' '+(c.lname||''))}</div>`;
@@ -2122,9 +2125,12 @@ function renderClients(){
       </div>
       </div>
       </div>
-      ${!_isTr&&mem&&_tot>0&&!_unltd?`<div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
+      ${!_isTr&&mem&&!_unltd?`<div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
         <div style="flex:1;height:6px;background:transparent;border:1px solid rgba(125,214,181,0.55);border-radius:4px;overflow:hidden;"><div style="width:${100-_pct}%;height:100%;background:#7ed6b5;border-radius:2px;"></div></div>
-        <span style="font-size:11px;color:var(--gold);white-space:nowrap;">${_left} left / ${_tot}</span>
+        <span style="font-size:11.5px;color:#7ed6b5;white-space:nowrap;">${_left} left / ${_tot}</span>
+      </div>`:!_isTr&&mem&&_unltd?`<div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
+        <div style="flex:1;height:6px;background:transparent;border:1px solid rgba(56,189,248,0.4);border-radius:4px;overflow:hidden;"><div style="width:${100-_unltdPct}%;height:100%;background:#38bdf8;border-radius:2px;"></div></div>
+        <span style="font-size:11.5px;color:#38bdf8;white-space:nowrap;">${_unltdUsed} this month</span>
       </div>`:''}
       <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px;">
         ${_isTr?'<span class="badge" style="background:rgba(127,119,221,0.14);color:#afa9ec;border:1px solid rgba(127,119,221,0.4);font-size:10px;">🎯 Trial</span>':''}
@@ -8381,6 +8387,13 @@ function openUnified(cid,focusSection){
      looking at an already-inactive client, even though tapping it
      correctly offered to reactivate her. Fixed so it's never ambiguous
      about what the button will actually do. */
+  /* Reset any stale hide-state left by a PREVIOUS client's Receipts panel —
+     the modal DOM is reused, not rebuilt, so without this a WA/Complimentary
+     "disappearance" on client B was really client A's leftover toggle state. */
+  const _payBody=document.getElementById('uf-body-payment');
+  if(_payBody)_payBody.style.display='none';
+  const _payArrow=document.getElementById('uf-payment-arrow');
+  if(_payArrow)_payArrow.textContent='▶';
   /* follow-up log in unified form */
   (function(){
     const _fuAll=ld('pp_followups',[]).filter(x=>x.cid===cid).sort((a,b)=>b.loggedAt.localeCompare(a.loggedAt));
@@ -8515,13 +8528,12 @@ function ufToggle(section){
      (admin row's display depends on role, so remember what it was). */
   if(section==='payment'){
     const nowOpen=body.style.display!=='none';
-    ['uf-chips-row','uf-admin-row'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(!el)return;
-      if(nowOpen){el.dataset.prevDisp=el.style.display;el.style.display='none';}
-      else if(el.dataset.prevDisp!==undefined){el.style.display=el.dataset.prevDisp;delete el.dataset.prevDisp;}
-    });
-    if(nowOpen)_ufPayGate(); /* #8 — apply gate state when section opens */
+    const _admRow=document.getElementById('uf-admin-row');
+    if(_admRow){
+      if(nowOpen){_admRow.dataset.prevDisp=_admRow.style.display;_admRow.style.display='none';}
+      else if(_admRow.dataset.prevDisp!==undefined){_admRow.style.display=_admRow.dataset.prevDisp;delete _admRow.dataset.prevDisp;}
+    }
+    if(nowOpen)_ufPayGate();
   }
 }
 /* #8 — Receipts section gating: only Amount Received is active until a
@@ -9786,6 +9798,10 @@ function ufSavePayment(){
           <button onclick="printProfile(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;font-size:11px;">🖨 Print Profile & Attendance</button>
           <button onclick="showMemberQR(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;font-size:11px;">🪪 QR ID Card</button>
         </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button onclick="const _cid=document.getElementById('uf-cid').value;closeM('m-unified');setTimeout(()=>openWA(_cid),200)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
+          <button onclick="openAddComp(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;">🎁 Add Complimentary</button>
+        </div>
       </div>
     </div>
 
@@ -9863,12 +9879,6 @@ function ufSavePayment(){
         <button onclick="openFollowUp(document.getElementById('uf-cid').value)" class="sb2" style="width:100%;padding:8px;font-size:13px;">+ Add follow-up</button>
       </div>
     </div>
-    <!-- WhatsApp + Complimentary -->
-    <div id="uf-chips-row" style="display:flex;gap:8px;margin:10px 0;">
-      <button onclick="const _cid=document.getElementById('uf-cid').value;closeM('m-unified');setTimeout(()=>openWA(_cid),200)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
-      <button onclick="openAddComp(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;">🎁 Add Complimentary</button>
-    </div>
-
     <!-- Admin-only actions (small chips) -->
     <div id="uf-admin-row" style="display:none;margin-top:8px;">
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Admin</div>
