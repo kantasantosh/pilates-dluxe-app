@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v143w</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144v</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2105,6 +2105,9 @@ function renderClients(){
     const _tot=mem?((mem.sessions||0)+(mem.bonus||0)):0;
     const _left=mem?getSessionsLeft(mem,c.id):0;
     const _pct=(_tot>0&&!_unltd)?Math.max(0,Math.min(100,Math.round(_left/_tot*100))):0;
+    const _unltdUsed=_unltd?_sessUsedInPlan(c.id,mem):0;
+    const _unltdBase=26; /* soft realistic monthly max — informational only, not enforced */
+    const _unltdPct=Math.max(0,Math.min(100,Math.round((_unltdBase-Math.min(_unltdUsed,_unltdBase))/_unltdBase*100)));
     const _planLbl=(()=>{if(!plan)return '';const d=plan.days||0;const dur=d>0&&d%30===0?(d/30)+'M':d>0&&d%7===0?(d/7)+'W':d+'d';const _INF='<span style="font-size:15px;line-height:1;vertical-align:-2px;color:#c9a84c;">∞</span>';const ss=_unltd?_INF:_tot+'s';return dur+' × '+ss;})();
     const _due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
     const _av=c.photo?`<img src="${c.photo}" class="client-avatar" style="width:42px;height:42px;"/>`:`<div class="client-avatar" style="width:42px;height:42px;font-size:16px;background:${colorFor(c.fname+(c.lname||''))};">${initials(c.fname+' '+(c.lname||''))}</div>`;
@@ -2122,9 +2125,12 @@ function renderClients(){
       </div>
       </div>
       </div>
-      ${!_isTr&&mem&&_tot>0&&!_unltd?`<div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
+      ${!_isTr&&mem&&!_unltd?`<div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
         <div style="flex:1;height:6px;background:transparent;border:1px solid rgba(125,214,181,0.55);border-radius:4px;overflow:hidden;"><div style="width:${100-_pct}%;height:100%;background:#7ed6b5;border-radius:2px;"></div></div>
-        <span style="font-size:11px;color:var(--gold);white-space:nowrap;">${_left} left / ${_tot}</span>
+        <span style="font-size:11.5px;color:#7ed6b5;white-space:nowrap;">${_left} left / ${_tot}</span>
+      </div>`:!_isTr&&mem&&_unltd?`<div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
+        <div style="flex:1;height:6px;background:transparent;border:1px solid rgba(56,189,248,0.4);border-radius:4px;overflow:hidden;"><div style="width:${100-_unltdPct}%;height:100%;background:#38bdf8;border-radius:2px;"></div></div>
+        <span style="font-size:11.5px;color:#38bdf8;white-space:nowrap;">${_unltdUsed} this month</span>
       </div>`:''}
       <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px;">
         ${_isTr?'<span class="badge" style="background:rgba(127,119,221,0.14);color:#afa9ec;border:1px solid rgba(127,119,221,0.4);font-size:10px;">🎯 Trial</span>':''}
@@ -2198,6 +2204,7 @@ function _crefPick(id,name,memNo){
   document.getElementById('c-ref-suggest').style.display='none';
 }
 function openAddClient(forceCat){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','addClient','edit')){toast('🔒 View-only access');return;}
   document.getElementById('client-modal-title').textContent='Add Client';
   document.getElementById('c-id').value='';
   document.getElementById('c-memno-row').style.display='none';
@@ -2375,6 +2382,7 @@ function _doSaveClient(category){
 
 // ===== MEMBERSHIP =====
 function openAssignMembership(cid){
+  if(typeof ppIsVisitor==='function'&&ppIsVisitor()){toast('🔒 View-only access');return;}
   const clients=ld('pp_clients',[]);
   const c=clients.find(cl=>cl.id===cid);if(!c)return;
   const mems=ld('pp_memberships',{});
@@ -2643,6 +2651,7 @@ function openEditPayment(pid){
   setTimeout(()=>armDirty('m-payment','pay-save-btn'),50);
 }
 function savePayment(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','payment','edit')){toast('🔒 View-only access');return;}
   const cid=document.getElementById('p-cid').value;
   if(!cid){alert('Select a client');return;}
   const amt=parseFloat(document.getElementById('p-amt').value);
@@ -2971,6 +2980,7 @@ document.addEventListener('click',e=>{
   if(row&&!row.contains(e.target)&&e.target.id!=='bk-client-search')row.style.display='none';
 });
 async function saveBooking(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('schedule','book','edit')){toast('🔒 View-only access');return;}
   const slotIdx=parseInt(document.getElementById('bk-slot').value);
   const slot=SLOTS[slotIdx];
   const date=document.getElementById('bk-date').value;
@@ -3040,6 +3050,7 @@ async function saveBooking(){
 }
 // Tap cycle: Booked → Present → Remove
 function cycleSlot(slotIdx,cellIdx){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('schedule','markAttend','edit')){toast('🔒 View-only access');return;}
   const slot=SLOTS[slotIdx];
   const bookings=ld('pp_bookings',{});
   if(!bookings[_schedDate]||!bookings[_schedDate][slot])return;
@@ -3081,6 +3092,7 @@ function openWA(cid){
   openM('m-whatsapp');
 }
 function openFollowUp(cid){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','followup','edit')){toast('🔒 View-only access');return;}
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
   document.getElementById('fu-cid').value=cid;
   document.getElementById('fu-name').textContent=(c.fname||'')+' '+(c.lname||'');
@@ -3116,6 +3128,7 @@ function markFollowUpDone(id){
   toast('✓ Follow-up marked done');try{renderClients();}catch(_e){}try{renderDash();}catch(_e){}
 }
 function saveFollowUp(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','followup','edit')){toast('🔒 View-only access');return;}
   const cid=document.getElementById('fu-cid').value;
   const note=document.getElementById('fu-note').value.trim();
   const remind=document.getElementById('fu-remind').value;
@@ -3246,7 +3259,7 @@ function _updateFloatingNav(n){
   const PLUS_BTN='<button class="float-nav-btn" onclick="fabAction()" title="Add"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>';
   if(n==='schedule'){
     /* Schedule: ◀▶ day nav + ▲▼ scroll stacked on right */
-    boxR.innerHTML=PLUS_BTN+`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
+    boxR.innerHTML=`<button class="float-nav-btn" onclick="chDay(-1)" title="Previous day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
       <button class="float-nav-btn" onclick="chDay(1)" title="Next day"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
       <button class="float-nav-btn" onclick="window.scrollBy({top:-window.innerHeight*0.85,behavior:'smooth'})" title="Scroll up"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="6"/><polyline points="6 11 12 5 18 11"/></svg></button>
       <button class="float-nav-btn" onclick="window.scrollBy({top:window.innerHeight*0.85,behavior:'smooth'})" title="Scroll down"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="18"/><polyline points="6 13 12 19 18 13"/></svg></button>`;
@@ -3325,7 +3338,7 @@ function confirmCycleSlot(slotIdx,cellIdx,clientName){
         }
       }},
       {label:'Remove Slot',color:'var(--rose)',action:()=>{
-        if(typeof ppIsStaff==='function'&&ppIsStaff()&&!_hasPerm('slot_remove')){toast('🔒 Only admin can remove a booked slot — ask admin');return;}
+        if(PPS&&PPS.role!=='admin'&&!_permCheck('schedule','removeSlot','edit')){toast('🔒 Only admin can remove a booked slot — ask admin');return;}
         const bookings=ld('pp_bookings',{});
         const slot=SLOTS[slotIdx];
         if(bookings[_schedDate]&&bookings[_schedDate][slot]){
@@ -3381,7 +3394,7 @@ function archiveClient(cid){
 }
 
 function deleteClient(cid){
-  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()&&!_hasPerm('client_delete')){toast('🔒 Only an admin can delete a client');return;}
+  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()&&!_permCheck('clients','deleteClient','edit')){toast('🔒 Only an admin can delete a client');return;}
   const clients=ld('pp_clients',[]);
   const c=clients.find(x=>x.id===cid);
   if(!c)return;
@@ -3675,6 +3688,7 @@ function ensureStaffDemoAccess(staffId){
   ensureDemoAccess(staff.fname,(staff.email||'').trim(),staff.role);
 }
 function openAddStaff(id){
+  if(!_gate('tns','salary','edit'))return;
   document.getElementById('staff-modal-title').textContent=id?'Edit Staff':'Add Staff';
   document.getElementById('sf-id').value=id||'';
   if(id){
@@ -3721,6 +3735,7 @@ function submitFeedback(){
   setTimeout(()=>document.body.removeChild(a),200);
 }
 function saveStaff(){
+  if(!_gate('tns','salary','edit'))return;
   const fname=document.getElementById('sf-fname').value.trim();
   if(!fname){alert('Enter first name');return;}
   const staff=ld('pp_staff',[]);
@@ -3757,12 +3772,12 @@ const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function renderCredits(){
   document.getElementById('credits-content').innerHTML=`
     <div id="admin-tools-slot"></div>
-    <div style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+    <div id="about-backup-card" style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
       <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">💾 Data Backup</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5;">Export saves all data. Import restores on any device.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <button onclick="exportPPData()" style="background:linear-gradient(135deg,var(--teal),#4a7a72);color:white;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;">⬇️ Export</button>
-        <label style="background:linear-gradient(135deg,var(--purple),#6a5a7f);color:white;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;text-align:center;display:block;">⬆️ Import<input type="file" accept=".json" onchange="importPPData(this)" style="display:none;"/></label>
+      <div id="about-backup-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button id="about-export-btn" onclick="exportPPData()" style="background:linear-gradient(135deg,var(--teal),#4a7a72);color:white;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;">⬇️ Export</button>
+        <label id="about-import-lbl" style="background:linear-gradient(135deg,var(--purple),#6a5a7f);color:white;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;text-align:center;display:block;">⬆️ Import<input type="file" accept=".json" onchange="importPPData(this)" style="display:none;"/></label>
       </div>
     </div>
     <div style="margin:0 16px 10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
@@ -3783,11 +3798,11 @@ function renderCredits(){
       </div>
       <div style="font-size:11px;color:var(--text3);">Designed together with its user</div>
     </div>
-    <div style="margin:0 16px 10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+    <div id="about-bio-card" style="margin:0 16px 10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🔒 Fingerprint / Face Unlock (this device)</div>
       <div id="bio-about-area"></div>
     </div>
-    <div style="margin:0 16px 30px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+    <div id="about-reset-card" style="margin:0 16px 30px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
       <button onclick="resetAllData()" style="width:100%;padding:10px;border-radius:var(--rsm);border:1px solid var(--red);background:none;color:var(--red);font-family:'Jost',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">🗑 Reset all data (irreversible)</button>
     </div>
   `;
@@ -3818,6 +3833,7 @@ function renderBioAbout(){
 }
 
 function exportPPData(){
+  if(!_gate('about','exportBackup','edit'))return;
   const keys=Object.keys(localStorage).filter(k=>k.startsWith('pp_'));
   const data={_v:'1.0',_d:new Date().toISOString(),_app:'ProjectP'};
   keys.forEach(k=>{try{data[k]=JSON.parse(localStorage.getItem(k));}catch(e){data[k]=localStorage.getItem(k);}});
@@ -3839,6 +3855,8 @@ function exportPPData(){
   toast('✓ Data exported! Check your downloads folder.');
 }
 function importPPData(input){
+  /* Import overwrites EVERYTHING — permanently admin-only, never delegatable */
+  if(!_gateAdmin())return;
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=e=>{
@@ -3919,6 +3937,7 @@ function _salaryEarned(s,y,m){
   return {present:P,absent:A,holiday:HD,half:HALF,dim,startDay,earned:Math.round(earnedExact)};
 }
 function clearStaffSalaryHistory(sid){
+  if(!_gate('tns','salary','edit'))return;
   showConfirm('🗑','Clear History?','Remove all salary history for this staff member?',[
     {label:'Cancel',color:'var(--border2)',outline:true,action:null},
     {label:'Clear',color:'var(--red)',action:()=>{
@@ -3952,6 +3971,9 @@ function _syncStaffMonthPicker(){
 }
 
 function cycStaffAtt(sid,key,day,isOff){
+  /* own attendance vs everyone else's are two different permissions */
+  const _mine=(typeof ppMyStaffId==='function'&&ppMyStaffId()===sid);
+  if(!_gate('tns',_mine?'ownAttendance':'allAttendance','edit'))return;
   const att=ld('pp_satt_'+sid,{});
   if(!att[key])att[key]={};
   const def=isOff?'H':'P';
@@ -4203,9 +4225,10 @@ function renderStaff(){
     </div>`;
   }).join('');
 }
-function delStaff(id){if(!confirm('Delete this staff member?'))return;const s=ld('pp_staff',[]).filter(x=>x.id!==id);sv('pp_staff',s);renderStaff();}
+function delStaff(id){if(!_gate('tns','salary','edit'))return;if(!confirm('Delete this staff member?'))return;const s=ld('pp_staff',[]).filter(x=>x.id!==id);sv('pp_staff',s);renderStaff();}
 
 function openStaffAdv(sid,name){
+  if(!_gate('tns','salary','edit'))return;
   document.getElementById('sadv-sid').value=sid;
   document.getElementById('sadv-name').value=name;
   document.getElementById('sadv-amt').value='';
@@ -4217,6 +4240,7 @@ function openStaffAdv(sid,name){
   setTimeout(()=>armDirty('m-staffadv','sadv-save-btn'),50);
 }
 function saveStaffAdv(){
+  if(!_gate('tns','salary','edit'))return;
   const sid=document.getElementById('sadv-sid').value;
   const name=document.getElementById('sadv-name').value;
   const amt=parseFloat(document.getElementById('sadv-amt').value);
@@ -4273,6 +4297,8 @@ function setTnsView(view,btn){
   }
 }
 function openAddBillTodo(id,type){
+  if(type==='bill'){ if(!_gate('tns','bills','edit'))return; }
+  else { if(!_gateTask())return; }
   const isNew=!id;
   document.getElementById('bt-modal-title').textContent=isNew?'Add New':(type==='bill'?'Edit Bill':'Edit Task');
   document.getElementById('bt-id').value=id||'';
@@ -4321,6 +4347,8 @@ function setBTType(t){
 }
 function saveBillTask(){
   const type=document.getElementById('bt-type').value;
+  if(type==='bill'){ if(!_gate('tns','bills','edit'))return; }
+  else { if(!_gateTask())return; }
   const title=document.getElementById('bt-title').value.trim();
   if(!title){alert('Enter a title');return;}
   const id=document.getElementById('bt-id').value;
@@ -4408,13 +4436,14 @@ function renderTodoSection(container){
     (pending.length?`<div class="div-section">Pending (${pending.length})</div>${pending.map(renderItem).join('')}`:'') +
     (done.length?`<div class="div-section">Done (${done.length})</div>${done.map(renderItem).join('')}`:'');
 }
-function toggleBillStatus(id){const bills=ld('pp_bills',[]);const b=bills.find(x=>x.id===id);if(b){b.status=b.status==='paid'?'due':'paid';sv('pp_bills',bills);renderBillsTasks();}}
-function toggleTodo(id){const todos=ld('pp_todos',[]);const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;sv('pp_todos',todos);renderBillsTasks();}}
-function delTodo(id){confirmDelete('🗑','Delete this task?',()=>{sv('pp_todos',ld('pp_todos',[]).filter(t=>t.id!==id));renderBillsTasks();});}
+function toggleBillStatus(id){if(!_gate('tns','bills','edit'))return;const bills=ld('pp_bills',[]);const b=bills.find(x=>x.id===id);if(b){b.status=b.status==='paid'?'due':'paid';sv('pp_bills',bills);renderBillsTasks();}}
+function toggleTodo(id){if(!_gateTask())return;const todos=ld('pp_todos',[]);const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;sv('pp_todos',todos);renderBillsTasks();}}
+function delTodo(id){if(!_gateTask())return;confirmDelete('🗑','Delete this task?',()=>{sv('pp_todos',ld('pp_todos',[]).filter(t=>t.id!==id));renderBillsTasks();});}
 
 // ===== PLAN MANAGEMENT =====
 function getPlans(){return ld('pp_plans',PLANS);}
 function openManagePlans(){
+  if(!_gate('about','plans','view'))return;
   renderPlansList();
   openM('m-plans');
   setTimeout(()=>armDirty('np-section','np-save-btn'),50);
@@ -4460,6 +4489,7 @@ function editPlanPrice(idx){
   if(row)row.style.display=row.style.display==='none'?'block':'none';
 }
 function savePlanEdit(idx){
+  if(!_gate('about','plans','edit'))return;
   const plans=getPlans();
   const name=(document.getElementById('ep-name-'+idx).value||'').trim()||plans[idx].name;
   const days=parseInt(document.getElementById('ep-days-'+idx).value)||plans[idx].days||30;
@@ -4478,6 +4508,7 @@ function savePlanEdit(idx){
   toast('✓ Plan updated!');
 }
 function delPlan(idx){
+  if(!_gate('about','plans','delete'))return;
   const plans=getPlans();
   const p=plans[idx];if(!p)return;
   /* SAFETY THUMB-RULE: a plan can be deleted only if NO membership (current
@@ -4537,6 +4568,7 @@ function getCreditCats(){return ld('pp_credit_cats',DEF_CREDIT_CATS);}
 function getDebitCats(){return ld('pp_debit_cats',DEF_DEBIT_CATS);}
 let _cashCatType='in';
 function openManageCashCats(){
+  if(!_gate('cash','addEntry','edit'))return;
   _cashCatType=document.getElementById('ce-type').value||'in';
   document.getElementById('cashcats-title').textContent=_cashCatType==='in'?'💚 Credit Categories':'🔴 Debit Categories';
   document.getElementById('cashcats-new').value='';
@@ -4552,6 +4584,7 @@ function renderCashCatsList(){
     </div>`).join('');
 }
 function addCashCat(){
+  if(!_gate('cash','addEntry','edit'))return;
   const val=document.getElementById('cashcats-new').value.trim();
   if(!val)return;
   const key=_cashCatType==='in'?'pp_credit_cats':'pp_debit_cats';
@@ -4561,6 +4594,7 @@ function addCashCat(){
   renderCashCatsList();refreshCECats();
 }
 function delCashCat(idx){
+  if(!_gate('cash','addEntry','edit'))return;
   const key=_cashCatType==='in'?'pp_credit_cats':'pp_debit_cats';
   const def=_cashCatType==='in'?DEF_CREDIT_CATS:DEF_DEBIT_CATS;
   const cats=ld(key,def);if(cats.length<=1){alert('Keep at least one');return;}
@@ -4679,6 +4713,7 @@ function closeCashEntry(){
   }
 }
 function openCashEntry(id,prefillCid,preType){
+  if(!_gate('cash',id?'editEntry':'addEntry','edit'))return;
   document.getElementById('cash-modal-title').textContent=id?'Edit Entry':'New Entry';
   document.getElementById('ce-id').value=id||'';
   const clients=ld('pp_clients',[]);
@@ -4764,7 +4799,7 @@ function openCashEntry(id,prefillCid,preType){
   if(id)setTimeout(()=>armDirty('m-cashentry','ce-save-btn'),50);
 }
 function deleteCashEntry(){
-  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+  if(!_gate('cash','deleteEntry','edit'))return;
   const id=document.getElementById('ce-id').value;
   if(!id)return;
   if(/^leg_/.test(id)){
@@ -4829,6 +4864,7 @@ function _staffAdvFind(cashId){
    Old records from the pre-sync era may have no voucher — offer to remove
    the orphan record directly (answers: "how to remove old trial entries"). */
 function openStaffAdvVoucher(sid,advId){
+  if(!_gate('tns','salary','edit'))return;
   const cash=ld('pp_cash',[]);
   const ce=cash.find(e=>e.id===advId||e.id==='sadv_'+advId);
   if(ce){openCashEntry(ce.id);return;}
@@ -4861,6 +4897,8 @@ function _staffAdvSync(data){
   if(typeof renderStaff==='function')try{renderStaff();}catch(e){}
 }
 function saveCashEntry(){
+  /* the DOER — must be gated separately from the opener */
+  if(!_gate('cash',document.getElementById('ce-id').value?'editEntry':'addEntry','edit'))return;
   const amt=parseFloat(document.getElementById('ce-amt').value);
   if(!amt||amt<=0){alert('Enter valid amount');return;}
   const cash=ld('pp_cash',[]);
@@ -4985,6 +5023,7 @@ function _dbAllEntries(){
   return [...cashRaw,...legacyPays.filter(p=>!ids.has(p.id))];
 }
 function openDaybook(){
+  if(!_gate('cash','daybook','view'))return;
   dbQuick('month');
   const all=_dbAllEntries();
   /* THE FIX: this used to only list categories that ALREADY had at least
@@ -5030,6 +5069,7 @@ function _dbFiltered(){
   }).sort((a,b)=>new Date(a.date)-new Date(b.date)); // chronological for daybook
 }
 function printDaybook(){
+  if(!_gate('cash','exportPrint','edit'))return;
   const rows=_dbFiltered();
   if(!rows.length){toast('No entries in this period');return;}
   const clients=ld('pp_clients',[]);
@@ -5062,6 +5102,7 @@ function printDaybook(){
   ppPrint('Cash Daybook · '+period+' · '+rows.length+' entries',html);
 }
 function exportDaybookCSV(){
+  if(!_gate('cash','exportPrint','edit'))return;
   const rows=_dbFiltered();
   if(!rows.length){toast('No entries in this period');return;}
   const clients=ld('pp_clients',[]);
@@ -5225,6 +5266,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144v</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5264,47 +5306,14 @@ if('serviceWorker' in navigator){
     <div class="fg"><label class="fl">Login ID</label><input class="fi" id="ue-uid" placeholder="e.g. priyanka" autocapitalize="none"/></div>
     <div class="fg"><label class="fl">Email <span style="color:var(--text3);font-weight:400;">(for booking-page login)</span></label><input class="fi" id="ue-email" type="email" autocapitalize="none" placeholder="name@gmail.com" autocomplete="off"/></div>
     <div class="fr">
-      <div class="fg"><label class="fl">Role</label><select class="fi" id="ue-role"><option value="staff">Staff</option><option value="trainer">Trainer (view-only)</option><option value="admin">Admin</option></select></div>
+      <div class="fg"><label class="fl">Role</label><select class="fi" id="ue-role"><option value="staff">Staff</option><option value="trainer">Trainer (view-only)</option><option value="visitor">Visitor (view-only, no staff record)</option><option value="admin">Admin</option></select></div>
       <div class="fg"><label class="fl">Active</label><select class="fi" id="ue-active"><option value="1">Yes</option><option value="0">No (disabled)</option></select></div>
     </div>
     <div class="fg"><label class="fl">Linked Staff Record (for own attendance &amp; tasks)</label><select class="fi" id="ue-staff"><option value="">— Not linked —</option></select></div>
     <div class="fg">
-      <label class="fl">Access — which tabs this person can see</label>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Leave "Use role default" on unless this person needs a custom mix.</div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:8px;cursor:pointer;">
-        <input type="checkbox" id="ue-custom-access" onchange="_ueToggleCustomAccess()" style="width:16px;height:16px;"/> Use custom access for this person
-      </label>
-      <div id="ue-tab-checks" style="display:none;grid-template-columns:1fr 1fr;gap:6px;padding:10px;background:var(--surface2);border-radius:var(--rsm);margin-bottom:10px;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="dashboard" style="width:15px;height:15px;"/> 🏠 Home</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="clients" style="width:15px;height:15px;"/> 👥 Clients</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="schedule" style="width:15px;height:15px;"/> 📅 Schedule</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="cash" style="width:15px;height:15px;"/> 💰 Cash</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="tns" style="width:15px;height:15px;"/> 📋 TnS</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" class="ue-tab-cb" value="credits" style="width:15px;height:15px;"/> ℹ️ About</label>
-      </div>
-      <div id="ue-perm-checks" style="display:none;">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">Fine-grained permissions</div>
-        <div style="background:var(--surface2);border-radius:var(--rsm);padding:10px;">
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:6px;">👥 Clients</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="client_edit"/> Edit saved client</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="client_delete"/> Delete client</label>
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">📋 Plan actions (existing plan)</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="plan_change"/> Change plan (mid-term)</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="plan_freeze"/> Freeze plan</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="plan_extend"/> Extend plan</label>
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">📅 Schedule</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="slot_remove"/> Remove / cancel a booked slot</label>
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">🏠 Dashboard</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="dash_revenue"/> View Membership Revenue</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="dash_conversion"/> View Trial Conversion %</label>
-          <div style="font-size:11px;font-weight:700;color:var(--gold);margin:10px 0 6px;">📋 TnS — Staff &amp; Tasks</div>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="staff_mark_own"/> Mark own attendance</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="staff_view_all"/> View everyone's attendance</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="staff_manage"/> Manage staff / salary / advances</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="tasks_view_all"/> View everyone's tasks (not just own)</label>
-          <label class="ue-perm-row"><input type="checkbox" class="ue-perm-cb" value="tasks_manage"/> Create / edit / delete tasks</label>
-        </div>
-      </div>
+      <label class="fl">Access — per section</label>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Full = everything in that section. Restricted = pick exactly what's allowed. No = section hidden entirely.</div>
+      <div id="ue-sec-rows"></div>
     </div>
     <div class="fg"><label class="fl">PIN (4–6 digits)</label><input class="fi" id="ue-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Leave blank to keep current PIN" autocomplete="off" name="pdl-uepin" data-1p-ignore data-lpignore="true" data-form-type="other"/></div>
     <button class="sb2" id="ue-save-btn" onclick="saveUser()" disabled style="opacity:0.45;">Save User</button>
@@ -5471,6 +5480,7 @@ function _b64ToBuf(b64){const bin=atob(b64.replace(/-/g,'+').replace(/_/g,'/'));
 function _bufToB64(buf){const a=new Uint8Array(buf);let s='';for(let i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 
 async function bioEnroll(userId){
+  if(typeof _gate==='function'&&!_gate('about','fingerprint','edit'))return false;
   if(!_bioSupported()){toast('This device/browser does not support fingerprint');return false;}
   const u=ppUsers().find(x=>x.id===userId);if(!u){toast('User not found');return false;}
   try{
@@ -5547,6 +5557,132 @@ function ppIsAdmin(){
 }
 function ppIsStaff(){return !!(PPS&&PPS.role==='staff');}
 function ppIsTrainer(){return !!(PPS&&PPS.role==='trainer');}
+function ppIsVisitor(){return !!(PPS&&PPS.role==='visitor');}
+/* ===== CENTRAL PERMISSION REGISTRY (v2) =====
+   Every controllable feature in the app is ONE line here. Adding a new
+   feature later = add one line here + wrap it with _permCheck() at its
+   call site. That's the entire "every feature ships with a rider"
+   mechanism — no scattered one-off role checks to remember. */
+const _PERM_REGISTRY={
+  dashboard:{label:'🏠 Home',items:{
+    needsAttention:{label:'Needs Attention bar',type:'action'},
+    activeCard:{label:'Active Members card',type:'action'},
+    endsSoonCard:{label:'Ends Soon card',type:'action'},
+    dueCard:{label:'Payment Due card',type:'action'},
+    trialsCard:{label:'Trials Not Converted card',type:'action'},
+    conversionCard:{label:'Trial Conversion % card',type:'action'},
+    revenueCard:{label:'Membership Revenue card',type:'action'},
+    birthdays:{label:'Birthdays This Week',type:'action'},
+    todaySched:{label:"Today's Schedule",type:'action'},
+  }},
+  clients:{label:'👥 Clients',items:{
+    profile:{label:'Profile details',type:'data'},
+    plan:{label:'Plan & History (assign/renew/change/freeze/extend)',type:'data'},
+    payment:{label:'Payment / Receipts',type:'data'},
+    followup:{label:'Follow-up log',type:'data'},
+    addClient:{label:'Add brand-new client / trial',type:'action'},
+    deleteClient:{label:'Delete client',type:'action'},
+    printQr:{label:'Print Profile / QR ID Card',type:'action'},
+    whatsapp:{label:'WhatsApp message',type:'action'},
+    complimentary:{label:'Add Complimentary',type:'action'},
+    deactivate:{label:'Deactivate / Reactivate',type:'action'},
+    resetPin:{label:'Reset booking-login PIN',type:'action'},
+  }},
+  schedule:{label:'📅 Slots',items:{
+    view:{label:'View slots',type:'action'},
+    book:{label:'Book a new slot',type:'action'},
+    removeSlot:{label:'Remove / cancel a booked slot',type:'action'},
+    markAttend:{label:'Mark attendance',type:'action'},
+    markClosed:{label:'Mark studio closed/open',type:'action'},
+    scan:{label:'Scanner check-in',type:'action'},
+  }},
+  cash:{label:'💰 Cash',items:{
+    statement:{label:'View Statement',type:'action'},
+    daybook:{label:'View Daybook',type:'action'},
+    addEntry:{label:'Add Credit/Debit/Contra entry',type:'action'},
+    editEntry:{label:'Edit an entry',type:'action'},
+    deleteEntry:{label:'Delete an entry',type:'action'},
+    receiptPrint:{label:'Receipt print/forward',type:'action'},
+    exportPrint:{label:'Export/print reports',type:'action'},
+  }},
+  tns:{label:'📋 TnS',items:{
+    ownAttendance:{label:'Own attendance',type:'data'},
+    allAttendance:{label:"Everyone's attendance",type:'data'},
+    salary:{label:'Salary / advances / increments',type:'data'},
+    ownTasks:{label:'Own tasks',type:'data'},
+    allTasks:{label:"Everyone's tasks",type:'data'},
+    bills:{label:'Bills',type:'data'},
+    printAttSal:{label:'Print attendance/salary',type:'action'},
+  }},
+  about:{label:'ℹ️ About',items:{
+    reports:{label:'Reports',type:'action'},
+    plans:{label:'Plan definitions',type:'data'},
+    studio:{label:'Studio details',type:'data'},
+    announce:{label:'Announcements',type:'data'},
+    referral:{label:'Referral bonus rule',type:'data'},
+    auditLog:{label:'Audit log',type:'action'},
+    exportBackup:{label:'Export backup',type:'action'},
+    fingerprint:{label:'Fingerprint enroll/remove',type:'action'},
+    /* usersAccess / importBackup / resetData deliberately NOT in this
+       registry — permanently Admin-only per Santosh's decision, never
+       delegatable regardless of any Restricted setting. */
+  }},
+};
+/* Section-level access: 'full' | 'restricted' | 'no'. Item-level tiers
+   (only meaningful when section='restricted'): 'none'|'view'|'edit'|'delete'
+   for type:'data', or 'none'|'edit' for type:'action'. */
+function _secAccess(u,sec){
+  if(!u)return 'no';
+  if(u.role==='admin')return 'full';
+  if(u.perm2&&u.perm2[sec])return u.perm2[sec];
+  /* Only trust the old "tab visible = full access" fallback if this user
+     was genuinely configured under the OLD checkbox system (a real saved
+     tabAccess array). A brand-new, never-configured non-admin user must
+     default SAFE — restricted, not silently full — until an admin
+     explicitly sets each section via the new UI. */
+  if(Array.isArray(u.tabAccess)){
+    const tabKey={dashboard:'dashboard',clients:'clients',schedule:'schedule',cash:'cash',tns:'tns',about:'credits'}[sec];
+    return u.tabAccess.includes(tabKey)?'full':'no';
+  }
+  return 'restricted';
+}
+function _itemTier(u,sec,item){
+  const acc=_secAccess(u,sec);
+  if(acc==='no')return 'none';
+  if(acc==='full')return 'delete'; /* full = everything, top tier */
+  const reg=_PERM_REGISTRY[sec]&&_PERM_REGISTRY[sec].items[item];
+  const dflt=reg&&reg.type==='action'?'edit':'view';
+  if(u.perm2items&&u.perm2items[sec]&&item in u.perm2items[sec])return u.perm2items[sec][item];
+  return dflt; /* restricted section, item not explicitly set = safe default */
+}
+/* THE central checker. Every gated action calls this instead of
+   ppIsStaff()/ppIsVisitor()/etc. minTier: 'view'|'edit'|'delete'. */
+function _permCheck(sec,item,minTier){
+  if(!PPS)return false;
+  if(PPS.role==='admin')return true;
+  const order={none:0,view:1,edit:2,delete:3};
+  const have=_itemTier(PPS,sec,item);
+  return order[have]>=order[minTier];
+}
+
+/* ---- v144v: shared gate helpers. Every Cash/TnS/About doer calls one of
+   these. Returns true if allowed, else toasts and returns false. ---- */
+function _gate(sec,item,minTier,msg){
+  if(typeof _permCheck!=='function')return true;
+  if(_permCheck(sec,item,minTier||'edit'))return true;
+  toast(msg||'🔒 Access restricted');
+  return false;
+}
+function _gateAdmin(msg){
+  if(typeof ppIsAdmin==='function'&&ppIsAdmin())return true;
+  toast(msg||'🔒 Admin only');
+  return false;
+}
+/* Tasks: allowed if user may edit either their own or everyone's tasks. */
+function _gateTask(){
+  if(_permCheck('tns','ownTasks','edit')||_permCheck('tns','allTasks','edit'))return true;
+  toast('🔒 Access restricted');return false;
+}
 function ppMyStaffId(){
   if(!PPS)return'';
   if(PPS.staffId){
@@ -5792,12 +5928,27 @@ function _effectiveTabs(u){
   if(u.role==='admin')return _ALL_TABS.slice();
   if(u.role==='staff')return _ALL_TABS.filter(t=>!_STAFF_BLOCKED_TABS.includes(t));
   if(u.role==='trainer')return _ALL_TABS.filter(t=>!_TRAINER_BLOCKED_TABS.includes(t));
+  if(u.role==='visitor')return ['dashboard','clients','schedule'];
   return _ALL_TABS.slice();
+}
+/* THE single source of truth for which bottom-nav tabs a user may open.
+   perm2-configured users -> new registry (_secAccess: only 'no' blocks;
+   'restricted' MUST allow tab entry, item-level gates handle the rest).
+   Un-migrated users -> old _effectiveTabs list. Used by BOTH _applyTabAccess
+   (which hides buttons) and the showTab wrapper (which blocks navigation) —
+   they previously disagreed, which is why Cash/TnS/About toasted
+   'Access restricted' even though the section was set to Restricted. */
+const _TABKEY_TO_SEC={dashboard:'dashboard',clients:'clients',schedule:'schedule',cash:'cash',tns:'tns',credits:'about'};
+function _navAllowedTabs(u){
+  if(!u)return _ALL_TABS.slice();
+  const usesNewSystem=u.role==='admin'||(u.perm2&&Object.keys(u.perm2).length>0);
+  if(!usesNewSystem)return _effectiveTabs(u);
+  return Object.keys(_TABKEY_TO_SEC).filter(t=>_secAccess(u,_TABKEY_TO_SEC[t])!=='no');
 }
 /* Hide/show bottom-nav buttons + jump off a now-hidden tab if needed */
 function _applyTabAccess(){
   if(!PPS||!PPS.id)return;
-  const allowed=_effectiveTabs(PPS);
+  const allowed=_navAllowedTabs(PPS);
   document.querySelectorAll('.bnav .nb[data-tab]').forEach(b=>{
     const t=b.dataset.tab;
     b.style.display=allowed.includes(t)?'':'none';
@@ -5883,7 +6034,7 @@ wrapAudit('importPPData',()=>'⬆️ Data imported (backup restore)');
 wrapAudit('resetAllData',()=>'🧨 ALL DATA RESET');
 
 function openAuditModal(){
-  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  if(!_gate('about','auditLog','edit'))return;
   openM('m-audit');
   try{
     document.getElementById('aud-search').value='';
@@ -5944,48 +6095,52 @@ function openUserEdit(id){
   document.getElementById('ue-pin').value='';
   document.getElementById('ue-staff').innerHTML='<option value="">— Not linked —</option>'+
     ld('pp_staff',[]).map(s=>`<option value="${s.id}"${u&&u.staffId===s.id?' selected':''}>${(s.fname+' '+(s.lname||'')).trim()} (${s.role||''})</option>`).join('');
-  /* Custom access checkboxes */
-  const _hasCustom=u&&Array.isArray(u.tabAccess);
-  document.getElementById('ue-custom-access').checked=_hasCustom;
-  document.querySelectorAll('.ue-tab-cb').forEach(cb=>{
-    cb.checked=_hasCustom?u.tabAccess.includes(cb.value):_effectiveTabs(u||{role:'staff'}).includes(cb.value);
-  });
-  document.getElementById('ue-tab-checks').style.display=_hasCustom?'grid':'none';
-  document.getElementById('ue-perm-checks').style.display=_hasCustom?'block':'none';
-  const _p=_effectivePerms(u||{role:'staff'});
-  document.querySelectorAll('.ue-perm-cb').forEach(cb=>{
-    cb.checked=(u&&u.perms&&cb.value in u.perms)?!!u.perms[cb.value]:!!_p[cb.value];
-  });
+  /* Compact section-first access UI */
+  _renderSecRows(u);
   document.getElementById('ue-del').style.display=u?'block':'none';
   openM('m-useredit');
   setTimeout(()=>armDirty('m-useredit','ue-save-btn'),50);
 }
-const _PERM_DEFAULTS_BY_ROLE={
-  admin:{client_edit:1,client_delete:1,plan_change:1,plan_freeze:1,plan_extend:1,slot_remove:1,dash_revenue:1,dash_conversion:1,staff_mark_own:1,staff_view_all:1,staff_manage:1,tasks_view_all:1,tasks_manage:1},
-  staff:{client_edit:0,client_delete:0,plan_change:0,plan_freeze:0,plan_extend:0,slot_remove:0,dash_revenue:0,dash_conversion:0,staff_mark_own:0,staff_view_all:0,staff_manage:0,tasks_view_all:0,tasks_manage:0},
-  trainer:{client_edit:0,client_delete:0,plan_change:0,plan_freeze:0,plan_extend:0,slot_remove:0,dash_revenue:0,dash_conversion:0,staff_mark_own:0,staff_view_all:0,staff_manage:0,tasks_view_all:0,tasks_manage:0}
-};
-function _effectivePerms(u){
-  if(!u)return _PERM_DEFAULTS_BY_ROLE.staff;
-  if(u.perms&&typeof u.perms==='object')return Object.assign({},_PERM_DEFAULTS_BY_ROLE[u.role||'staff'],u.perms);
-  return _PERM_DEFAULTS_BY_ROLE[u.role||'staff']||_PERM_DEFAULTS_BY_ROLE.staff;
+function _secOptions(cur){
+  return ['full','restricted','no'].map(v=>'<option value="'+v+'"'+(cur===v?' selected':'')+'>'+({full:'Full',restricted:'Restricted',no:'No'}[v])+'</option>').join('');
 }
-function _hasPerm(key){
-  if(!PPS)return false;
-  if(PPS.role==='admin')return true;
-  return !!_effectivePerms(PPS)[key];
+function _renderSecRows(u){
+  const box=document.getElementById('ue-sec-rows');
+  const sections=Object.keys(_PERM_REGISTRY);
+  box.innerHTML=sections.map(sec=>{
+    const acc=(u&&u.perm2&&u.perm2[sec])||(u?_secAccess(u,sec):'no');
+    const reg=_PERM_REGISTRY[sec];
+    return '<div style="background:var(--surface2);border-radius:var(--rsm);padding:8px 10px;margin-bottom:6px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+      +'<span style="font-size:13px;color:var(--text);cursor:pointer;" onclick="_ueSecCollapse(\''+sec+'\')">'+reg.label+' <span id="ue-chev-'+sec+'" style="font-size:10px;color:var(--text3);">▶</span></span>'
+      +'<select class="ue-sec-select" data-sec="'+sec+'" onchange="_ueSecChanged(this)" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:3px 6px;">'+_secOptions(acc)+'</select>'
+      +'</div>'
+      +'<div class="ue-item-list" id="ue-items-'+sec+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
+      +Object.keys(reg.items).map(it=>{
+        const item=reg.items[it];
+        const curTier=(u&&u.perm2items&&u.perm2items[sec]&&u.perm2items[sec][it])||(item.type==='action'?'edit':'view');
+        const opts=item.type==='action'
+          ?['none','edit'].map(v=>'<option value="'+v+'"'+(curTier===v?' selected':'')+'>'+({none:'🚫',edit:'✅'}[v])+'</option>').join('')
+          :['none','view','edit','delete'].map(v=>'<option value="'+v+'"'+(curTier===v?' selected':'')+'>'+({none:'🚫',view:'👁',edit:'✏️',delete:'🗑'}[v])+'</option>').join('');
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;">'
+          +'<span style="font-size:12px;color:var(--text2);">'+item.label+'</span>'
+          +'<select class="ue-item-select" data-sec="'+sec+'" data-item="'+it+'" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;padding:2px 5px;">'+opts+'</select>'
+          +'</div>';
+      }).join('')
+      +'</div></div>';
+  }).join('');
 }
-function _ueToggleCustomAccess(){
-  const on=document.getElementById('ue-custom-access').checked;
-  document.getElementById('ue-tab-checks').style.display=on?'grid':'none';
-  document.getElementById('ue-perm-checks').style.display=on?'block':'none';
-  if(on){
-    const role=document.getElementById('ue-role').value;
-    const defaults=_effectiveTabs({role});
-    document.querySelectorAll('.ue-tab-cb').forEach(cb=>{cb.checked=defaults.includes(cb.value);});
-    const pdef=_PERM_DEFAULTS_BY_ROLE[role]||_PERM_DEFAULTS_BY_ROLE.staff;
-    document.querySelectorAll('.ue-perm-cb').forEach(cb=>{cb.checked=!!pdef[cb.value];});
-  }
+function _ueSecChanged(sel){
+  const sec=sel.dataset.sec;
+  if(sel.value==='restricted')_ueSecCollapse(sec,true); /* auto-open when switched to Restricted */
+}
+function _ueSecCollapse(sec,forceOpen){
+  const box=document.getElementById('ue-items-'+sec);
+  const chev=document.getElementById('ue-chev-'+sec);
+  if(!box)return;
+  const open=forceOpen||box.style.display==='none';
+  box.style.display=open?'block':'none';
+  if(chev)chev.textContent=open?'▼':'▶';
 }
 async function saveUser(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
@@ -5997,7 +6152,10 @@ async function saveUser(){
   const staffId=document.getElementById('ue-staff').value;
   const pin=document.getElementById('ue-pin').value.trim();
   if(!name||!uid){alert('Enter name and login ID');return;}
-  if(role!=='admin'&&!staffId){alert('Please link a Staff Record for Staff/Trainer logins — it is needed for own attendance & assigned tasks. Add the person under the Staff tab first if missing.');return;}
+  /* Linking a Staff record is now OPTIONAL — needed only if this person
+     should have their own attendance/tasks tracked (an actual employee).
+     A view-only outsider (franchise, investor, auditor) can be a user
+     with no staff link at all. */
   const users=ppUsers();
   if(users.some(u=>u.uid===uid&&u.id!==id)){alert('Login ID already in use');return;}
   const existing=id?users.find(u=>u.id===id):null;
@@ -6008,15 +6166,16 @@ async function saveUser(){
     const admins=users.filter(u=>u.role==='admin'&&u.active!==false);
     if(admins.length<=1){alert('Cannot disable or demote the only Admin');return;}
   }
-  const _useCustom=document.getElementById('ue-custom-access').checked;
-  const tabAccess=_useCustom?Array.from(document.querySelectorAll('.ue-tab-cb:checked')).map(cb=>cb.value):null;
-  let perms=null;
-  if(_useCustom){
-    perms={};
-    document.querySelectorAll('.ue-perm-cb').forEach(cb=>{perms[cb.value]=cb.checked;});
-  }
+  const perm2={};
+  const perm2items={};
+  document.querySelectorAll('.ue-sec-select').forEach(sel=>{perm2[sel.dataset.sec]=sel.value;});
+  document.querySelectorAll('.ue-item-select').forEach(sel=>{
+    const sec=sel.dataset.sec;
+    if(!perm2items[sec])perm2items[sec]={};
+    perm2items[sec][sel.dataset.item]=sel.value;
+  });
   const data={
-    id:id||Date.now().toString(),name,uid,role,staffId,active,tabAccess,perms,
+    id:id||Date.now().toString(),name,uid,role,staffId,active,perm2,perm2items,
     email:(document.getElementById('ue-email').value||'').trim().toLowerCase(),
     created:existing?existing.created:td(),
     pinH:pin?await ppHash(uid,pin):(existing?existing.pinH:'')
@@ -6079,7 +6238,7 @@ try{
   const _oShowTab=window.showTab;
   window.showTab=function(n,btn){
     ppRefresh();
-    if(PPS&&PPS.role!=='admin'&&!_effectiveTabs(PPS).includes(n)){toast('🔒 Access restricted');return;}
+    if(PPS&&PPS.role!=='admin'&&!_navAllowedTabs(PPS).includes(n)){toast('🔒 Access restricted');return;}
     return _oShowTab.apply(this,arguments);
   };
   }catch(_e){}
@@ -6099,11 +6258,11 @@ try{
   const _oDash=window.renderDash;
   window.renderDash=function(){
     const r=_oDash.apply(this,arguments);
-    if(ppIsStaff()){
+    if(PPS&&PPS.role!=='admin'){
       document.querySelectorAll('#dash-content .dash-card').forEach(c=>{
         const t=c.textContent||'';
-        if(t.indexOf('Membership Revenue')>-1&&!_hasPerm('dash_revenue'))c.remove();
-        if(t.indexOf('Trial Conversion')>-1&&!_hasPerm('dash_conversion'))c.remove();
+        if(t.indexOf('Membership Revenue')>-1&&!_permCheck('dashboard','revenueCard','edit'))c.remove();
+        if(t.indexOf('Trial Conversion')>-1&&!_permCheck('dashboard','conversionCard','edit'))c.remove();
       });
     }
     return r;
@@ -6264,7 +6423,7 @@ try{
   (function(){
     const oEdit=window.openEditClient;
     if(typeof oEdit==='function')window.openEditClient=function(){
-      if(ppIsStaff()&&!_hasPerm('client_edit')){toast('🔒 Only admin can edit a saved member');return;}
+      if(!PPS||PPS.role!=='admin'){if(!_permCheck('clients','profile','edit')){toast('🔒 Only admin can edit a saved member');return;}}
       return oEdit.apply(this,arguments);
     };
     const oAssign=window.openAssignMembership;
@@ -6304,23 +6463,44 @@ try{
        trying again on a later, correct render. */
     const _existing=document.getElementById('admin-tools');
     if(_existing)_existing.remove();
-    if(ppIsAdmin()){
+
+    /* v144v: Admin Tools is no longer all-or-nothing. Each tool is shown
+       only if the logged-in user actually has the matching permission.
+       Users & Access + cloud Sign-out remain permanently admin-only. */
+    const _P=(sec,item,tier)=>(typeof _permCheck==='function')&&_permCheck(sec,item,tier);
+    const _isAdm=(typeof ppIsAdmin==='function')&&ppIsAdmin();
+    const _btns=[];
+    if(_P('about','reports','view'))  _btns.push('<button class="sb2" onclick="openReports()" style="margin:0;font-size:12px;padding:10px 6px;">📊 Reports</button>');
+    if(_P('cash','statement','view')) _btns.push('<button class="sb2" onclick="openStatement()" style="margin:0;font-size:12px;padding:10px 6px;">📑 Statement</button>');
+    if(_P('about','plans','view'))    _btns.push('<button class="sb2" onclick="openManagePlans()" style="margin:0;font-size:12px;padding:10px 6px;">⚙️ Plans</button>');
+    if(_P('about','studio','view'))   _btns.push('<button class="sb2" onclick="openStudioEdit()" style="margin:0;font-size:12px;padding:10px 6px;">🏛 Studio Details</button>');
+    if(_P('about','announce','view')) _btns.push('<button class="sb2" onclick="openAnnounce()" style="margin:0;font-size:12px;padding:10px 6px;">📢 Announcements</button>');
+    if(_isAdm)                        _btns.push('<button class="sb2" onclick="openUsersModal()" style="margin:0;font-size:12px;padding:10px 6px;">👥 Users &amp; Access</button>');
+    if(_P('about','referral','view')) _btns.push('<button class="sb2" onclick="openCompRule()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);">🎁 Referral Rule</button>');
+    if(_P('about','auditLog','edit')) _btns.push('<button class="sb2" onclick="openAuditModal()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>');
+
+    if(_btns.length){
       const d=document.createElement('div');d.id='admin-tools';
-      d.innerHTML=`<div class="div-section">🔐 Admin Tools</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-        <button class="sb2" onclick="openReports()" style="margin:0;font-size:12px;padding:10px 6px;">📊 Reports</button>
-        <button class="sb2" onclick="openStatement()" style="margin:0;font-size:12px;padding:10px 6px;">📑 Statement</button>
-          <button class="sb2" onclick="openManagePlans()" style="margin:0;font-size:12px;padding:10px 6px;">⚙️ Plans</button>
-          <button class="sb2" onclick="openStudioEdit()" style="margin:0;font-size:12px;padding:10px 6px;">🏛 Studio Details</button>
-          <button class="sb2" onclick="openAnnounce()" style="margin:0;font-size:12px;padding:10px 6px;">📢 Announcements</button>
-          <button class="sb2" onclick="openUsersModal()" style="margin:0;font-size:12px;padding:10px 6px;">👥 Users & Access</button>
-          <button class="sb2" onclick="openCompRule()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);">🎁 Referral Rule</button>
-          <button class="sb2" onclick="openAuditModal()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>
-          </div>
-          <div style="font-size:10px;color:var(--text3);margin:6px 0 4px;text-align:center;">☁️ ${(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'offline mode'}</div>
-          <button class="sb2" onclick="cloudSignOut()" style="background:none;border:1px solid var(--rose);color:var(--rose);font-size:11px;padding:8px;margin:0;">☁️ Sign-out</button>`;
+      const _cloud=_isAdm
+        ?`<div style="font-size:10px;color:var(--text3);margin:6px 0 4px;text-align:center;">☁️ ${(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'offline mode'}</div>
+           <button class="sb2" onclick="cloudSignOut()" style="background:none;border:1px solid var(--rose);color:var(--rose);font-size:11px;padding:8px;margin:0;">☁️ Sign-out</button>`
+        :'';
+      d.innerHTML=`<div class="div-section">🔐 ${_isAdm?'Admin Tools':'Tools'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">${_btns.join('')}</div>${_cloud}`;
       _slot.appendChild(d);
     }
+
+    /* Backup / Import / Reset / Fingerprint cards — hide what isn't permitted.
+       Import and Reset destroy or overwrite ALL data: admin-only, always. */
+    const _hide=(id,ok)=>{const el=document.getElementById(id);if(el)el.style.display=ok?'':'none';};
+    const _canExp=_isAdm||_P('about','exportBackup','edit');
+    _hide('about-export-btn',_canExp);
+    _hide('about-import-lbl',_isAdm);
+    _hide('about-backup-card',_canExp||_isAdm);
+    _hide('about-reset-card',_isAdm);
+    _hide('about-bio-card',_isAdm||_P('about','fingerprint','edit'));
+    const _bb=document.getElementById('about-backup-btns');
+    if(_bb)_bb.style.gridTemplateColumns=(_canExp&&_isAdm)?'1fr 1fr':'1fr';
     return r;
   };
   }catch(_e){}
@@ -6487,7 +6667,7 @@ function saveComp(){
 /* ===== Referral reward rule (configurable) ===== */
 function getCompRule(){return ld('pp_comp_rule',{auto:true,classes:1,cash:0});}
 function openCompRule(){
-  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  if(!_gate('about','referral','view'))return;
   openM('m-comprule');
   try{
     const r=getCompRule();
@@ -6498,6 +6678,7 @@ function openCompRule(){
   }catch(_e){console.warn('Comp rule failed to render:',_e);}
 }
 function saveCompRule(){
+  if(!_gate('about','referral','edit'))return;
   const r={auto:document.getElementById('cr-auto').value==='1',
     classes:parseInt(document.getElementById('cr-classes').value)||0,
     cash:parseFloat(document.getElementById('cr-cash').value)||0};
@@ -6618,7 +6799,7 @@ function chRepM(d){
   renderReports();
 }
 function openReports(){
-  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  if(!_gate('about','reports','view'))return;
   if(!_repM){const n=new Date();_repM={y:n.getFullYear(),m:n.getMonth()};}
   /* Open the modal FIRST, unconditionally, then populate it. Confirmed by
      direct testing: renderReports() throwing on real data (a 100+ line
@@ -6960,6 +7141,7 @@ function printProfile(cid){
 
 /* ---- Staff attendance (selected month) ---- */
 function printStaffAtt(onlyStaffId){
+  if(!_gate('tns','printAttSal','edit'))return;
   const staffAll=ld('pp_staff',[]);
   const staff=onlyStaffId?staffAll.filter(s=>s.id===onlyStaffId):staffAll;
   if(!staff.length){toast('No staff records');return;}
@@ -7389,6 +7571,7 @@ function _cashToPay(ce){
   return {id:ce.id,cid:ce.cid,amt:ce.amt,date:ce.date,mode:ce.mode,forWhat:ce.cat||ce.desc||'Membership Fee',payType:ce.payType||'',notes:ce.notes};
 }
 function showReceiptCash(ceId){
+  if(!_gate('cash','receiptPrint','edit'))return;
   const ce=ld('pp_cash',[]).find(x=>x.id===ceId);
   if(!ce){toast('Entry not found');return;}
   _curReceiptId=ceId;_curReceiptSrc='cash';
@@ -7712,7 +7895,7 @@ document.addEventListener('keydown',function(e){
 <script>
 /* ===== Studio editor ===== */
 function openStudioEdit(){
-  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  if(!_gate('about','studio','view'))return;
   openM('m-studio');
   try{
     const s=getStudio();
@@ -7726,6 +7909,7 @@ function openStudioEdit(){
   }catch(_e){console.warn('Studio details failed to render:',_e);}
 }
 function saveStudio(){
+  if(!_gate('about','studio','edit'))return;
   const s={
     name:document.getElementById('st-name').value.trim()||"PILATES D'LUXE",
     tagline:document.getElementById('st-tagline').value.trim(),
@@ -7883,7 +8067,7 @@ function saveStudio(){
 <script>
 let _stmtSel='cash'; /* 'cash' or 'bank' — exactly one real account showing at a time */
 function openStatement(){
-  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  if(!_gate('cash','statement','view'))return;
   openM('m-statement');
   try{
     _stmtSel=''; /* nothing selected by default — gold means "currently showing", not "on by default" */
@@ -7987,6 +8171,7 @@ function genStatement(){
   document.getElementById('stmt-result').innerHTML=html;
 }
 function printStatement(){
+  if(!_gate('cash','exportPrint','edit'))return;
   const body=document.getElementById('stmt-print-body');
   if(!body)return;
   ppPrintHTML(body.outerHTML,'Account Statement');
@@ -8034,7 +8219,7 @@ function printStatement(){
 <script>
 function getAnnounce(){return ld('pp_announce',{msg:'',type:'info',until:''});}
 function openAnnounce(){
-  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  if(!_gate('about','announce','view'))return;
   openM('m-announce');
   try{
     const a=getAnnounce();
@@ -8045,6 +8230,7 @@ function openAnnounce(){
   }catch(_e){console.warn('Announcement failed to render:',_e);}
 }
 function saveAnnounce(){
+  if(!_gate('about','announce','edit'))return;
   const a={msg:document.getElementById('an-msg').value.trim(),type:document.getElementById('an-type').value,until:document.getElementById('an-until').value};
   sv('pp_announce',a);
   if(typeof AUD==='function')AUD('📢 Booking announcement updated',a.msg?a.msg.slice(0,40):'(cleared)');
@@ -8152,6 +8338,7 @@ function showScanBanner(msg,color,bg){
   b.innerHTML=msg;
 }
 function openScanner(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('schedule','scan','edit')){toast('🔒 View-only access');return;}
   if(typeof ppIsTrainer==='function'&&ppIsTrainer()){toast('🔒 Staff/Admin only');return;}
   _scanRecent=[];_scanLastCid='';_scanLastTime=0;
   const _b=document.getElementById('scan-result-banner');if(_b)_b.style.display='none';
@@ -8381,6 +8568,13 @@ function openUnified(cid,focusSection){
      looking at an already-inactive client, even though tapping it
      correctly offered to reactivate her. Fixed so it's never ambiguous
      about what the button will actually do. */
+  /* Reset any stale hide-state left by a PREVIOUS client's Receipts panel —
+     the modal DOM is reused, not rebuilt, so without this a WA/Complimentary
+     "disappearance" on client B was really client A's leftover toggle state. */
+  const _payBody=document.getElementById('uf-body-payment');
+  if(_payBody)_payBody.style.display='none';
+  const _payArrow=document.getElementById('uf-payment-arrow');
+  if(_payArrow)_payArrow.textContent='▶';
   /* follow-up log in unified form */
   (function(){
     const _fuAll=ld('pp_followups',[]).filter(x=>x.cid===cid).sort((a,b)=>b.loggedAt.localeCompare(a.loggedAt));
@@ -8388,7 +8582,7 @@ function openUnified(cid,focusSection){
     if(_fuSumEl)_fuSumEl.textContent=_fuAll.length?_fuAll.length+' note'+(_fuAll.length>1?'s':''):'';
     const _fuBox=document.getElementById('uf-fu-history');
     if(_fuBox){if(!_fuAll.length)_fuBox.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px;">No follow-ups yet</div>';
-    else _fuBox.innerHTML=_fuAll.slice(0,5).map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:3px 10px;margin-bottom:7px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+'<div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');}
+    else _fuBox.innerHTML=_fuAll.slice(0,5).map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:3px 10px;margin-bottom:7px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="display:flex;justify-content:space-between;"><div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+(f.done?'':'<span style="display:flex;gap:12px;flex-shrink:0;"><button onclick="event.stopPropagation();openFollowUp(document.getElementById(\'uf-cid\').value);editFollowUp(\''+f.id+'\');" style="background:none;border:none;font-size:12px;cursor:pointer;padding:0 4px;">✏️</button><button onclick="event.stopPropagation();deleteFollowUp(\''+f.id+'\');" style="background:none;border:none;font-size:12px;cursor:pointer;color:var(--red);padding:0 4px;">🗑</button></span>')+'</div>'+'<div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');}
   })();
   const _deactBtn=document.getElementById('uf-deactivate-btn');
   if(_deactBtn){
@@ -8515,13 +8709,12 @@ function ufToggle(section){
      (admin row's display depends on role, so remember what it was). */
   if(section==='payment'){
     const nowOpen=body.style.display!=='none';
-    ['uf-chips-row','uf-admin-row'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(!el)return;
-      if(nowOpen){el.dataset.prevDisp=el.style.display;el.style.display='none';}
-      else if(el.dataset.prevDisp!==undefined){el.style.display=el.dataset.prevDisp;delete el.dataset.prevDisp;}
-    });
-    if(nowOpen)_ufPayGate(); /* #8 — apply gate state when section opens */
+    const _admRow=document.getElementById('uf-admin-row');
+    if(_admRow){
+      if(nowOpen){_admRow.dataset.prevDisp=_admRow.style.display;_admRow.style.display='none';}
+      else if(_admRow.dataset.prevDisp!==undefined){_admRow.style.display=_admRow.dataset.prevDisp;delete _admRow.dataset.prevDisp;}
+    }
+    if(nowOpen)_ufPayGate();
   }
 }
 /* #8 — Receipts section gating: only Amount Received is active until a
@@ -8591,6 +8784,7 @@ function _ufPopulateProfile(c){
 }
 
 function ufSaveProfile(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','profile','edit')){toast('🔒 View-only access');return;}
   const cid=document.getElementById('uf-cid').value;
   const fname=document.getElementById('uf-fname').value.trim();
   if(!fname){alert('First name is required');return;}
@@ -9132,9 +9326,9 @@ function ufPlanAction(action){
   /* Change / Freeze / Extend require owner judgment (used-vs-unused
      calculation, case-by-case discretion) — Renew is the one trouble-free
      action a receptionist can do on her own. */
-  if(typeof ppIsStaff==='function'&&ppIsStaff()){
-    const _permKey={change:'plan_change',freeze:'plan_freeze',extend:'plan_extend'}[action];
-    if(_permKey&&!_hasPerm(_permKey)){
+  if(PPS&&PPS.role!=='admin'){
+    if(action==='renew'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+    if(['change','freeze','extend'].includes(action)&&!_permCheck('clients','plan','edit')){
       toast('🔒 '+({change:'Plan change',freeze:'Freeze',extend:'Extend'}[action])+' needs admin — please ask');
       return;
     }
@@ -9315,6 +9509,8 @@ function ufCalcChange(){
 
 /* ---- FREEZE ---- */
 function ufDoFreeze(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const freezeFrom=document.getElementById('uf-freeze-from').value;
   const returnDate=document.getElementById('uf-freeze-return').value;
@@ -9345,6 +9541,8 @@ function ufDoFreeze(){
 
 /* ---- RESUME FROM FREEZE ---- */
 function ufDoResume(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const returnDate=document.getElementById('uf-resume-date').value;
   if(!returnDate){alert('Please enter the return date');return;}
@@ -9378,6 +9576,8 @@ function ufDoResume(){
 
 /* ---- EXTEND ---- */
 function ufDoExtend(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const days=parseInt(document.getElementById('uf-extend-days').value)||0;
   const reason=document.getElementById('uf-extend-reason').value.trim();
@@ -9401,6 +9601,8 @@ function ufDoExtend(){
 
 /* ---- RENEW (reuses ufAssignPlan entirely — no separate calculation) ---- */
 function ufDoRenew(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const mems=ld('pp_memberships',{});
   const m=mems[cid];if(!m)return;
@@ -9512,6 +9714,8 @@ function ufAssignPlan(){
 
 /* ---- CHANGE PLAN (upgrade/downgrade) ---- */
 function ufDoChange(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
+
   const cid=document.getElementById('uf-cid').value;
   const newPid=document.getElementById('uf-change-plan').value;
   const startDate=document.getElementById('uf-change-start').value;
@@ -9786,6 +9990,10 @@ function ufSavePayment(){
           <button onclick="printProfile(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;font-size:11px;">🖨 Print Profile & Attendance</button>
           <button onclick="showMemberQR(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;font-size:11px;">🪪 QR ID Card</button>
         </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button onclick="const _cid=document.getElementById('uf-cid').value;closeM('m-unified');setTimeout(()=>openWA(_cid),200)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
+          <button onclick="openAddComp(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;">🎁 Add Complimentary</button>
+        </div>
       </div>
     </div>
 
@@ -9863,12 +10071,6 @@ function ufSavePayment(){
         <button onclick="openFollowUp(document.getElementById('uf-cid').value)" class="sb2" style="width:100%;padding:8px;font-size:13px;">+ Add follow-up</button>
       </div>
     </div>
-    <!-- WhatsApp + Complimentary -->
-    <div id="uf-chips-row" style="display:flex;gap:8px;margin:10px 0;">
-      <button onclick="const _cid=document.getElementById('uf-cid').value;closeM('m-unified');setTimeout(()=>openWA(_cid),200)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
-      <button onclick="openAddComp(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;">🎁 Add Complimentary</button>
-    </div>
-
     <!-- Admin-only actions (small chips) -->
     <div id="uf-admin-row" style="display:none;margin-top:8px;">
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Admin</div>
@@ -9933,6 +10135,24 @@ function ufSavePayment(){
   }
   window._refreshDiag=function(){
     const out=document.getElementById('diag-output');if(!out)return;
+    /* PERMISSION STATE — exactly what's making a decision right now */
+    let permHtml='<div style="background:var(--surface2);border:1px solid var(--gold);border-radius:10px;padding:10px;margin-bottom:12px;">'
+      +'<b style="color:var(--gold);">👤 Current Login</b><br>';
+    if(PPS){
+      permHtml+='Name: <b>'+(PPS.name||'?')+'</b> · Role: <b style="color:#38bdf8;">'+(PPS.role||'?')+'</b><br>';
+      permHtml+='Has tabAccess (old system): <b>'+(Array.isArray(PPS.tabAccess)?'YES: '+PPS.tabAccess.join(','):'no')+'</b><br>';
+      permHtml+='Has perm2 (new system): <b>'+(PPS.perm2?'YES':'NO — using safe default')+'</b><br>';
+      if(PPS.perm2)permHtml+='<pre style="font-size:10px;background:var(--surface3);padding:6px;border-radius:6px;overflow-x:auto;">'+JSON.stringify(PPS.perm2,null,1)+'</pre>';
+      if(PPS.perm2items)permHtml+='<pre style="font-size:10px;background:var(--surface3);padding:6px;border-radius:6px;overflow-x:auto;">'+JSON.stringify(PPS.perm2items,null,1)+'</pre>';
+      permHtml+='<br><b style="color:var(--gold);">Live permission checks:</b><br>';
+      ['clients:profile','clients:plan','clients:followup','clients:addClient','schedule:book','schedule:scan','cash:addEntry'].forEach(pair=>{
+        const [sec,item]=pair.split(':');
+        const allowed=typeof _permCheck==='function'?_permCheck(sec,item,'edit'):'?';
+        permHtml+=pair+' → edit allowed: <b style="color:'+(allowed?'#5dcaa5':'#e74c3c')+';">'+allowed+'</b><br>';
+      });
+    }else{permHtml+='PPS is null/undefined!';}
+    permHtml+='</div>';
+    window._diagPermHtml=permHtml; /* stashed — final render appends it, see bottom of this function */
     const lg=document.getElementById('pp-login');
     const cl=document.getElementById('pp-cloud');
     const modals=document.querySelectorAll('.mo');
@@ -9966,7 +10186,7 @@ function ufSavePayment(){
       }
     });
     html+='</div>';
-    out.innerHTML=html;
+    out.innerHTML=(window._diagPermHtml||'')+html;
   };
 })();
 </script>
