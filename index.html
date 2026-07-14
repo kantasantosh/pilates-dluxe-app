@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144c</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -6003,7 +6003,10 @@ async function saveUser(){
   const staffId=document.getElementById('ue-staff').value;
   const pin=document.getElementById('ue-pin').value.trim();
   if(!name||!uid){alert('Enter name and login ID');return;}
-  if(role!=='admin'&&!staffId){alert('Please link a Staff Record for Staff/Trainer logins — it is needed for own attendance & assigned tasks. Add the person under the Staff tab first if missing.');return;}
+  /* Linking a Staff record is now OPTIONAL — needed only if this person
+     should have their own attendance/tasks tracked (an actual employee).
+     A view-only outsider (franchise, investor, auditor) can be a user
+     with no staff link at all. */
   const users=ppUsers();
   if(users.some(u=>u.uid===uid&&u.id!==id)){alert('Login ID already in use');return;}
   const existing=id?users.find(u=>u.id===id):null;
@@ -8401,7 +8404,7 @@ function openUnified(cid,focusSection){
     if(_fuSumEl)_fuSumEl.textContent=_fuAll.length?_fuAll.length+' note'+(_fuAll.length>1?'s':''):'';
     const _fuBox=document.getElementById('uf-fu-history');
     if(_fuBox){if(!_fuAll.length)_fuBox.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px;">No follow-ups yet</div>';
-    else _fuBox.innerHTML=_fuAll.slice(0,5).map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:3px 10px;margin-bottom:7px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+'<div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');}
+    else _fuBox.innerHTML=_fuAll.slice(0,5).map(f=>'<div style="border-left:2px solid '+(f.done?'#888':'var(--gold)')+';padding:3px 10px;margin-bottom:7px;opacity:'+(f.done?'0.55':'1')+';">'+'<div style="display:flex;justify-content:space-between;"><div style="font-size:12px;color:var(--text);">'+(f.done?'✓ ':'')+_esc(f.note||'—')+'</div>'+(f.done?'':'<span style="display:flex;gap:12px;flex-shrink:0;"><button onclick="event.stopPropagation();openFollowUp(document.getElementById(\'uf-cid\').value);editFollowUp(\''+f.id+'\');" style="background:none;border:none;font-size:12px;cursor:pointer;padding:0 4px;">✏️</button><button onclick="event.stopPropagation();deleteFollowUp(\''+f.id+'\');" style="background:none;border:none;font-size:12px;cursor:pointer;color:var(--red);padding:0 4px;">🗑</button></span>')+'</div>'+'<div style="font-size:11px;color:var(--text3);">'+fmt(f.loggedAt.slice(0,10))+' · '+_esc(f.by||'Admin')+(f.remindDate?' · remind '+fmt(f.remindDate):'')+' </div></div>').join('');}
   })();
   const _deactBtn=document.getElementById('uf-deactivate-btn');
   if(_deactBtn){
