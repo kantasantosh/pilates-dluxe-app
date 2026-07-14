@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144v</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144w</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1661,6 +1661,86 @@ function openM(id){
   if(!el){console.error('[openM] element not found:',id);return;}
   el.classList.add('open');
   el.style.display='flex';
+  /* v144w: PROACTIVE read-only. Any modal a user may see but not edit now
+     opens visibly locked — fields greyed + non-typeable, Save/Add/Delete
+     hidden — instead of letting them fill it in and rejecting on Save. */
+  try{ _lockModalIfReadOnly(id,el); }catch(_e){}
+}
+
+/* Which permission governs each modal. [section, item].
+   A modal listed here is locked whenever the user has 'view' but not 'edit'. */
+const _MODAL_PERM={
+  'm-client'     :['clients','profile'],
+  'm-unified'    :['clients','profile'],
+  'm-membership' :['clients','plan'],
+  'm-payment'    :['clients','payment'],
+  'm-paylist'    :['clients','payment'],
+  'm-followup'   :['clients','followup'],
+  'm-booking'    :['schedule','book'],
+  'm-cashentry'  :['cash','addEntry'],
+  'm-cashcats'   :['cash','addEntry'],
+  'm-daybook'    :['cash','daybook'],
+  'm-statement'  :['cash','statement'],
+  'm-addstaff'   :['tns','salary'],
+  'm-staffadv'   :['tns','salary'],
+  'm-addtodo'    :['tns','allTasks'],
+  'm-plans'      :['about','plans'],
+  'm-studio'     :['about','studio'],
+  'm-announce'   :['about','announce'],
+  'm-comprule'   :['about','referral'],
+  'm-reports'    :['about','reports'],
+  'm-audit'      :['about','auditLog'],
+};
+/* Buttons whose visible text starts with one of these = a write action. */
+const _WRITE_WORDS=/^(save|add|delete|remove|clear|renew|change|freeze|extend|resume|book|assign|update|enroll|mark|import|reset|apply|confirm)\b/i;
+
+function _lockModalIfReadOnly(id,el){
+  if(typeof _permCheck!=='function'||!PPS)return;
+  if(PPS.role==='admin')return;
+  const map=_MODAL_PERM[id];
+  if(!map)return;
+  const canEdit=_permCheck(map[0],map[1],'edit');
+
+  /* Always restore first — the same DOM node is reused across users/clients,
+     so a stale lock from a previous open must never leak forward. */
+  el.querySelectorAll('[data-rolock="1"]').forEach(n=>{
+    n.disabled=false; n.readOnly=false;
+    n.style.opacity=''; n.style.pointerEvents='';
+    n.removeAttribute('data-rolock');
+  });
+  el.querySelectorAll('[data-rohide="1"]').forEach(n=>{
+    n.style.display=n.getAttribute('data-rodisp')||'';
+    n.removeAttribute('data-rohide'); n.removeAttribute('data-rodisp');
+  });
+  const oldBan=el.querySelector('.ro-banner');
+  if(oldBan)oldBan.remove();
+  if(canEdit)return;
+
+  /* 1. Freeze every input, select and textarea */
+  el.querySelectorAll('input,select,textarea').forEach(f=>{
+    if(f.type==='hidden')return;
+    f.disabled=true; f.style.opacity='0.55'; f.setAttribute('data-rolock','1');
+  });
+  /* 2. Hide every write button (keep ✕ close and any read-only Print) */
+  el.querySelectorAll('button').forEach(b=>{
+    if(b.classList.contains('mc2')||b.classList.contains('mc'))return;
+    const t=(b.textContent||'').replace(/[^\w\s]/g,'').trim();
+    if(_WRITE_WORDS.test(t)||b.type==='submit'){
+      b.setAttribute('data-rodisp',b.style.display||'');
+      b.style.display='none'; b.setAttribute('data-rohide','1');
+    }
+  });
+  /* 3. Tell the user WHY, up front */
+  const box=el.querySelector('.md')||el.firstElementChild;
+  if(box){
+    const ban=document.createElement('div');
+    ban.className='ro-banner';
+    ban.style.cssText='margin:0 0 12px;padding:8px 12px;border-radius:8px;background:rgba(201,169,110,0.12);border:1px solid rgba(201,169,110,0.45);color:var(--gold);font-size:12px;font-weight:600;letter-spacing:0.3px;text-align:center;';
+    ban.textContent='👁 View only — you do not have permission to change this';
+    const _close=box.querySelector('.mc2,.mc');
+    if(_close&&_close.nextSibling)box.insertBefore(ban,_close.nextSibling);
+    else box.insertBefore(ban,box.firstChild);
+  }
 }
 /* ===== Form dirty-tracking: grey out Save until something actually changes =====
    Call armDirty(modalId, saveBtnId) AFTER populating the form. The save button
@@ -2581,7 +2661,8 @@ function refreshPaySelects(curMode,curFor){
   });
 }
 let _payListType='';
-function openManagePayList(type){
+function openManagePayList(_a,_b,_c){if(!_gate('clients','payment','edit','🔒 View-only access'))return;return _openManagePayList(_a,_b,_c);}
+function _openManagePayList(type){
   _payListType=type;
   document.getElementById('paylist-title').textContent=type==='modes'?'💳 Payment Modes':'📋 Payment For';
   document.getElementById('paylist-new').value='';
@@ -2597,6 +2678,7 @@ function renderPayListItems(){
     </div>`).join('');
 }
 function addPayListItem(){
+  if(!_gate('clients','payment','edit','🔒 View-only access'))return;
   const val=document.getElementById('paylist-new').value.trim();
   if(!val)return;
   const key=_payListType==='modes'?'pp_pay_modes':'pp_pay_for';
@@ -2607,6 +2689,7 @@ function addPayListItem(){
   renderPayListItems();refreshPaySelects();
 }
 function delPayListItem(idx){
+  if(!_gate('clients','payment','edit','🔒 View-only access'))return;
   const key=_payListType==='modes'?'pp_pay_modes':'pp_pay_for';
   const def=_payListType==='modes'?DEF_PAY_MODES:DEF_PAY_FOR;
   const items=ld(key,def);
@@ -2617,6 +2700,7 @@ function delPayListItem(idx){
 
 // ===== PAYMENTS =====
 function openPaymentModal(cid){
+  if(!_gate('clients','payment','edit','🔒 View-only access'))return;
   const clients=ld('pp_clients',[]);
   document.getElementById('pay-modal-title').textContent='New Receipt';
   document.getElementById('p-id').value='';
@@ -2636,6 +2720,7 @@ function openPaymentModal(cid){
   setTimeout(()=>armDirty('m-payment','pay-save-btn'),50);
 }
 function openEditPayment(pid){
+  if(!_gate('clients','payment','edit','🔒 View-only access'))return;
   const payments=ld('pp_payments',[]);
   const p=payments.find(px=>px.id===pid);if(!p)return;
   const clients=ld('pp_clients',[]);
@@ -4484,7 +4569,8 @@ function renderPlansList(){
       </div>
     </div>`).join('');
 }
-function editPlanPrice(idx){
+function editPlanPrice(_i){if(!_gate('about','plans','edit'))return;return _editPlanPrice(_i);}
+function _editPlanPrice(idx){
   const row=document.getElementById('edit-plan-'+idx);
   if(row)row.style.display=row.style.display==='none'?'block':'none';
 }
@@ -4537,6 +4623,8 @@ function _doDelPlan(pid){
   toast('🗑 Plan deleted');
 }
 function saveNewPlan(){
+  /* ADD is an EDIT-tier action. 'view' means look only. */
+  if(!_gate('about','plans','edit'))return;
   const name=document.getElementById('np-name').value.trim();
   if(!name){alert('Enter plan name');return;}
   const dur=parseInt(document.getElementById('np-dur').value)||1;
@@ -5266,7 +5354,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144v</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144w</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5665,7 +5753,7 @@ function _permCheck(sec,item,minTier){
   return order[have]>=order[minTier];
 }
 
-/* ---- v144v: shared gate helpers. Every Cash/TnS/About doer calls one of
+/* ---- v144w: shared gate helpers. Every Cash/TnS/About doer calls one of
    these. Returns true if allowed, else toasts and returns false. ---- */
 function _gate(sec,item,minTier,msg){
   if(typeof _permCheck!=='function')return true;
@@ -6464,7 +6552,7 @@ try{
     const _existing=document.getElementById('admin-tools');
     if(_existing)_existing.remove();
 
-    /* v144v: Admin Tools is no longer all-or-nothing. Each tool is shown
+    /* v144w: Admin Tools is no longer all-or-nothing. Each tool is shown
        only if the logged-in user actually has the matching permission.
        Users & Access + cloud Sign-out remain permanently admin-only. */
     const _P=(sec,item,tier)=>(typeof _permCheck==='function')&&_permCheck(sec,item,tier);
@@ -8237,6 +8325,7 @@ function saveAnnounce(){
   closeM('m-announce');toast('✓ Announcement saved');
 }
 function clearAnnounce(){
+  if(!_gate('about','announce','edit'))return;
   sv('pp_announce',{msg:'',type:'info',until:''});
   if(typeof AUD==='function')AUD('📢 Booking announcement cleared','');
   closeM('m-announce');toast('Announcement hidden');
@@ -9898,6 +9987,10 @@ function _ufEditPayDesc(entryId){
 }
 
 function ufSavePayment(){
+  /* THE DOER for Unified-Form payment collection — was completely ungated.
+     savePayment() (the old modal) was gated in v144t; this parallel route
+     was not, so a view-only user could still take subscription fees. */
+  if(!_gate('clients','payment','edit','🔒 View-only access'))return;
   const cid=document.getElementById('uf-cid').value;
   const amt=parseFloat(document.getElementById('uf-pay-amt').value)||0;
   const mode=document.getElementById('uf-pay-mode').value;
