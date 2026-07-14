@@ -299,8 +299,8 @@ try{
 const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups'];
 function _pSyncable(k){return _pSYNC.includes(k)||/^pp_(satt|sadv)_/.test(k);}
 
-async function _pfsSave(k,v){if(!_pdb)return;try{await _pdb.collection('pilates').doc(k).set({value:JSON.stringify(v),updated:Date.now()});}catch(e){}}
-async function _pfsLoad(k){if(!_pdb)return null;try{const s=await _pdb.collection('pilates').doc(k).get();if(s.exists)return JSON.parse(s.data().value);}catch(e){}return null;}
+/* [v145a] removed dead code: _pfsSave() — zero call sites */
+/* [v145a] removed dead code: _pfsLoad() — zero call sites */
 
 async function _pInit(){
   const _alreadyStarted=window._pStarted;
@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v144w</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145a</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1365,9 +1365,8 @@ const SLOTS=['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','4:00 PM','5:00
 const MACHINES=5;
 const COLORS=['#c9a84c','#e8547a','#4ecdc4','#9b72cf','#4ade80','#fb923c','#60a5fa','#f472b6'];
 
-let _refreshTimer=null;
 function _inactiveBadge(c){return c.archived?"<span class='badge' style='background:rgba(120,120,120,0.15);color:#999;border:1px solid rgba(120,120,120,0.3);font-size:10px;'>Inactive</span>":"";}
-function _debouncedRefresh(){clearTimeout(_refreshTimer);_refreshTimer=setTimeout(()=>{try{if(typeof renderDash==='function'&&_activeTab==='dashboard')renderDash();}catch(_e){}try{if(typeof renderClients==='function'&&_activeTab==='clients')renderClients();}catch(_e){}},300);}
+/* [v145a] removed dead code: _debouncedRefresh() — zero call sites */
 function sv(k,v){
   localStorage.setItem(k,JSON.stringify(v));
   if(typeof _pSync!=='undefined'&&_pSync&&typeof _pdb!=='undefined'&&typeof _pSyncable!=='undefined'&&_pSyncable(k)){
@@ -1661,7 +1660,7 @@ function openM(id){
   if(!el){console.error('[openM] element not found:',id);return;}
   el.classList.add('open');
   el.style.display='flex';
-  /* v144w: PROACTIVE read-only. Any modal a user may see but not edit now
+  /* v145a: PROACTIVE read-only. Any modal a user may see but not edit now
      opens visibly locked — fields greyed + non-typeable, Save/Add/Delete
      hidden — instead of letting them fill it in and rejecting on Save. */
   try{ _lockModalIfReadOnly(id,el); }catch(_e){}
@@ -2200,7 +2199,7 @@ function renderClients(){
         <span style="font-size:11px;color:var(--gold);letter-spacing:0.5px;flex-shrink:0;margin-left:6px;">${!c.isTrial&&c.trialDate?'<span title="Came via trial" style="font-size:10px;">🎯</span> ':''}#${c.memNo||''}</span>
       </div>
       <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text2);margin-top:3px;">
-        <a href="tel:${c.phone}" onclick="event.stopPropagation()" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg> ${_fmtPhone(c.phone)}</a>
+        <a href="${(typeof _permCheck!=='function'||_permCheck('clients','contact','edit'))?'tel:'+c.phone:'javascript:void(0)'}" onclick="event.stopPropagation();if(typeof _permCheck==='function'&&!_permCheck('clients','contact','edit')){toast('🔒 Calling is not permitted');}" style="${(typeof _permCheck==='function'&&!_permCheck('clients','contact','view'))?'display:none;':''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg> ${_fmtPhone(c.phone)}</a>
         ${_isTr?'':(_planLbl?`<span style="color:var(--gold);white-space:nowrap;">Plan: ${_planLbl}</span>`:'')}
       </div>
       </div>
@@ -2308,157 +2307,7 @@ function openTrialReg(){
   openAddClient('trial');
   _cSetCategory('trial',true);
 }
-function openEditClient(cid){
-  const clients=ld('pp_clients',[]);
-  const c=clients.find(cl=>cl.id===cid);if(!c)return;
-  document.getElementById('client-modal-title').textContent='Edit Client';
-  document.getElementById('c-id').value=cid;
-  document.getElementById('c-memno-row').style.display='block';
-  document.getElementById('c-memno-display').textContent=c.memNo||'';
-  /* Editing an existing client never offers the Trial/Regular choice — that
-     decision was already made at registration and isn't something an edit
-     should be able to flip. Hide the row entirely, show the normal fields. */
-  document.getElementById('c-category-row').style.display='none';
-  document.getElementById('c-join-row').style.display='';
-  document.getElementById('c-trialdate-row').style.display='none';
-  document.getElementById('c-email-optional-tag').textContent='';
-  ['c-addr-row','c-notes-row'].forEach(id=>{
-    const row=document.getElementById(id);
-    row.style.opacity='';
-    row.querySelectorAll('input').forEach(inp=>inp.disabled=false);
-  });
-  document.getElementById('c-insta').value=c.insta||'';
-  document.getElementById('c-fname').value=c.fname||'';
-  document.getElementById('c-lname').value=c.lname||'';
-  document.getElementById('c-phone').value=(c.phone||'').replace(/^\+91/,'').replace(/\D/g,'');
-  document.getElementById('c-photo').value=c.photo||'';
-  if(c.photo){
-    setPhotoPreview('c-photo-preview',c.photo,'','');
-  } else {
-    setPhotoPreview('c-photo-preview','',initials(c.fname+' '+c.lname),colorFor(c.fname+c.lname));
-  }
-  document.getElementById('c-email').value=c.email||'';
-  document.getElementById('c-addr').value=c.addr||'';
-  document.getElementById('c-bday').value=c.bday||'';
-  document.getElementById('c-anni').value=c.anni||'';
-  document.getElementById('c-join').value=c.join||'';
-  document.getElementById('c-notes').value=c.notes||'';
-  // Populate referral field (searchable)
-  const _refC=c.refId?clients.find(cl=>cl.id===c.refId):null;
-  document.getElementById('c-ref').value=c.refId||'';
-  document.getElementById('c-ref-search').value=_refC?(_refC.memNo?_refC.memNo+' — ':'')+(_refC.fname+' '+(_refC.lname||'')).trim():'';
-  openM('m-client');
-  setTimeout(()=>armDirty('m-client','c-save-btn'),50);
-}
-function saveClient(){
-  const fname=document.getElementById('c-fname').value.trim();
-  if(!fname){alert('Enter first name');return;}
-  const category=document.getElementById('c-category').value||'regular';
-  const _ph=document.getElementById('c-phone').value.replace(/\D/g,'');
-  if(_ph&&_ph.length!==10){alert('Mobile number must be exactly 10 digits (entered after +91).');return;}
-  if(category==='trial'&&!_ph){alert('Enter phone number');return;}
-  const _em=document.getElementById('c-email').value.trim();
-  if(category!=='trial'&&_em&&!_validateEmail(_em,document.getElementById('c-id').value||''))return;
-  const clients=ld('pp_clients',[]);
-  const existing=document.getElementById('c-id').value;
-  const _lname=document.getElementById('c-lname').value.trim();
-
-  /* DUPLICATE NAME CHECK (pending note #5) — only for genuinely new
-     entries; editing an existing client should never warn about itself.
-     ALWAYS warns on a matching first name now — phone/email are
-     requirements for trial follow-up and booking-page access, not
-     signals that two same-named people are "different enough" to skip
-     the warning. The real day-to-day need is telling clients with the
-     same first name apart during booking/lookup, which a matching phone
-     number does nothing to solve. */
-  if(!existing){
-    const nameDupes=clients.filter(cl=>(cl.fname||'').trim().toLowerCase()===fname.toLowerCase());
-    if(nameDupes.length){
-      const surnameDupes=nameDupes.filter(cl=>(cl.lname||'').trim().toLowerCase()===_lname.toLowerCase());
-      if(surnameDupes.length){
-        const match=surnameDupes[0];
-        showConfirm('⚠️','Possible Duplicate','A client named "'+_esc(fname+(_lname?' '+_lname:''))+'" already exists (Member ID: '+_esc(match.memNo)+', Phone: '+_esc(match.phone?match.phone.replace('+91','').slice(-4):'—')+').<br><br>Please add a distinguishing nickname or detail so staff can tell them apart during booking.',[
-          {label:'Cancel',color:'var(--border2)',outline:true,action:null},
-          {label:'Continue Anyway',color:'var(--gold)',action:()=>_doSaveClient(category)}
-        ]);
-        return;
-      }else{
-        showConfirm('⚠️','Possible Duplicate','A client named "'+_esc(fname)+'" already exists (Member ID: '+_esc(nameDupes[0].memNo)+', Phone: '+_esc(nameDupes[0].phone?nameDupes[0].phone.replace('+91','').slice(-4):'—')+').<br><br>Consider adding a surname or nickname to tell them apart.',[
-          {label:'Cancel',color:'var(--border2)',outline:true,action:null},
-          {label:'Continue Anyway',color:'var(--gold)',action:()=>_doSaveClient(category)}
-        ]);
-        return;
-      }
-    }
-  }
-  _doSaveClient(category);
-}
-function _doSaveClient(category){
-  const fname=document.getElementById('c-fname').value.trim();
-  const _ph=document.getElementById('c-phone').value.replace(/\D/g,'');
-  const _em=document.getElementById('c-email').value.trim();
-  const clients=ld('pp_clients',[]);
-  const existing=document.getElementById('c-id').value;
-  const refId=document.getElementById('c-ref').value;
-  const oldData=existing?clients.find(c=>c.id===existing)||{}:{};
-
-  /* Trial category: only meaningful for a NEW registration (existing client
-     edits never offer this choice — see openEditClient, which hides the
-     category row entirely). Generates a T-xx temp ID and creates a 1-session
-     trial membership, exactly as the old separate Trial form used to. */
-  if(!existing&&category==='trial'){
-    const lastT=clients.reduce((max,c)=>{const n=parseInt(((c.memNo||'').match(/^T-(\d+)/)||[])[1]||0);return n>max?n:max;},0);
-    const memNo='T-'+String(lastT+1).padStart(3,'0');
-    const id=Date.now().toString();
-    const today=td();
-    const trialDate=document.getElementById('c-trialdate').value||today;
-    const client={id,memNo,fname,lname:document.getElementById('c-lname').value.trim(),
-      phone:_ph?'+91'+_ph:'',email:_em,addr:'',
-      insta:document.getElementById('c-insta').value.trim(),
-      refId:refId||null,
-      notes:document.getElementById('c-notes').value.trim(),
-      trialDate:trialDate,isTrial:true,createdAt:today};
-    clients.push(client);sv('pp_clients',clients);
-    const mems=ld('pp_memberships',{});
-    mems[id]={cid:id,plan:'trial',startDate:trialDate,endDate:trialDate,sessionsLeft:1,fee:0,isTrial:true};
-    sv('pp_memberships',mems);
-    closeM('m-client');
-    toast('✓ Trial registered — '+fname+' ('+memNo+')');
-    renderClients();renderDash();
-    return;
-  }
-
-  const data={
-    ...oldData,                       /* preserve convertedFrom, conversionDate, isTrial, trialDate, etc. */
-    id:existing||Date.now().toString(),
-    memNo:existing?oldData.memNo:generateMemNo(),
-    fname,lname:document.getElementById('c-lname').value.trim(),
-    phone:(function(){const p=document.getElementById('c-phone').value.replace(/\D/g,'');return p?'+91'+p:'';})(),
-    email:document.getElementById('c-email').value.trim(),
-    insta:document.getElementById('c-insta').value.trim(),
-    addr:document.getElementById('c-addr').value.trim(),
-    bday:document.getElementById('c-bday').value,
-    anni:document.getElementById('c-anni').value,
-    join:document.getElementById('c-join').value||td(),
-    photo:document.getElementById('c-photo').value||oldData.photo||'',
-    refId:refId||'',
-    notes:document.getElementById('c-notes').value.trim(),
-    createdAt:existing?oldData.createdAt||td():td(),
-  };
-  if(existing){const idx=clients.findIndex(c=>c.id===existing);if(idx>-1)clients[idx]=data;else clients.push(data);}
-  else clients.push(data);
-  sv('pp_clients',clients);
-
-  // Referral noted — owner manages rewards manually from referrer's profile
-  if(!existing&&refId){
-    const referrer=clients.find(c=>c.id===refId);
-    toast('✓ Client saved! ' + (referrer?referrer.fname+' referred — add reward from their profile.':''));
-  } else {
-    toast('✓ Client saved!');
-  }
-  closeM('m-client');
-  renderClients();renderDash();
-}
+/* [v145a] removed dead code: openEditClient() — zero call sites */
 
 // ===== MEMBERSHIP =====
 function openAssignMembership(cid){
@@ -2763,12 +2612,7 @@ function savePayment(){
   /* offer printable receipt */
   if(!existingId&&typeof offerReceipt==='function')offerReceipt(entry.id);
 }
-function setPayFilter(f,btn){
-  _payFilter=f;
-  document.querySelectorAll('#tab-payments .ftab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  renderPayments();
-}
+/* [v145a] removed dead code: setPayFilter() — zero call sites */
 function renderPayments(){
   const payments=ld('pp_payments',[]);
   const clients=ld('pp_clients',[]);
@@ -3960,13 +3804,7 @@ function importPPData(input){
 }
 
 // ===== SHARE FUNCTIONS =====
-function shareText(text){
-  if(navigator.share){
-    navigator.share({text}).catch(()=>copyToClipboard(text));
-  } else {
-    copyToClipboard(text);
-  }
-}
+/* [v145a] removed dead code: shareText() — zero call sites */
 function copyToClipboard(text){
   navigator.clipboard.writeText(text).then(()=>toast('✓ Copied to clipboard!')).catch(()=>{
     const ta=document.createElement('textarea');ta.value=text;
@@ -4353,12 +4191,7 @@ function saveStaffAdv(){
 
 // ===== BILLS + TASKS COMBINED =====
 let _btFilter='bills';
-function setBTFilter(f,btn){
-  _btFilter=f;
-  document.querySelectorAll('#bt-filter-tabs .ftab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  renderBillsTasks();
-}
+/* [v145a] removed dead code: setBTFilter() — zero call sites */
 function setTnsView(view,btn){
   document.querySelectorAll('#tns-subtabs .ftab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
@@ -4697,7 +4530,7 @@ function refreshCECats(){
 
 // ===== CASH BOOK =====
 let _cashFilter='all';
-function setCashFilter(f,btn){_cashFilter=f;document.querySelectorAll('#tab-cash .ftab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');renderCash();}
+/* [v145a] removed dead code: setCashFilter() — zero call sites */
 /* #8 — Receipt/voucher form gating: only Amount active until a valid
    amount is entered; all other fields stay greyed-out to guide entry order
    and prevent half-filled vouchers. Type buttons stay active (they define
@@ -5354,7 +5187,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v144w</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145a</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5431,80 +5264,8 @@ if('serviceWorker' in navigator){
 </div>
 
 <script>
-/* ===== ONE-TIME TRIAL HISTORY RENUMBERING =====
-   Renumbers every client who was EVER a trial (currently still trial, OR
-   converted to a real plan) into a single, correctly chronological T-1
-   through T-N sequence, based on the REAL trialDate (when she actually
-   came in), not createdAt (when the record happened to be typed into the
-   system later — which for many real clients was a much later bulk-entry
-   date and has nothing to do with actual chronology).
-   Sort: trialDate ascending, then first name alphabetically for same-day
-   ties, then internal id as a last-resort tiebreaker only for the rare
-   case of two people sharing both the same date AND the same first name.
-   Still-trial clients: their memNo is REPLACED with the new T-number
-   (this is their only ID — they have no other).
-   Converted clients: their real PP-number is NEVER touched. The T-number
-   is stored separately (trialSeq) as a historical reference only.
-   This automatically makes the NEXT new trial registration become
-   T-(highest+1), since that logic already scans existing T- numbers. */
-function _buildTrialRenumberPlan(){
-  const clients=ld('pp_clients',[]);
-  const everTrial=clients.filter(c=>c.isTrial||c.convertedFrom==='trial');
-  const sorted=everTrial.slice().sort((a,b)=>{
-    const da=a.trialDate||'',db=b.trialDate||'';
-    if(da!==db)return da<db?-1:1;
-    const na=(a.fname||'').toLowerCase(),nb=(b.fname||'').toLowerCase();
-    if(na!==nb)return na<nb?-1:1;
-    return (a.id||'')<(b.id||'')?-1:1;
-  });
-  return sorted.map((c,idx)=>({client:c,newT:'T-'+String(idx+1).padStart(2,'0')}));
-}
-function openRenumberTrials(){
-  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
-  const plan=_buildTrialRenumberPlan();
-  const stillTrial=plan.filter(p=>p.client.isTrial);
-  const converted=plan.filter(p=>p.client.convertedFrom==='trial');
-  const rows=plan.map(p=>{
-    const c=p.client;
-    const isConv=c.convertedFrom==='trial';
-    const oldLabel=isConv?(c.memNo||'—')+' (real ID, unchanged)':(c.memNo||'—');
-    return `<tr>
-      <td style="padding:4px 6px;font-weight:700;color:var(--gold);">${p.newT}</td>
-      <td style="padding:4px 6px;">${_esc(c.fname)} ${_esc(c.lname||'')}</td>
-      <td style="padding:4px 6px;color:var(--text3);">${fmt(c.trialDate)}</td>
-      <td style="padding:4px 6px;color:${isConv?'var(--green)':'var(--text2)'};">${isConv?'✓ Converted':'Still trial'}</td>
-      <td style="padding:4px 6px;color:var(--text3);">${_esc(oldLabel)}</td>
-    </tr>`;
-  }).join('');
-  showConfirm('🔢','Renumber Trial History?',
-    'This will assign T-1 through T-'+plan.length+' to every client who was ever a trial, ordered by their REAL trial date (oldest first).<br><br>'+
-    '<b>'+stillTrial.length+'</b> still-trial clients will have their member ID REPLACED with the new T-number.<br>'+
-    '<b>'+converted.length+'</b> converted clients keep their existing real ID — the T-number is only added as historical reference, nothing about their real account changes.<br><br>'+
-    'The next NEW trial registered after this will automatically become T-'+(plan.length+1)+'.<br><br>'+
-    '<div style="max-height:240px;overflow-y:auto;margin-top:10px;border:1px solid var(--border);border-radius:8px;"><table style="width:100%;font-size:11px;border-collapse:collapse;"><tr style="color:var(--text3);text-align:left;position:sticky;top:0;background:var(--surface2);"><th style="padding:4px 6px;">New</th><th style="padding:4px 6px;">Name</th><th style="padding:4px 6px;">Trial Date</th><th style="padding:4px 6px;">Status</th><th style="padding:4px 6px;">Old ID</th></tr>'+rows+'</table></div>',
-    [
-      {label:'Cancel',color:'var(--border2)',outline:true,action:null},
-      {label:'Apply Renumbering',color:'var(--red)',action:()=>_applyTrialRenumber(plan)}
-    ]
-  );
-}
-function _applyTrialRenumber(plan){
-  const clients=ld('pp_clients',[]);
-  let changed=0;
-  plan.forEach(p=>{
-    const c=clients.find(x=>x.id===p.client.id);if(!c)return;
-    if(c.isTrial){
-      c.memNo=p.newT; /* still on trial — this T-number IS her only ID */
-    }else if(c.convertedFrom==='trial'){
-      c.trialSeq=p.newT; /* converted — keep her real PP-number, add T-number as historical reference only */
-    }
-    changed++;
-  });
-  sv('pp_clients',clients);
-  if(typeof AUD==='function')AUD('🔢 Trial history renumbered','T-1 through T-'+plan.length+' assigned by real trial date, '+changed+' records updated');
-  toast('✓ Renumbered '+changed+' records — T-1 through T-'+plan.length);
-  renderClients();renderDash();
-}
+/* [v145a] removed dead code: _buildTrialRenumberPlan() — zero call sites */
+/* [v145a] removed dead code: _applyTrialRenumber() — zero call sites */
 function openAttendanceLookup(){
   document.getElementById('al-search').value='';
   document.getElementById('al-results').innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Start typing a name or member ID above.</div>';
@@ -5672,6 +5433,7 @@ const _PERM_REGISTRY={
     deleteClient:{label:'Delete client',type:'action'},
     printQr:{label:'Print Profile / QR ID Card',type:'action'},
     whatsapp:{label:'WhatsApp message',type:'action'},
+    contact:{label:'Contact details (mobile / email / Insta)',type:'data'},
     complimentary:{label:'Add Complimentary',type:'action'},
     deactivate:{label:'Deactivate / Reactivate',type:'action'},
     resetPin:{label:'Reset booking-login PIN',type:'action'},
@@ -5753,7 +5515,7 @@ function _permCheck(sec,item,minTier){
   return order[have]>=order[minTier];
 }
 
-/* ---- v144w: shared gate helpers. Every Cash/TnS/About doer calls one of
+/* ---- v145a: shared gate helpers. Every Cash/TnS/About doer calls one of
    these. Returns true if allowed, else toasts and returns false. ---- */
 function _gate(sec,item,minTier,msg){
   if(typeof _permCheck!=='function')return true;
@@ -6217,16 +5979,35 @@ function _renderSecRows(u){
       }).join('')
       +'</div></div>';
   }).join('');
+  /* Reflect each section's current state into its items immediately on open,
+     so the form never shows a stale/contradictory picture. */
+  document.querySelectorAll('.ue-sec-select').forEach(sel=>_ueSecChanged(sel));
 }
 function _ueSecChanged(sel){
   const sec=sel.dataset.sec;
-  if(sel.value==='restricted')_ueSecCollapse(sec,true); /* auto-open when switched to Restricted */
+  const v=sel.value;
+  /* v145a: the section dropdown now CASCADES into its item list, so what the
+     admin sees always matches what will actually be saved.
+       No   -> every item forced to 🚫 (none), list locked + collapsed
+       Full -> every item forced to its top tier (🗑 / ✅), list locked + collapsed
+       Restricted -> items unlocked and expanded so they can be picked one by one */
+  const reg=_PERM_REGISTRY[sec];
+  document.querySelectorAll('.ue-item-select[data-sec="'+sec+'"]').forEach(is=>{
+    const it=reg&&reg.items[is.dataset.item];
+    const isAction=it&&it.type==='action';
+    if(v==='no')        is.value='none';
+    else if(v==='full') is.value=isAction?'edit':'delete';
+    is.disabled=(v!=='restricted');
+    is.style.opacity=(v!=='restricted')?'0.5':'';
+  });
+  if(v==='restricted')_ueSecCollapse(sec,true);
+  else _ueSecCollapse(sec,false,true);
 }
-function _ueSecCollapse(sec,forceOpen){
+function _ueSecCollapse(sec,forceOpen,forceClose){
   const box=document.getElementById('ue-items-'+sec);
   const chev=document.getElementById('ue-chev-'+sec);
   if(!box)return;
-  const open=forceOpen||box.style.display==='none';
+  const open=forceClose?false:(forceOpen||box.style.display==='none');
   box.style.display=open?'block':'none';
   if(chev)chev.textContent=open?'▼':'▶';
 }
@@ -6509,11 +6290,8 @@ try{
   try{
   /* staff: editing existing clients & reassigning existing plans = admin only */
   (function(){
-    const oEdit=window.openEditClient;
-    if(typeof oEdit==='function')window.openEditClient=function(){
-      if(!PPS||PPS.role!=='admin'){if(!_permCheck('clients','profile','edit')){toast('🔒 Only admin can edit a saved member');return;}}
-      return oEdit.apply(this,arguments);
-    };
+    /* [v145a] openEditClient() removed — the Unified Form replaced it; its
+       permission wrapper went with it. */
     const oAssign=window.openAssignMembership;
     if(typeof oAssign==='function')window.openAssignMembership=function(cid){
       /* Staff (receptionist): may ASSIGN a new plan, RENEW the same plan, and
@@ -6552,7 +6330,7 @@ try{
     const _existing=document.getElementById('admin-tools');
     if(_existing)_existing.remove();
 
-    /* v144w: Admin Tools is no longer all-or-nothing. Each tool is shown
+    /* v145a: Admin Tools is no longer all-or-nothing. Each tool is shown
        only if the logged-in user actually has the matching permission.
        Users & Access + cloud Sign-out remain permanently admin-only. */
     const _P=(sec,item,tier)=>(typeof _permCheck==='function')&&_permCheck(sec,item,tier);
@@ -7173,7 +6951,7 @@ function printProfile(cid){
   let html=`<h2>👤 Profile — ${_esc(c.fname+' '+(c.lname||''))} (${_esc(c.memNo)})</h2>
     <table><tr><th style="width:28%">Phone</th><td>${_esc(c.phone)||'—'}</td></tr>
     <tr><th>Email</th><td>${_esc(c.email)||'—'}</td></tr>
-    <tr><th>Address</th><td>${_esc(c.addr||c.address)||'—'}</td></tr>
+    ${((typeof _permCheck!=='function')||_permCheck('clients','contact','view'))?`<tr><th>Address</th><td>${_esc(c.addr||c.address)||'—'}</td></tr>`:''}
     ${c.insta?`<tr><th>Instagram</th><td>${_esc(c.insta)}</td></tr>`:''}
     ${c.bday?`<tr><th>Birthday</th><td>${fmt(c.bday)}</td></tr>`:''}
     ${c.anni?`<tr><th>Anniversary</th><td>${fmt(c.anni)}</td></tr>`:''}
@@ -8622,7 +8400,26 @@ function openUnified(cid,focusSection){
     if(_mEdit)_mEdit.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin())?'':'none';
     const _pinReset=document.getElementById('uf-pinreset');
     if(_pinReset)_pinReset.style.display=(typeof ppIsAdmin==='function'&&ppIsAdmin()&&c.bookingPinH)?'':'none';
-    document.getElementById('uf-profile-summary').innerHTML=(c.phone?'<a href="tel:'+_esc(c.phone)+'" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">📱 '+_esc(_fmtPhone(c.phone))+'</a>':'')+(c.email?' · <a href="mailto:'+_esc(c.email)+'" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">✉️ '+_esc(c.email)+'</a>':'')+(c.insta?' · <a href="https://instagram.com/'+_esc((c.insta||'').replace(/^@/,''))+'" target="_blank" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">📷 @'+_esc((c.insta||'').replace(/^@/,''))+'</a>':'');
+    /* v145a: clients:contact is a 3-tier DATA permission —
+         🚫 none  = mobile / email / Insta are HIDDEN completely (private info)
+         👁 view  = visible, but inert text: no dialling, no mailing, no IG
+         ✏️ edit  = fully live, tap to call / mail / open Instagram            */
+    const _pc=(t)=>(typeof _permCheck!=='function')||_permCheck('clients','contact',t);
+    const _seeContact=_pc('view'), _useContact=_pc('edit');
+    const _lnk=(href,label,blank)=>_useContact
+      ?'<a href="'+href+'"'+(blank?' target="_blank"':'')+' onclick="event.stopPropagation()" style="color:inherit;text-decoration:none;">'+label+'</a>'
+      :'<span style="color:inherit;opacity:0.75;">'+label+'</span>';
+    const _ig=(c.insta||'').replace(/^@/,'');
+    document.getElementById('uf-profile-summary').innerHTML=!_seeContact?'':(
+      (c.phone?_lnk('tel:'+_esc(c.phone),'📱 '+_esc(_fmtPhone(c.phone))):'')
+      +(c.email?' · '+_lnk('mailto:'+_esc(c.email),'✉️ '+_esc(c.email)):'')
+      +(c.insta?' · '+_lnk('https://instagram.com/'+_esc(_ig),'📷 @'+_esc(_ig),true):''));
+    /* And hide the raw fields in the profile form too — otherwise the number
+       is still readable there, which defeats the whole point of hiding it. */
+    ['uf-row-phone','uf-row-email','uf-row-insta','uf-row-addr'].forEach(rid=>{
+      const row=document.getElementById(rid);
+      if(row)row.style.display=_seeContact?'':'none';
+    });
     const phEl=document.getElementById('uf-photo');
     if(phEl)phEl.innerHTML=c.photo?`<img src="${c.photo}" style="width:100%;height:100%;object-fit:cover;"/>`:'👤';
   }catch(_e){console.warn('Header failed to render:',_e);}
@@ -8853,6 +8650,12 @@ function _ufPopulateProfile(c){
   document.getElementById('uf-phone').value=(c.phone||'').replace(/^\+91/,'');
   document.getElementById('uf-email').value=c.email||'';
   document.getElementById('uf-insta').value=c.insta||'';
+  /* v145a: Address was write-once — captured at Add Client, shown only on the
+     printed card, editable nowhere (openEditClient became an orphan when the
+     Unified Form replaced it). Now it lives here. `c.address` is read as a
+     fallback because some legacy records used that key. */
+  const _addrEl=document.getElementById('uf-addr');
+  if(_addrEl)_addrEl.value=c.addr||c.address||'';
   const _bday=document.getElementById('uf-bday');
   const _anni=document.getElementById('uf-anni');
   if(c.bday){_bday.type='date';_bday.value=c.bday;}else{_bday.type='text';_bday.value='';}
@@ -8890,6 +8693,7 @@ function ufSaveProfile(){
     phone:(function(){const p=document.getElementById('uf-phone').value.replace(/\D/g,'');return p?'+91'+p:'';})(),
     email:document.getElementById('uf-email').value.trim(),
     insta:document.getElementById('uf-insta').value.trim(),
+    addr:(document.getElementById('uf-addr')||{}).value!==undefined?document.getElementById('uf-addr').value.trim():(old.addr||''),
     bday:document.getElementById('uf-bday').value,
     anni:document.getElementById('uf-anni').value,
     join:document.getElementById('uf-join').value||old.join||td(),
@@ -10055,8 +9859,11 @@ function ufSavePayment(){
           <div class="fg"><label class="fl">👤 Last Name</label><input class="fi" id="uf-lname" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
         </div>
         <div class="fr">
-          <div class="fg"><label class="fl">📱 Mobile <span style="display:inline-block;vertical-align:-2px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg></span></label><input class="fi" id="uf-phone" type="tel" inputmode="numeric" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"/></div>
-          <div class="fg"><label class="fl">📧 Email</label><input class="fi" id="uf-email" type="email" autocomplete="off" autocapitalize="none"/></div>
+          <div class="fg" id="uf-row-phone"><label class="fl">📱 Mobile <span style="display:inline-block;vertical-align:-2px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg></span></label><input class="fi" id="uf-phone" type="tel" inputmode="numeric" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"/></div>
+          <div class="fg" id="uf-row-email"><label class="fl">📧 Email</label><input class="fi" id="uf-email" type="email" autocomplete="off" autocapitalize="none"/></div>
+        </div>
+        <div class="fr" id="uf-row-addr" style="grid-template-columns:1fr;">
+          <div class="fg"><label class="fl">📍 Address</label><input class="fi" id="uf-addr" placeholder="Model Town, Delhi" autocapitalize="words"/></div>
         </div>
         <div class="fr">
           <div class="fg"><label class="fl">🎂 Birthday</label><input class="fi" id="uf-bday" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
@@ -10067,7 +9874,7 @@ function ufSavePayment(){
           <div class="fg"><label class="fl">🎯 Trial Date</label><input class="fi" id="uf-trialdate" type="text" placeholder="dd/mm/yyyy" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"/></div>
         </div>
         <div class="fr">
-          <div class="fg"><label class="fl"><span style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:white;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;vertical-align:1px;">IG</span> Insta ID</label><input class="fi" id="uf-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
+          <div class="fg" id="uf-row-insta"><label class="fl"><span style="display:inline-block;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:white;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;vertical-align:1px;">IG</span> Insta ID</label><input class="fi" id="uf-insta" placeholder="@username" autocomplete="off" autocapitalize="none"/></div>
           <div class="fg">
             <label class="fl">🔗 Referred By</label>
             <div style="position:relative;">
