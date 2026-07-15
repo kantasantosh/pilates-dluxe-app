@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145b</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145j</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2543,8 +2543,10 @@ function delPayListItem(idx){
   const def=_payListType==='modes'?DEF_PAY_MODES:DEF_PAY_FOR;
   const items=ld(key,def);
   if(items.length<=1){alert('Must keep at least one item!');return;}
-  items.splice(idx,1);sv(key,items);
-  renderPayListItems();refreshPaySelects();
+  confirmDelete('🗑','Delete "'+(items[idx]||'')+'" from this list?',()=>{
+    items.splice(idx,1);sv(key,items);
+    renderPayListItems();refreshPaySelects();
+  });
 }
 
 // ===== PAYMENTS =====
@@ -3702,35 +3704,27 @@ function renderCredits(){
   document.getElementById('credits-content').innerHTML=`
     <div id="admin-tools-slot"></div>
     <div id="about-backup-card" style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
-      <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:500;">💾 Data Backup</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5;">Export saves all data. Import restores on any device.</div>
       <div id="about-backup-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <button id="about-export-btn" onclick="exportPPData()" style="background:linear-gradient(135deg,var(--teal),#4a7a72);color:white;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;">⬇️ Export</button>
-        <label id="about-import-lbl" style="background:linear-gradient(135deg,var(--purple),#6a5a7f);color:white;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;text-align:center;display:block;">⬆️ Import<input type="file" accept=".json" onchange="importPPData(this)" style="display:none;"/></label>
+        <button id="about-export-btn" onclick="exportPPData()" style="background:#5a4632;border:1.5px solid rgba(201,169,110,0.6);color:var(--gold);border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;">⬇️ Export</button>
+        <label id="about-import-lbl" style="background:#5a4632;border:1.5px solid rgba(201,169,110,0.6);color:var(--gold);border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;text-align:center;display:block;">⬆️ Import<input type="file" accept=".json" onchange="importPPData(this)" style="display:none;"/></label>
       </div>
     </div>
     <div style="margin:0 16px 10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
-        <button onclick="sendFeedback()" style="width:100%;background:#25D366;border:none;border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;color:white;">💬 Feedback via WhatsApp</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch;">
+        <button onclick="sendFeedback()" style="background:#5a4632;border:1.5px solid rgba(201,169,110,0.6);border-radius:var(--rsm);padding:10px;font-size:12px;font-family:'Jost',sans-serif;font-weight:600;cursor:pointer;color:var(--gold);"><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;margin-right:5px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg>Feedback</button>
+        <div id="bio-about-area" style="display:flex;flex-direction:column;justify-content:center;"></div>
+      </div>
     </div>
     <div style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
-      <div style="width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-      <div style="font-family:'Playfair Display',serif;font-size:22px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
+      <div style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;overflow:hidden;box-shadow:0 0 0 2px rgba(201,169,110,0.35),0 0 18px rgba(201,169,110,0.25);"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
+      <div style="font-family:'Playfair Display',serif;font-size:19px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
       <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 4px;">Studio Admin</div>
-      <div style="font-size:13px;color:var(--text2);letter-spacing:1px;margin-bottom:12px;">${typeof _appVer==='function'?_appVer():''}</div>
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Built with</div>
-      <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
-        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:linear-gradient(135deg,#b5673e,#d4956a);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;font-family:'Playfair Display',serif;">C</div><div style="font-size:11px;font-weight:600;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div>
-        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:linear-gradient(135deg,#ffa000,#ff6f00);display:flex;align-items:center;justify-content:center;font-size:22px;">🔥</div><div style="font-size:11px;font-weight:600;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">Google</div></div>
-        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#f6821f;display:flex;align-items:center;justify-content:center;font-size:22px;">☁️</div><div style="font-size:11px;font-weight:600;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div>
-        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#24292e;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div><div style="font-size:11px;font-weight:600;color:var(--text);">GitHub</div><div style="font-size:9px;color:var(--text3);">Source</div></div>
-        <div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#f7df1e;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#323330;">JS</div><div style="font-size:11px;font-weight:600;color:var(--text);">JavaScript</div><div style="font-size:9px;color:var(--text3);">HTML · CSS</div></div>
-      </div>
+      <div style="font-size:13px;color:var(--text2);letter-spacing:1px;margin-bottom:8px;">${typeof _appVer==='function'?_appVer():''}</div>
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Built with</div>
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;opacity:0.9;"><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Playfair Display',serif;font-weight:800;font-size:19px;color:#e8e0d4;">A\</span></div><div style="font-size:10px;font-weight:600;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M5 19.5 7.6 3.6c.06-.37.55-.46.73-.13l2.1 3.9L5 19.5zm14 .3-2-13.1c-.05-.33-.46-.45-.68-.2L5.3 19.8l6.1 3.4c.38.21.85.21 1.23 0L19 19.8zM13.2 9.2 11.7 6.4c-.14-.27-.52-.27-.66 0L4.5 19.5l8.7-10.3z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">Google</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M18.5 17H6a4 4 0 1 1 .8-7.92A6 6 0 0 1 18.2 10.4 3.5 3.5 0 0 1 18.5 17z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">GitHub</div><div style="font-size:9px;color:var(--text3);">Source</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Jost',sans-serif;font-weight:800;font-size:17px;color:#e8e0d4;letter-spacing:0.5px;">JS</span></div><div style="font-size:10px;font-weight:600;color:var(--text);">JavaScript</div><div style="font-size:9px;color:var(--text3);">HTML · CSS</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 0C12.7 6.5 17.5 11.3 24 12C17.5 12.7 12.7 17.5 12 24C11.3 17.5 6.5 12.7 0 12C6.5 11.3 11.3 6.5 12 0Z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">Gemini</div><div style="font-size:9px;color:var(--text3);">Google</div></div></div></div>
       <div style="font-size:11px;color:var(--text3);">Designed together with its user</div>
     </div>
-    <div id="about-bio-card" style="margin:0 16px 10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🔒 Fingerprint / Face Unlock (this device)</div>
-      <div id="bio-about-area"></div>
-    </div>
+    <div id="about-signout-slot" style="margin:0 16px 10px;"></div>
     <div id="about-reset-card" style="margin:0 16px 30px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
       <button onclick="resetAllData()" style="width:100%;padding:10px;border-radius:var(--rsm);border:1px solid var(--red);background:none;color:var(--red);font-family:'Jost',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">🗑 Reset all data (irreversible)</button>
     </div>
@@ -3757,7 +3751,7 @@ function renderBioAbout(){
     area.innerHTML='<div style="font-size:13px;color:var(--green,#4ade80);margin-bottom:10px;">✓ Fingerprint is enabled for <b>'+_esc(PPS.name)+'</b> on this device.</div>'+
       '<button class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);" onclick="bioRemove(PPS.id);renderBioAbout();">Remove fingerprint from this device</button>';
   }else{
-    area.innerHTML='<button class="sb2" onclick="bioEnroll(PPS.id).then(ok=>{if(ok)renderBioAbout();})">🔒 Enable fingerprint for '+_esc(PPS.name)+'</button>';
+    area.innerHTML='<button class="sb2" style="font-size:12px;padding:10px;margin:0;background:#5a4632;border:1.5px solid rgba(201,169,110,0.6);color:var(--gold);font-weight:600;" onclick="bioEnroll(PPS.id).then(ok=>{if(ok)renderBioAbout();})">🔒 Fingerprint unlock</button>';
   }
 }
 
@@ -3805,13 +3799,7 @@ function importPPData(input){
 
 // ===== SHARE FUNCTIONS =====
 /* [v145a] removed dead code: shareText() — zero call sites */
-function copyToClipboard(text){
-  navigator.clipboard.writeText(text).then(()=>toast('✓ Copied to clipboard!')).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=text;
-    document.body.appendChild(ta);ta.select();document.execCommand('copy');
-    document.body.removeChild(ta);toast('✓ Copied!');
-  });
-}
+/* [v145j] removed dead code: copyToClipboard() — zero call sites */
 
 // ===== PWA STATE FIX =====
 // (Tab-restore logic merged into the single consolidated visibilitychange
@@ -4148,7 +4136,12 @@ function renderStaff(){
     </div>`;
   }).join('');
 }
-function delStaff(id){if(!_gate('tns','salary','edit'))return;if(!confirm('Delete this staff member?'))return;const s=ld('pp_staff',[]).filter(x=>x.id!==id);sv('pp_staff',s);renderStaff();}
+function delStaff(id){
+  if(!_gate('tns','salary','edit'))return;
+  confirmDelete('🗑','Delete this staff member? Attendance & salary history will also be removed. This cannot be undone.',()=>{
+    const s=ld('pp_staff',[]).filter(x=>x.id!==id);sv('pp_staff',s);renderStaff();
+  });
+}
 
 function openStaffAdv(sid,name){
   if(!_gate('tns','salary','edit'))return;
@@ -4355,7 +4348,19 @@ function renderTodoSection(container){
     (done.length?`<div class="div-section">Done (${done.length})</div>${done.map(renderItem).join('')}`:'');
 }
 function toggleBillStatus(id){if(!_gate('tns','bills','edit'))return;const bills=ld('pp_bills',[]);const b=bills.find(x=>x.id===id);if(b){b.status=b.status==='paid'?'due':'paid';sv('pp_bills',bills);renderBillsTasks();}}
-function toggleTodo(id){if(!_gateTask())return;const todos=ld('pp_todos',[]);const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;sv('pp_todos',todos);renderBillsTasks();}}
+function toggleTodo(id){
+  const todos=ld('pp_todos',[]);const t=todos.find(x=>x.id===id);if(!t)return;
+  /* v145c: a person may always tick/untick a task assigned to THEMSELF as
+     long as they can at least SEE their own tasks — marking your own work
+     done is part of viewing it, not task management. Managing (edit tier)
+     is still required for anyone else's tasks. */
+  const _own=t.assignedTo&&typeof ppMyStaffId==='function'&&t.assignedTo===ppMyStaffId();
+  const _ok=_permCheck('tns','allTasks','edit')||_permCheck('tns','ownTasks','edit')||(_own&&_permCheck('tns','ownTasks','view'));
+  if(!_ok){toast('🔒 Access restricted');return;}
+  t.done=!t.done;sv('pp_todos',todos);
+  try{renderBillsTasks();}catch(_e){}
+  try{if(typeof renderStaff==='function')renderStaff();}catch(_e){}
+}
 function delTodo(id){if(!_gateTask())return;confirmDelete('🗑','Delete this task?',()=>{sv('pp_todos',ld('pp_todos',[]).filter(t=>t.id!==id));renderBillsTasks();});}
 
 // ===== PLAN MANAGEMENT =====
@@ -4519,7 +4524,9 @@ function delCashCat(idx){
   const key=_cashCatType==='in'?'pp_credit_cats':'pp_debit_cats';
   const def=_cashCatType==='in'?DEF_CREDIT_CATS:DEF_DEBIT_CATS;
   const cats=ld(key,def);if(cats.length<=1){alert('Keep at least one');return;}
-  cats.splice(idx,1);sv(key,cats);renderCashCatsList();refreshCECats();
+  confirmDelete('🗑','Delete category "'+(cats[idx]||'')+'"?',()=>{
+    cats.splice(idx,1);sv(key,cats);renderCashCatsList();refreshCECats();
+  });
 }
 function refreshCECats(){
   const type=document.getElementById('ce-type').value;
@@ -5187,7 +5194,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145b</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145j</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -6197,8 +6204,8 @@ try{
   window.renderStaff=function(){
     ppRefresh();
     if(!ppIsStaff()&&!ppIsTrainer())return _oStaff.apply(this,arguments);
-    const _canMark=ppIsStaff()&&(typeof _hasPerm!=='function'||_hasPerm('staff_mark_own'));
-    const _viewAllStaff=typeof _hasPerm==='function'&&_hasPerm('staff_view_all');
+    const _canMark=ppIsStaff(); /* [v145j] fossil _hasPerm removed — was always true */
+    const _viewAllStaff=false; /* [v145j] fossil _hasPerm removed — was always false. Phase 2: consider wiring to _permCheck('tns','allAttendance') */
     const staff=ld('pp_staff',[]);
     const now=new Date();
     if(!_staffM)_staffM={y:now.getFullYear(),m:now.getMonth()};
@@ -6288,7 +6295,7 @@ try{
     const container=document.getElementById('bills-list');
     if(!container)return;
     const sid=ppMyStaffId();
-    const _viewAll=typeof _hasPerm==='function'&&_hasPerm('tasks_view_all');
+    const _viewAll=false; /* [v145j] fossil _hasPerm removed — was always false. Phase 2: consider wiring to _permCheck('tns','allTasks') */
     const tasks=_viewAll?ld('pp_todos',[]):ld('pp_todos',[]).filter(t=>sid&&t.assignedTo===sid);
     container.innerHTML=`<div class="div-section">${_viewAll?'All Tasks':'My Assigned Tasks'}</div>`+(tasks.length?tasks.map(t=>`
       <div class="card" style="margin-bottom:8px;${t.done?'opacity:0.55;':''}">
@@ -6320,7 +6327,7 @@ try{
     window[fn]=function(){
       if(!_perm2User()){ /* legacy users only — perm2 users rely on each function's own _gate */
         if(ppIsTrainer()){toast('🔒 Admin only');return;}
-        if(ppIsStaff()&&!(typeof _hasPerm==='function'&&_hasPerm('staff_manage'))){toast('🔒 Admin only');return;}
+        if(ppIsStaff()){toast('🔒 Admin only');return;} /* [v145j] fossil _hasPerm removed */
       }
       return o.apply(this,arguments);
     };
@@ -6330,7 +6337,7 @@ try{
     if(typeof o!=='function')return;
     window[fn]=function(){
       if(ppIsTrainer()){toast('🔒 Admin only');return;}
-      if(ppIsStaff()&&!(typeof _hasPerm==='function'&&_hasPerm('tasks_manage'))){toast('🔒 Admin only');return;}
+      if(ppIsStaff()){toast('🔒 Admin only');return;} /* [v145j] fossil _hasPerm removed */
       return o.apply(this,arguments);
     };
   });
@@ -6385,24 +6392,33 @@ try{
     const _P=(sec,item,tier)=>(typeof _permCheck==='function')&&_permCheck(sec,item,tier);
     const _isAdm=(typeof ppIsAdmin==='function')&&ppIsAdmin();
     const _btns=[];
-    if(_P('about','reports','view'))  _btns.push('<button class="sb2" onclick="openReports()" style="margin:0;font-size:12px;padding:10px 6px;">📊 Reports</button>');
-    if(_P('cash','statement','view')) _btns.push('<button class="sb2" onclick="openStatement()" style="margin:0;font-size:12px;padding:10px 6px;">📑 Statement</button>');
-    if(_P('about','plans','view'))    _btns.push('<button class="sb2" onclick="openManagePlans()" style="margin:0;font-size:12px;padding:10px 6px;">⚙️ Plans</button>');
-    if(_P('about','studio','view'))   _btns.push('<button class="sb2" onclick="openStudioEdit()" style="margin:0;font-size:12px;padding:10px 6px;">🏛 Studio Details</button>');
-    if(_P('about','announce','view')) _btns.push('<button class="sb2" onclick="openAnnounce()" style="margin:0;font-size:12px;padding:10px 6px;">📢 Announcements</button>');
-    if(_isAdm)                        _btns.push('<button class="sb2" onclick="openUsersModal()" style="margin:0;font-size:12px;padding:10px 6px;">👥 Users &amp; Access</button>');
-    if(_P('about','referral','view')) _btns.push('<button class="sb2" onclick="openCompRule()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);">🎁 Referral Rule</button>');
-    if(_P('about','auditLog','edit')) _btns.push('<button class="sb2" onclick="openAuditModal()" style="margin:0;font-size:12px;padding:10px 6px;background:none;border:1.5px solid var(--border2);color:var(--text2);">📜 Audit Log</button>');
+    if(_P('about','reports','view'))  _btns.push('<button class="sb2" onclick="openReports()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">📊 Reports</button>');
+    if(_P('cash','statement','view')) _btns.push('<button class="sb2" onclick="openStatement()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">📑 Statement</button>');
+    if(_P('about','plans','view'))    _btns.push('<button class="sb2" onclick="openManagePlans()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">⚙️ Plans</button>');
+    if(_P('about','studio','view'))   _btns.push('<button class="sb2" onclick="openStudioEdit()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">🏛 Studio Details</button>');
+    if(_P('about','announce','view')) _btns.push('<button class="sb2" onclick="openAnnounce()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">📢 Announcements</button>');
+    if(_isAdm)                        _btns.push('<button class="sb2" onclick="openUsersModal()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">👥 Users &amp; Access</button>');
+    if(_P('about','referral','view')) _btns.push('<button class="sb2" onclick="openCompRule()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">🎁 Referral Rule</button>');
+    if(_P('about','auditLog','edit')) _btns.push('<button class="sb2" onclick="openAuditModal()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">📜 Audit Log</button>');
 
     if(_btns.length){
       const d=document.createElement('div');d.id='admin-tools';
-      const _cloud=_isAdm
-        ?`<div style="font-size:10px;color:var(--text3);margin:6px 0 4px;text-align:center;">☁️ ${(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'offline mode'}</div>
-           <button class="sb2" onclick="cloudSignOut()" style="background:none;border:1px solid var(--rose);color:var(--rose);font-size:11px;padding:8px;margin:0;">☁️ Sign-out</button>`
-        :'';
-      d.innerHTML=`<div class="div-section">🔐 ${_isAdm?'Admin Tools':'Tools'}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">${_btns.join('')}</div>${_cloud}`;
+      /* v145e: same width as every card below (0 16px), so the whole page
+         sits on one grid; cloud sign-out moved down beside Reset — the two
+         "untouchable" actions now live together at the very bottom. */
+      d.style.margin='0 16px';
+      d.innerHTML=`<div class="div-section" style="margin-left:0;margin-right:0;">🔐 ${_isAdm?'Admin Tools':'Tools'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">${_btns.join('')}</div>`;
       _slot.appendChild(d);
+    }
+    const _soSlot=document.getElementById('about-signout-slot');
+    if(_soSlot){
+      const _em=(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser)?firebase.auth().currentUser.email:'offline mode';
+      _soSlot.innerHTML=_isAdm
+        ?`<div style="padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+             <button onclick="cloudSignOut()" style="width:100%;padding:10px;border-radius:var(--rsm);border:1px solid var(--red);background:none;color:var(--red);font-family:'Jost',sans-serif;font-weight:600;font-size:12px;cursor:pointer;">☁️ Sign-out · ${_em}</button>
+           </div>`
+        :'';
     }
 
     /* Backup / Import / Reset / Fingerprint cards — hide what isn't permitted.
@@ -8131,6 +8147,17 @@ function printStatement(){
     </div>
     <button class="sb2" id="an-save-btn" onclick="saveAnnounce()" disabled style="opacity:0.45;">Save Announcement</button>
     <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:8px;" onclick="clearAnnounce()">Clear / Hide</button>
+    <div class="div-section" style="margin:14px 0 8px;">👤 Personal Message (one member only)</div>
+    <div class="fg"><label class="fl">Members (tick one or many)</label>
+      <input class="fi" id="anp-search" placeholder="🔍 Search member…" oninput="_anpFilter()" style="margin-bottom:6px;"/>
+      <div id="anp-cids" style="max-height:150px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;"></div>
+    </div>
+    <div class="fg"><label class="fl">Message</label>
+      <textarea class="fi" id="anp-msg" rows="3" style="resize:none;" placeholder="e.g. Your plan ends Friday — renew at the desk 🙏"></textarea>
+    </div>
+    <div class="fg"><label class="fl">Show Until</label><input class="fi" id="anp-until" type="date"/></div>
+    <button class="sb2" onclick="savePersonalMsg()" style="font-size:13px;">Send Personal Message</button>
+    <div id="anp-list" style="margin-top:10px;"></div>
   </div>
 </div>
 
@@ -8144,6 +8171,14 @@ function openAnnounce(){
     document.getElementById('an-msg').value=a.msg||'';
     document.getElementById('an-type').value=a.type||'info';
     document.getElementById('an-until').value=a.until||'';
+    const _cl=ld('pp_clients',[]).filter(c=>!c.archived).sort((x,y)=>(x.fname||'').localeCompare(y.fname||''));
+    document.getElementById('anp-search').value='';
+    document.getElementById('anp-cids').innerHTML=_cl.map(c=>{
+      const nm=_esc((c.fname+' '+(c.lname||'')).trim());
+      return `<label class="anp-row" data-nm="${nm.toLowerCase()}" style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:var(--text);cursor:pointer;">
+        <input type="checkbox" class="anp-chk" value="${c.id}" style="width:17px;height:17px;accent-color:var(--gold);"/>${nm}</label>`;
+    }).join('');
+    _renderPersonalMsgs();
     setTimeout(()=>armDirty('m-announce','an-save-btn'),50);
   }catch(_e){console.warn('Announcement failed to render:',_e);}
 }
@@ -8154,11 +8189,57 @@ function saveAnnounce(){
   if(typeof AUD==='function')AUD('📢 Booking announcement updated',a.msg?a.msg.slice(0,40):'(cleared)');
   closeM('m-announce');toast('✓ Announcement saved');
 }
+function _anpFilter(){
+  const q=(document.getElementById('anp-search').value||'').toLowerCase();
+  document.querySelectorAll('#anp-cids .anp-row').forEach(r=>{r.style.display=(!q||r.dataset.nm.indexOf(q)>-1)?'flex':'none';});
+}
+function savePersonalMsg(){
+  if(!_gate('about','announce','edit'))return;
+  const cids=Array.from(document.querySelectorAll('#anp-cids .anp-chk:checked')).map(c=>c.value);
+  const msg=document.getElementById('anp-msg').value.trim();
+  const until=document.getElementById('anp-until').value;
+  if(!cids.length){toast('Tick at least one member');return;}
+  if(!msg){toast('Write the message');return;}
+  const a=getAnnounce();
+  if(!a.personal)a.personal={};
+  cids.forEach(cid=>{a.personal[cid]={msg,until,ts:Date.now()};});
+  sv('pp_announce',a);
+  if(typeof AUD==='function')AUD('👤 Personal message set',cids.length+' member(s): '+msg.slice(0,30));
+  document.getElementById('anp-msg').value='';document.getElementById('anp-until').value='';
+  document.querySelectorAll('#anp-cids .anp-chk:checked').forEach(c=>{c.checked=false;});
+  _renderPersonalMsgs();toast('✓ Sent to '+cids.length+' member'+(cids.length>1?'s':''));
+}
+function delPersonalMsg(cid){
+  if(!_gate('about','announce','edit'))return;
+  const a=getAnnounce();
+  if(a.personal&&a.personal[cid]){delete a.personal[cid];sv('pp_announce',a);
+    if(typeof AUD==='function')AUD('👤 Personal message removed',_clientName?_clientName(cid):cid);}
+  _renderPersonalMsgs();toast('Removed');
+}
+function _renderPersonalMsgs(){
+  const box=document.getElementById('anp-list');if(!box)return;
+  const a=getAnnounce();const p=a.personal||{};
+  const ids=Object.keys(p);
+  box.innerHTML=ids.length?ids.map(cid=>{
+    const m=p[cid];
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);margin-bottom:6px;">
+      <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--gold);">${_esc(_clientName?_clientName(cid):cid)}</div>
+      <div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(m.msg)}</div>
+      ${m.until?`<div style="font-size:10px;color:var(--text3);">until ${fmt(m.until)}</div>`:''}</div>
+      <button onclick="delPersonalMsg('${cid}')" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;flex-shrink:0;">🗑</button>
+    </div>`;}).join('')
+  :'<div style="font-size:11px;color:var(--text3);text-align:center;">No personal messages active</div>';
+}
 function clearAnnounce(){
   if(!_gate('about','announce','edit'))return;
-  sv('pp_announce',{msg:'',type:'info',until:''});
-  if(typeof AUD==='function')AUD('📢 Booking announcement cleared','');
-  closeM('m-announce');toast('Announcement hidden');
+  showConfirm('📢','Hide announcement?','This removes the current announcement from the booking page.',[
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+    {label:'Hide it',color:'var(--rose)',action:()=>{
+      sv('pp_announce',{msg:'',type:'info',until:''});
+      if(typeof AUD==='function')AUD('📢 Booking announcement cleared','');
+      closeM('m-announce');toast('Announcement hidden');
+    }}
+  ]);
 }
 </script>
 
