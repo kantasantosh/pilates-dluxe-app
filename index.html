@@ -2702,7 +2702,7 @@ function chDay(d){
   renderSchedule();
 }
 function toggleClosedDay(){
-  if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+  if(!(typeof ppIsAdmin==='function'&&ppIsAdmin())&&!(typeof _permCheck==='function'&&_permCheck('schedule','markClosed','edit'))){toast('🔒 Access restricted');return;}
   const closed=ld('pp_closed_days',{});
   if(closed[_schedDate]){
     delete closed[_schedDate];
@@ -6294,11 +6294,11 @@ try{
       <div class="card" style="margin-bottom:8px;${t.done?'opacity:0.55;':''}">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
           <div style="flex:1;">
-            <div style="font-size:14px;font-weight:600;color:var(--text);">${t.done?'✅':'⬜'} ${t.task}</div>
+            <div style="font-size:14px;font-weight:600;color:${t.done?'var(--text3)':'var(--text)'};${t.done?'text-decoration:line-through;':''}">${t.task}</div>
             <div style="font-size:12px;color:var(--text3);margin-top:2px;">${t.cat||''}${t.due?' • Due '+fmt(t.due):''}${t.pri?' • '+t.pri:''}</div>
             ${t.notes?`<div style="font-size:12px;color:var(--text2);margin-top:3px;">📝 ${t.notes}</div>`:''}
           </div>
-          <button onclick="toggleTodo('${t.id}')" style="background:${t.done?'var(--surface3)':'var(--green)'};border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;color:${t.done?'var(--text2)':'#1a1a2e'};font-family:'Jost',sans-serif;flex-shrink:0;">${t.done?'Undo':'✓ Done'}</button>
+          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${t.id}')" style="width:22px;height:22px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;"/>
         </div>
       </div>`).join(''):`<div style="text-align:center;padding:40px 20px;color:var(--text3);font-size:13px;">${sid?'No tasks assigned to you yet':'Your login is not linked to a staff record — ask admin'}</div>`);
   };
@@ -6310,7 +6310,7 @@ try{
     const o=window[fn];
     if(typeof o!=='function')return;
     window[fn]=function(){
-      if(ppIsStaff()||ppIsTrainer()){toast('🔒 Admin only');return;}
+      if((ppIsStaff()||ppIsTrainer())&&!_perm2User()){toast('🔒 Admin only');return;}
       return o.apply(this,arguments);
     };
   });
@@ -6318,8 +6318,10 @@ try{
     const o=window[fn];
     if(typeof o!=='function')return;
     window[fn]=function(){
-      if(ppIsTrainer()){toast('🔒 Admin only');return;}
-      if(ppIsStaff()&&!(typeof _hasPerm==='function'&&_hasPerm('staff_manage'))){toast('🔒 Admin only');return;}
+      if(!_perm2User()){ /* legacy users only — perm2 users rely on each function's own _gate */
+        if(ppIsTrainer()){toast('🔒 Admin only');return;}
+        if(ppIsStaff()&&!(typeof _hasPerm==='function'&&_hasPerm('staff_manage'))){toast('🔒 Admin only');return;}
+      }
       return o.apply(this,arguments);
     };
   });
@@ -7458,6 +7460,7 @@ function _receiptHtml(pay,forPrint){
   <div style="text-align:center;font-size:11px;color:#999;margin-top:10px;">Thank you for choosing ${s.name} 🙏</div>`;
 }
 function showReceipt(payId){
+  if(!(_permCheck('cash','receiptPrint','edit')||_permCheck('clients','payment','view'))){toast('🔒 Access restricted');return;}
   const pay=ld('pp_payments',[]).find(p=>p.id===payId);
   if(!pay){toast('Payment not found');return;}
   _curReceiptId=payId;_curReceiptSrc='pay';
@@ -7484,7 +7487,9 @@ function _cashToPay(ce){
   return {id:ce.id,cid:ce.cid,amt:ce.amt,date:ce.date,mode:ce.mode,forWhat:ce.cat||ce.desc||'Membership Fee',payType:ce.payType||'',notes:ce.notes};
 }
 function showReceiptCash(ceId){
-  if(!_gate('cash','receiptPrint','edit'))return;
+  /* v145b: reception (clients.payment access) may print receipts even when
+     the whole Cash section is 'No' — a receipt is a client-facing action. */
+  if(!(_permCheck('cash','receiptPrint','edit')||_permCheck('clients','payment','view'))){toast('🔒 Access restricted');return;}
   const ce=ld('pp_cash',[]).find(x=>x.id===ceId);
   if(!ce){toast('Entry not found');return;}
   _curReceiptId=ceId;_curReceiptSrc='cash';
