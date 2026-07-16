@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header" style="padding:5px 20px 4px;">
   <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 2px;overflow:hidden;"><img src="/bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v42</small></div>
+  <div class="logo"><small>Book a Session · v44</small></div>
 </div>
 
 <div class="container">
@@ -261,20 +261,24 @@ async function loadDataAndVerify(){
   document.getElementById('main-content').innerHTML='<div class="loading"><span class="spinner">⟳</span><br/><br/>Loading your profile...</div>';
   try{
     const opts={source:'server'}; /* always fetch fresh from server */
-    const [cSnap, bSnap, mSnap, cdSnap, anSnap, uSnap]=await Promise.all([
+    const [cSnap, bSnap, mSnap, cdSnap, anSnap]=await Promise.all([
       db.collection(COL).doc('pp_clients').get(opts),
       db.collection(COL).doc('pp_bookings').get(opts),
       db.collection(COL).doc('pp_memberships').get(opts),
       db.collection(COL).doc('pp_closed_days').get(opts),
-      db.collection(COL).doc('pp_announce').get(opts),
-      db.collection(COL).doc('pp_users').get(opts)
+      db.collection(COL).doc('pp_announce').get(opts)
     ]);
+    /* [v44] staff-viewer list is OPTIONAL — if security rules deny this doc,
+       members must still load normally. This isolation is what restores
+       booking after the v43 outage. */
+    let uSnap=null;
+    try{uSnap=await db.collection(COL).doc('pp_users').get(opts);}catch(_e){uSnap=null;}
     _clients=cSnap.exists?JSON.parse(cSnap.data().value):[];
     _bookings=bSnap.exists?JSON.parse(bSnap.data().value):{};
     _mems=mSnap.exists?JSON.parse(mSnap.data().value):{};
     _closedDays=cdSnap.exists?JSON.parse(cdSnap.data().value):{};
     try{_announce=anSnap.exists?JSON.parse(anSnap.data().value):null;}catch(e){_announce=null;}
-    try{_appUsers=uSnap.exists?JSON.parse(uSnap.data().value):[];}catch(e){_appUsers=[];}
+    try{_appUsers=(uSnap&&uSnap.exists)?JSON.parse(uSnap.data().value):[];}catch(e){_appUsers=[];}
   }catch(e){
     document.getElementById('main-content').innerHTML='<div class="loading">⚠️ Could not load data. Please refresh.</div>';
     return;
