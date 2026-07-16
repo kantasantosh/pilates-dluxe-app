@@ -296,7 +296,7 @@ try{
      comes after this point in the file. */
   console.warn('Firebase unavailable, continuing in offline mode:',_fbErr&&_fbErr.message);
 }
-const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups'];
+const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups','pp_perm_templates'];
 function _pSyncable(k){return _pSYNC.includes(k)||/^pp_(satt|sadv)_/.test(k);}
 
 /* [v145a] removed dead code: _pfsSave() — zero call sites */
@@ -655,7 +655,7 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145g</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145k</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -2311,7 +2311,7 @@ function openTrialReg(){
 
 // ===== MEMBERSHIP =====
 function openAssignMembership(cid){
-  if(typeof ppIsVisitor==='function'&&ppIsVisitor()){toast('🔒 View-only access');return;}
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','plan','edit')){toast('🔒 View-only access');return;}
   const clients=ld('pp_clients',[]);
   const c=clients.find(cl=>cl.id===cid);if(!c)return;
   const mems=ld('pp_memberships',{});
@@ -3799,13 +3799,7 @@ function importPPData(input){
 
 // ===== SHARE FUNCTIONS =====
 /* [v145a] removed dead code: shareText() — zero call sites */
-function copyToClipboard(text){
-  navigator.clipboard.writeText(text).then(()=>toast('✓ Copied to clipboard!')).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=text;
-    document.body.appendChild(ta);ta.select();document.execCommand('copy');
-    document.body.removeChild(ta);toast('✓ Copied!');
-  });
-}
+/* [v145j] removed dead code: copyToClipboard() — zero call sites */
 
 // ===== PWA STATE FIX =====
 // (Tab-restore logic merged into the single consolidated visibilitychange
@@ -5200,7 +5194,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145g</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145k</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5245,6 +5239,18 @@ if('serviceWorker' in navigator){
     </div>
     <div class="fg"><label class="fl">Linked Staff Record (for own attendance &amp; tasks)</label><select class="fi" id="ue-staff"><option value="">— Not linked —</option></select></div>
     <div class="fg">
+      <div class="fg" style="margin-bottom:10px;">
+        <label class="fl">Permission Template</label>
+        <div style="display:flex;gap:8px;">
+          <select class="fi" id="ue-tpl" style="flex:1;"></select>
+          <button onclick="applyPermTemplate()" style="background:var(--gold);color:#1a1a2e;border:none;border-radius:var(--rsm);padding:0 14px;font-weight:700;font-family:'Jost',sans-serif;cursor:pointer;flex-shrink:0;font-size:12px;">Apply</button>
+          <button onclick="deletePermTemplate()" title="Delete selected template" style="background:none;border:1px solid var(--border2);color:var(--red);border-radius:var(--rsm);padding:0 10px;cursor:pointer;flex-shrink:0;">🗑</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <input class="fi" id="ue-tpl-name" placeholder="Save current setup as template…" style="flex:1;"/>
+          <button onclick="savePermTemplate()" style="background:none;border:1.5px solid rgba(201,169,110,0.6);color:var(--gold);border-radius:var(--rsm);padding:0 12px;font-weight:700;font-family:'Jost',sans-serif;cursor:pointer;flex-shrink:0;font-size:12px;">💾 Save</button>
+        </div>
+      </div>
       <label class="fl">Access — per section</label>
       <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Full = everything in that section. Restricted = pick exactly what's allowed. No = section hidden entirely.</div>
       <div id="ue-sec-rows"></div>
@@ -5419,7 +5425,7 @@ function ppIsAdmin(){
 }
 function ppIsStaff(){return !!(PPS&&PPS.role==='staff');}
 function ppIsTrainer(){return !!(PPS&&PPS.role==='trainer');}
-function ppIsVisitor(){return !!(PPS&&PPS.role==='visitor');}
+/* [v145k] ppIsVisitor removed — roles are labels now; perm2 is the only gate */
 /* ===== CENTRAL PERMISSION REGISTRY (v2) =====
    Every controllable feature in the app is ONE line here. Adding a new
    feature later = add one line here + wrap it with _permCheck() at its
@@ -5498,16 +5504,7 @@ function _secAccess(u,sec){
   if(!u)return 'no';
   if(u.role==='admin')return 'full';
   if(u.perm2&&u.perm2[sec])return u.perm2[sec];
-  /* Only trust the old "tab visible = full access" fallback if this user
-     was genuinely configured under the OLD checkbox system (a real saved
-     tabAccess array). A brand-new, never-configured non-admin user must
-     default SAFE — restricted, not silently full — until an admin
-     explicitly sets each section via the new UI. */
-  if(Array.isArray(u.tabAccess)){
-    const tabKey={dashboard:'dashboard',clients:'clients',schedule:'schedule',cash:'cash',tns:'tns',about:'credits'}[sec];
-    return u.tabAccess.includes(tabKey)?'full':'no';
-  }
-  return 'restricted';
+  return 'restricted'; /* [v145k] legacy tabAccess fallback removed — every user is perm2-configured */
 }
 function _itemTier(u,sec,item){
   const acc=_secAccess(u,sec);
@@ -5756,70 +5753,15 @@ function applyRole(){
     d.innerHTML=`<button class="tb-ico" onclick="doLogout()" title="${PPS.name} — tap to logout">${PPS.role==='admin'?`<svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 2.6a1.3 1.3 0 0 1 1.3 1.3A1.3 1.3 0 0 1 12 5.2a1.3 1.3 0 0 1-1.3-1.3A1.3 1.3 0 0 1 12 2.6zM3.2 6.2a1.2 1.2 0 0 1 1.2 1.2 1.2 1.2 0 0 1-.4.9L6.6 12l4.3-5.4a1.6 1.6 0 0 0 2.2 0L17.4 12l2.6-3.7a1.2 1.2 0 0 1-.4-.9 1.2 1.2 0 1 1 1.6 1.1L19.8 16H4.2L2.8 8.5a1.2 1.2 0 0 1 .4-2.3zM4.5 17.5h15v1.4c0 .6-.4 1.1-1 1.1h-13c-.6 0-1-.5-1-1.1v-1.4z"/></svg>`:`<svg class="gico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>`}</button>`;
     tb.appendChild(d);
   }
-  /* v145b: legacy role blocks below apply ONLY to users NOT yet migrated to
-     the granular permission system. A perm2 user's nav/buttons are governed
-     solely by _applyTabAccess + _permCheck; running these blanket blocks on
-     top of that silently overrode admin-granted access (Dilip: every nav
-     tap bounced back to Schedule because this trainer block re-hid the
-     tabs and force-clicked Schedule AFTER _applyTabAccess had correctly
-     shown them). */
-  const _legacyRoleUI=!(typeof _perm2User==='function'&&_perm2User());
-  if(_legacyRoleUI&&ppIsStaff()){
-    /* hide restricted nav tabs: Cash & About */
-    document.querySelectorAll('.bnav .nb').forEach(b=>{
-      const oc=b.getAttribute('onclick')||'';
-      if(oc.indexOf("'cash'")>-1||oc.indexOf("'credits'")>-1)b.style.display='none';
-    });
-    /* staff tab: hide Add / Share buttons */
-    document.querySelectorAll('#tns-staff .sh button').forEach(b=>b.style.display='none');
-    /* hide Manage Plans (plan definitions are admin-only) */
-    var _mp=document.getElementById('btn-manage-plans');if(_mp)_mp.style.display='none';
-    /* tasks tab: hide filter tabs, add button & share */
-    document.querySelectorAll('#tns-bills .sh button, #bt-filter-tabs').forEach(b=>b.style.display='none');
-  }
-  if(_legacyRoleUI&&ppIsTrainer()){
-    /* trainer sees only Schedule + TnS (own attendance) */
-    document.querySelectorAll('.bnav .nb').forEach(b=>{
-      const oc=b.getAttribute('onclick')||'';
-      if(!(oc.indexOf("'schedule'")>-1||oc.indexOf("'tns'")>-1))b.style.display='none';
-    });
-    document.querySelectorAll('#tns-staff .sh button').forEach(b=>b.style.display='none');
-    document.querySelectorAll('#tns-bills .sh button, #bt-filter-tabs').forEach(b=>b.style.display='none');
-    const fb=document.getElementById('fab-btn');if(fb)fb.style.display='none';
-    /* land on Schedule, not Dashboard */
-    setTimeout(()=>{
-      const sb=Array.from(document.querySelectorAll('.bnav .nb')).find(b=>(b.getAttribute('onclick')||'').indexOf("'schedule'")>-1);
-      if(sb)sb.click();
-    },50);
-  }
+  /* [v145k] legacy staff/trainer UI blocks removed — perm2's _applyTabAccess
+     is the single authority for nav visibility; per-action gates do the rest. */
 }
-const _STAFF_BLOCKED_TABS=['cash','credits'];
-const _TRAINER_BLOCKED_TABS=['dashboard','clients','cash','credits'];
 const _ALL_TABS=['dashboard','clients','schedule','cash','tns','credits'];
-/* Effective allowed tabs for a user: custom per-person override (u.tabAccess,
-   an array) always wins if present; otherwise falls back to the role default
-   (admin=all, staff/trainer=role's blocked-list applied to the full set). */
-function _effectiveTabs(u){
-  if(!u)return _ALL_TABS.slice();
-  if(Array.isArray(u.tabAccess))return u.tabAccess;
-  if(u.role==='admin')return _ALL_TABS.slice();
-  if(u.role==='staff')return _ALL_TABS.filter(t=>!_STAFF_BLOCKED_TABS.includes(t));
-  if(u.role==='trainer')return _ALL_TABS.filter(t=>!_TRAINER_BLOCKED_TABS.includes(t));
-  if(u.role==='visitor')return ['dashboard','clients','schedule'];
-  return _ALL_TABS.slice();
-}
-/* THE single source of truth for which bottom-nav tabs a user may open.
-   perm2-configured users -> new registry (_secAccess: only 'no' blocks;
-   'restricted' MUST allow tab entry, item-level gates handle the rest).
-   Un-migrated users -> old _effectiveTabs list. Used by BOTH _applyTabAccess
-   (which hides buttons) and the showTab wrapper (which blocks navigation) —
-   they previously disagreed, which is why Cash/TnS/About toasted
-   'Access restricted' even though the section was set to Restricted. */
+/* [v145k] _STAFF_BLOCKED_TABS / _TRAINER_BLOCKED_TABS / _effectiveTabs removed —
+   nav access now comes ONLY from the perm2 registry via _secAccess. */
 const _TABKEY_TO_SEC={dashboard:'dashboard',clients:'clients',schedule:'schedule',cash:'cash',tns:'tns',credits:'about'};
 function _navAllowedTabs(u){
   if(!u)return _ALL_TABS.slice();
-  const usesNewSystem=u.role==='admin'||(u.perm2&&Object.keys(u.perm2).length>0);
-  if(!usesNewSystem)return _effectiveTabs(u);
   return Object.keys(_TABKEY_TO_SEC).filter(t=>_secAccess(u,_TABKEY_TO_SEC[t])!=='no');
 }
 /* Hide/show bottom-nav buttons + jump off a now-hidden tab if needed */
@@ -5953,7 +5895,7 @@ function renderUsersList(){
     <div class="usr-row">
       <div class="av" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1a2e;background:${colorFor(u.name||'U')};">${initials(u.name||'U')}</div>
       <div style="flex:1;">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">${u.name} ${u.role==='admin'?'<span class="badge" style="background:rgba(201,169,110,0.15);color:var(--gold);border:1px solid rgba(201,169,110,0.4);">👑 Admin</span>':u.role==='trainer'?'<span class="badge" style="background:rgba(155,138,175,0.15);color:var(--purple);border:1px solid rgba(155,138,175,0.4);">🏋️ Trainer</span>':'<span class="badge" style="background:rgba(127,166,154,0.15);color:var(--teal);border:1px solid rgba(127,166,154,0.4);">Staff</span>'} ${Array.isArray(u.tabAccess)?'<span class="badge" style="background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.4);">🔧 Custom</span>':''}${u.active===false?'<span class="badge badge-expired">Disabled</span>':''}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">${u.name} ${u.role==='admin'?'<span class="badge" style="background:rgba(201,169,110,0.15);color:var(--gold);border:1px solid rgba(201,169,110,0.4);">👑 Admin</span>':u.role==='trainer'?'<span class="badge" style="background:rgba(155,138,175,0.15);color:var(--purple);border:1px solid rgba(155,138,175,0.4);">🏋️ Trainer</span>':'<span class="badge" style="background:rgba(127,166,154,0.15);color:var(--teal);border:1px solid rgba(127,166,154,0.4);">Staff</span>'}${u.active===false?'<span class="badge badge-expired">Disabled</span>':''}</div>
         <div style="font-size:12px;color:var(--text3);">ID: ${u.uid}${u.staffId?' • 🔗 '+_staffName(u.staffId):''}</div>
       </div>
       <button onclick="openUserEdit('${u.id}')" style="background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:6px 9px;color:var(--text2);cursor:pointer;">✏️</button>
@@ -5974,6 +5916,8 @@ function openUserEdit(id){
     ld('pp_staff',[]).map(s=>`<option value="${s.id}"${u&&u.staffId===s.id?' selected':''}>${(s.fname+' '+(s.lname||'')).trim()} (${s.role||''})</option>`).join('');
   /* Compact section-first access UI */
   _renderSecRows(u);
+  _renderTplSelect();
+  const _tn=document.getElementById('ue-tpl-name');if(_tn)_tn.value='';
   document.getElementById('ue-del').style.display=u?'block':'none';
   openM('m-useredit');
   setTimeout(()=>armDirty('m-useredit','ue-save-btn'),50);
@@ -6037,6 +5981,63 @@ function _ueSecCollapse(sec,forceOpen,forceClose){
   const open=forceClose?false:(forceOpen||box.style.display==='none');
   box.style.display=open?'block':'none';
   if(chev)chev.textContent=open?'▼':'▶';
+}
+/* ===== [v145k] PERMISSION TEMPLATES =====
+   Role = who the person is (a label). Template = a reusable starting power
+   pack (Receptionist, Trainer, Visitor…). Checkboxes = final authority.
+   Applying a template only FILLS the form — the admin still reviews and
+   hits Save User; editing a template later never silently changes anyone. */
+function _permTemplates(){return ld('pp_perm_templates',[]);}
+function _renderTplSelect(){
+  const sel=document.getElementById('ue-tpl');if(!sel)return;
+  sel.innerHTML='<option value="">— choose template —</option>'+_permTemplates().map(x=>`<option value="${x.id}">${_esc(x.name)}</option>`).join('');
+}
+function applyPermTemplate(){
+  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const id=document.getElementById('ue-tpl').value;
+  if(!id){toast('Choose a template first');return;}
+  const t=_permTemplates().find(x=>x.id===id);if(!t)return;
+  document.querySelectorAll('.ue-sec-select').forEach(sel=>{
+    sel.value=(t.perm2&&t.perm2[sel.dataset.sec])||'restricted';
+  });
+  document.querySelectorAll('.ue-item-select').forEach(sel=>{
+    const v=t.perm2items&&t.perm2items[sel.dataset.sec]&&t.perm2items[sel.dataset.sec][sel.dataset.item];
+    if(v!==undefined)sel.value=v;
+  });
+  /* re-run each section's cascade so lock/expand state matches */
+  document.querySelectorAll('.ue-sec-select').forEach(sel=>_ueSecChanged(sel));
+  toast('✓ Template applied — review, adjust, then Save User');
+}
+function savePermTemplate(){
+  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const name=(document.getElementById('ue-tpl-name').value||'').trim();
+  if(!name){toast('Give the template a name first');return;}
+  const perm2={},perm2items={};
+  document.querySelectorAll('.ue-sec-select').forEach(sel=>{perm2[sel.dataset.sec]=sel.value;});
+  document.querySelectorAll('.ue-item-select').forEach(sel=>{
+    const sec=sel.dataset.sec;
+    if(!perm2items[sec])perm2items[sec]={};
+    perm2items[sec][sel.dataset.item]=sel.value;
+  });
+  const all=_permTemplates();
+  const ex=all.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  if(ex){ex.perm2=perm2;ex.perm2items=perm2items;}
+  else all.push({id:Date.now().toString(),name,perm2,perm2items});
+  sv('pp_perm_templates',all);
+  document.getElementById('ue-tpl-name').value='';
+  _renderTplSelect();
+  if(typeof AUD==='function')AUD('🧩 Permission template saved',name);
+  toast('✓ Template "'+name+'" saved');
+}
+function deletePermTemplate(){
+  if(!ppIsAdmin()){toast('🔒 Admin only');return;}
+  const id=document.getElementById('ue-tpl').value;
+  if(!id){toast('Choose a template first');return;}
+  const t=_permTemplates().find(x=>x.id===id);if(!t)return;
+  confirmDelete('🗑','Delete template "'+t.name+'"? Users already configured with it are NOT affected.',()=>{
+    sv('pp_perm_templates',_permTemplates().filter(x=>x.id!==id));
+    _renderTplSelect();toast('Template deleted');
+  });
 }
 async function saveUser(){
   if(!ppIsAdmin()){toast('🔒 Admin only');return;}
@@ -6139,17 +6140,7 @@ try{
   };
   }catch(_e){}
 
-  try{
-  /* FAB: staff cannot add on cash/bills/staff/payments tabs */
-  const _oFab=window.fabAction;
-  window.fabAction=function(){
-    if(!_perm2User()){ /* legacy users only — perm2 users are gated per-action */
-      if(ppIsTrainer()){toast('🔒 Not available');return;}
-      if(ppIsStaff()&&['cash','bills','staff','credits'].includes(_activeTab)){toast('🔒 Not available');return;}
-    }
-    return _oFab.apply(this,arguments);
-  };
-  }catch(_e){}
+  /* [v145k] blanket FAB wrapper removed — each fab action has its own _gate */
 
   try{
   /* dashboard: strip revenue & dues for staff */
@@ -6210,8 +6201,8 @@ try{
   window.renderStaff=function(){
     ppRefresh();
     if(!ppIsStaff()&&!ppIsTrainer())return _oStaff.apply(this,arguments);
-    const _canMark=ppIsStaff()&&(typeof _hasPerm!=='function'||_hasPerm('staff_mark_own'));
-    const _viewAllStaff=typeof _hasPerm==='function'&&_hasPerm('staff_view_all');
+    const _canMark=_permCheck('tns','ownAttendance','edit'); /* [v145k] wired to admin panel */
+    const _viewAllStaff=_permCheck('tns','allAttendance','view'); /* [v145k] finally wired to the admin panel */
     const staff=ld('pp_staff',[]);
     const now=new Date();
     if(!_staffM)_staffM={y:now.getFullYear(),m:now.getMonth()};
@@ -6301,7 +6292,7 @@ try{
     const container=document.getElementById('bills-list');
     if(!container)return;
     const sid=ppMyStaffId();
-    const _viewAll=typeof _hasPerm==='function'&&_hasPerm('tasks_view_all');
+    const _viewAll=_permCheck('tns','allTasks','view'); /* [v145k] finally wired to the admin panel */
     const tasks=_viewAll?ld('pp_todos',[]):ld('pp_todos',[]).filter(t=>sid&&t.assignedTo===sid);
     container.innerHTML=`<div class="div-section">${_viewAll?'All Tasks':'My Assigned Tasks'}</div>`+(tasks.length?tasks.map(t=>`
       <div class="card" style="margin-bottom:8px;${t.done?'opacity:0.55;':''}">
@@ -6317,37 +6308,9 @@ try{
   };
   }catch(_e){}
 
-  try{
-  /* block financial/edit modals for staff (safety net) */
-  ['openCashEntry','exportPPData','importPPData','resetAllData'].forEach(fn=>{
-    const o=window[fn];
-    if(typeof o!=='function')return;
-    window[fn]=function(){
-      if((ppIsStaff()||ppIsTrainer())&&!_perm2User()){toast('🔒 Admin only');return;}
-      return o.apply(this,arguments);
-    };
-  });
-  ['openEditPayment','openAddStaff','openStaffAdv','openManagePlans','openAddReferralBonus'].forEach(fn=>{
-    const o=window[fn];
-    if(typeof o!=='function')return;
-    window[fn]=function(){
-      if(!_perm2User()){ /* legacy users only — perm2 users rely on each function's own _gate */
-        if(ppIsTrainer()){toast('🔒 Admin only');return;}
-        if(ppIsStaff()&&!(typeof _hasPerm==='function'&&_hasPerm('staff_manage'))){toast('🔒 Admin only');return;}
-      }
-      return o.apply(this,arguments);
-    };
-  });
-  ['openAddBillTodo'].forEach(fn=>{
-    const o=window[fn];
-    if(typeof o!=='function')return;
-    window[fn]=function(){
-      if(ppIsTrainer()){toast('🔒 Admin only');return;}
-      if(ppIsStaff()&&!(typeof _hasPerm==='function'&&_hasPerm('tasks_manage'))){toast('🔒 Admin only');return;}
-      return o.apply(this,arguments);
-    };
-  });
-  }catch(_e){}
+  /* [v145k] staff modal blankets removed — openCashEntry/openEditPayment/
+     openAddStaff/openStaffAdv/openManagePlans/openAddReferralBonus/openAddBillTodo
+     all carry their own _gate; import/reset remain hard admin-only inside. */
 
   try{
   /* staff: editing existing clients & reassigning existing plans = admin only */
@@ -6366,17 +6329,8 @@ try{
   })();
   }catch(_e){}
 
-  try{
-  /* trainer is strictly view-only: block all adding/editing actions */
-  ['openAddClient','openTrialReg','openAssignMembership','openBookingModal','saveBooking','cycleSlot','confirmCycleSlot','cycStaffAtt','saveClient','saveMembership','savePayment','saveCashEntry','saveBillTask','delTodo','toggleBillStatus','saveStaff','delStaff','saveStaffAdv','saveTrialReg','saveReferralBonus','toggleReferralBonus','archiveClient'].forEach(fn=>{
-    const o=window[fn];
-    if(typeof o!=='function')return;
-    window[fn]=function(){
-      if(ppIsTrainer()&&!_perm2User()){toast('🔒 View-only access');return;}
-      return o.apply(this,arguments);
-    };
-  });
-  }catch(_e){}
+  /* [v145k] trainer blanket view-only wrapper removed — every listed function
+     is individually gated by _permCheck/_gate (verified per-function). */
 
   try{
   /* About page: append admin tools (Users & Audit) */
@@ -8153,6 +8107,17 @@ function printStatement(){
     </div>
     <button class="sb2" id="an-save-btn" onclick="saveAnnounce()" disabled style="opacity:0.45;">Save Announcement</button>
     <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:8px;" onclick="clearAnnounce()">Clear / Hide</button>
+    <div class="div-section" style="margin:14px 0 8px;">👤 Personal Message (one member only)</div>
+    <div class="fg"><label class="fl">Members (tick one or many)</label>
+      <input class="fi" id="anp-search" placeholder="🔍 Search member…" oninput="_anpFilter()" style="margin-bottom:6px;"/>
+      <div id="anp-cids" style="max-height:150px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;"></div>
+    </div>
+    <div class="fg"><label class="fl">Message</label>
+      <textarea class="fi" id="anp-msg" rows="3" style="resize:none;" placeholder="e.g. Your plan ends Friday — renew at the desk 🙏"></textarea>
+    </div>
+    <div class="fg"><label class="fl">Show Until</label><input class="fi" id="anp-until" type="date"/></div>
+    <button class="sb2" onclick="savePersonalMsg()" style="font-size:13px;">Send Personal Message</button>
+    <div id="anp-list" style="margin-top:10px;"></div>
   </div>
 </div>
 
@@ -8166,6 +8131,14 @@ function openAnnounce(){
     document.getElementById('an-msg').value=a.msg||'';
     document.getElementById('an-type').value=a.type||'info';
     document.getElementById('an-until').value=a.until||'';
+    const _cl=ld('pp_clients',[]).filter(c=>!c.archived).sort((x,y)=>(x.fname||'').localeCompare(y.fname||''));
+    document.getElementById('anp-search').value='';
+    document.getElementById('anp-cids').innerHTML=_cl.map(c=>{
+      const nm=_esc((c.fname+' '+(c.lname||'')).trim());
+      return `<label class="anp-row" data-nm="${nm.toLowerCase()}" style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:var(--text);cursor:pointer;">
+        <input type="checkbox" class="anp-chk" value="${c.id}" style="width:17px;height:17px;accent-color:var(--gold);"/>${nm}</label>`;
+    }).join('');
+    _renderPersonalMsgs();
     setTimeout(()=>armDirty('m-announce','an-save-btn'),50);
   }catch(_e){console.warn('Announcement failed to render:',_e);}
 }
@@ -8175,6 +8148,47 @@ function saveAnnounce(){
   sv('pp_announce',a);
   if(typeof AUD==='function')AUD('📢 Booking announcement updated',a.msg?a.msg.slice(0,40):'(cleared)');
   closeM('m-announce');toast('✓ Announcement saved');
+}
+function _anpFilter(){
+  const q=(document.getElementById('anp-search').value||'').toLowerCase();
+  document.querySelectorAll('#anp-cids .anp-row').forEach(r=>{r.style.display=(!q||r.dataset.nm.indexOf(q)>-1)?'flex':'none';});
+}
+function savePersonalMsg(){
+  if(!_gate('about','announce','edit'))return;
+  const cids=Array.from(document.querySelectorAll('#anp-cids .anp-chk:checked')).map(c=>c.value);
+  const msg=document.getElementById('anp-msg').value.trim();
+  const until=document.getElementById('anp-until').value;
+  if(!cids.length){toast('Tick at least one member');return;}
+  if(!msg){toast('Write the message');return;}
+  const a=getAnnounce();
+  if(!a.personal)a.personal={};
+  cids.forEach(cid=>{a.personal[cid]={msg,until,ts:Date.now()};});
+  sv('pp_announce',a);
+  if(typeof AUD==='function')AUD('👤 Personal message set',cids.length+' member(s): '+msg.slice(0,30));
+  document.getElementById('anp-msg').value='';document.getElementById('anp-until').value='';
+  document.querySelectorAll('#anp-cids .anp-chk:checked').forEach(c=>{c.checked=false;});
+  _renderPersonalMsgs();toast('✓ Sent to '+cids.length+' member'+(cids.length>1?'s':''));
+}
+function delPersonalMsg(cid){
+  if(!_gate('about','announce','edit'))return;
+  const a=getAnnounce();
+  if(a.personal&&a.personal[cid]){delete a.personal[cid];sv('pp_announce',a);
+    if(typeof AUD==='function')AUD('👤 Personal message removed',_clientName?_clientName(cid):cid);}
+  _renderPersonalMsgs();toast('Removed');
+}
+function _renderPersonalMsgs(){
+  const box=document.getElementById('anp-list');if(!box)return;
+  const a=getAnnounce();const p=a.personal||{};
+  const ids=Object.keys(p);
+  box.innerHTML=ids.length?ids.map(cid=>{
+    const m=p[cid];
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);margin-bottom:6px;">
+      <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--gold);">${_esc(_clientName?_clientName(cid):cid)}</div>
+      <div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(m.msg)}</div>
+      ${m.until?`<div style="font-size:10px;color:var(--text3);">until ${fmt(m.until)}</div>`:''}</div>
+      <button onclick="delPersonalMsg('${cid}')" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;flex-shrink:0;">🗑</button>
+    </div>`;}).join('')
+  :'<div style="font-size:11px;color:var(--text3);text-align:center;">No personal messages active</div>';
 }
 function clearAnnounce(){
   if(!_gate('about','announce','edit'))return;
