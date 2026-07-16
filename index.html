@@ -159,12 +159,14 @@ input,select,textarea{color:var(--gold);}
 #m-unified .fg{margin-bottom:9px;}
 #m-unified .fr{gap:8px;}
 #m-unified .fr .fg{flex:1;min-width:0;}
-.fab{position:fixed;bottom:150px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--surface2);color:var(--gold);border:1.5px solid var(--gold);font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.3);opacity:0.9;z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;}
+.fab{position:fixed;bottom:150px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--surface2);color:var(--gold);border:1.5px solid var(--gold);font-size:20px;cursor:pointer;box-shadow:none;opacity:0.45;z-index:90;display:flex;align-items:center;justify-content:center;transition:transform 0.15s,opacity 0.15s;}
+.fab:active,.fab:hover{opacity:1;}
 .float-nav{position:fixed;left:16px;bottom:150px;display:none;flex-direction:column;gap:8px;z-index:85;}
 .float-nav.float-nav-right{left:auto;right:16px;}
 .float-nav.show{display:flex;}
 .float-nav-row{display:flex;gap:8px;}
-.float-nav-btn{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--gold);color:var(--gold);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.3);opacity:0.9;padding:0;}
+.float-nav-btn{width:40px;height:40px;border-radius:50%;background:rgba(34,31,27,0.35);border:1.5px solid rgba(201,169,110,0.45);color:var(--gold);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:none;opacity:0.4;padding:0;transition:opacity 0.15s;}
+.float-nav-btn:active,.float-nav-btn:hover{opacity:1;background:var(--surface2);border-color:var(--gold);}
 .float-nav-btn:active{transform:scale(0.92);}
 .fab:active{transform:scale(0.92);}
 
@@ -655,7 +657,8 @@ try{
       <div style="margin-top:3px;font-size:13px;color:var(--text2);letter-spacing:1px;font-weight:600;white-space:nowrap;"><span id="top-date"></span> · <span id="top-day"></span></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145k</span>
+    <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145p</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1116,6 +1119,21 @@ try{
   <div id="credits-content"></div>
 </div>
 
+<!-- [v145l] Personal in-app message (booking page) — sent from member profile -->
+<div class="mo" id="m-pmsg" style="z-index:420;align-items:center;">
+  <div class="md" style="border-radius:var(--radius);">
+    <button class="mc2" onclick="closeM('m-pmsg')">✕</button>
+    <h2>💌 Personal Message</h2>
+    <input type="hidden" id="pm-cid"/>
+    <div id="pm-name" style="font-size:14px;font-weight:700;color:var(--gold);margin-bottom:10px;"></div>
+    <div class="fg"><label class="fl">Message (appears on their booking page)</label>
+      <textarea class="fi" id="pm-msg" rows="3" style="resize:none;" placeholder="e.g. Your plan ends Friday — renew at the desk 🙏"></textarea>
+    </div>
+    <div class="fg"><label class="fl">Show Until</label><input class="fi" id="pm-until" type="date"/></div>
+    <button class="sb2" onclick="savePersonalMsgFor()">Send to Booking Page</button>
+    <div id="pm-current" style="margin-top:12px;"></div>
+  </div>
+</div>
 <div id="pp-toast"></div>
 
 <!-- FAB -->
@@ -1192,6 +1210,9 @@ try{
   </div>
 </div>
 <script>
+/* [v145m] duplicate back/escape system removed — the app's ORIGINAL
+   history-based navigation (further below, _navPush/_navConsume) is the
+   single authority again. Two systems fighting caused random tab jumps. */
 function _cSetCategory(cat,lock){
   document.getElementById('c-category').value=cat;
   const trialBtn=document.getElementById('c-cat-trial');
@@ -1463,6 +1484,7 @@ function getSessionsLeft(mem,cid){
   return Math.max(0,sessTotal-sessUsed);
 }
 function printClientList(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','printQr','edit')){toast('🔒 Printing not permitted');return;}
   const clients=ld('pp_clients',[]);
   const mems=ld('pp_memberships',{});
   const q=(document.getElementById('client-search')||{}).value||'';
@@ -1510,7 +1532,7 @@ function printClientList(){
   document.getElementById('confirm-icon').textContent='📋';
   document.getElementById('confirm-title').textContent='Client List Preview';
   document.getElementById('confirm-msg').innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -20px;padding:0 20px;">'+html+'</div>';
-  document.getElementById('confirm-btns').innerHTML='<button onclick="closeM(\'m-confirm\')" style="padding:12px;border-radius:30px;border:none;background:var(--gold);color:#1a1a2e;font-family:\'Jost\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Close</button>';
+  document.getElementById('confirm-btns').innerHTML='<button onclick="closeM(\'m-confirm\')" style="grid-column:1/-1;max-width:260px;margin:0 auto;width:100%;padding:12px;border-radius:30px;border:none;background:var(--gold);color:#1a1a2e;font-family:\'Jost\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Close</button>';
   const _md=document.querySelector('#m-confirm .md');
   if(_md)_md.style.maxWidth='94vw';
   openM('m-confirm');
@@ -1651,8 +1673,10 @@ function openM(id){
   if(id!=='m-confirm'){
     document.querySelectorAll('.mo.open').forEach(m=>{
       if(m.id!==id&&m.id!=='m-confirm'){
-        m.classList.remove('open');
-        m.style.display='none';
+        /* [v145o] must go through closeM — raw class removal left the
+           closed modal's history entry stranded (phantom), and Back/Escape
+           later popped phantoms straight into a tab jump. */
+        try{closeM(m.id);}catch(_e){m.classList.remove('open');m.style.display='none';}
       }
     });
   }
@@ -1686,6 +1710,7 @@ const _MODAL_PERM={
   'm-plans'      :['about','plans'],
   'm-studio'     :['about','studio'],
   'm-announce'   :['about','announce'],
+  'm-pmsg'       :['clients','whatsapp'],
   'm-comprule'   :['about','referral'],
   'm-reports'    :['about','reports'],
   'm-audit'      :['about','auditLog'],
@@ -1940,7 +1965,7 @@ function renderDash(){
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">${overdueNames.slice(0,2).join(', ')}${overdueLeave>2?' +'+(overdueLeave-2)+' more':''}</div>
       </div>`:''}
       <div class="dash-card" style="cursor:pointer;background:rgba(155,89,182,0.12);border-color:rgba(155,89,182,0.4);" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('trial',document.querySelector('#tab-clients .ftab:nth-child(4)'))">
-        <div class="dash-num" style="color:#9b59b6;">${trialsAll-convAll}</div>
+        <div class="dash-num" style="color:#9b59b6;">${clients.filter(c=>c.isTrial).length}</div>
         <div class="dash-label">Trials Not Converted</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
       </div>
@@ -1951,7 +1976,7 @@ function renderDash(){
       </div>`:''}
       <div class="dash-card" id="dash-quote-card" style="padding:14px 16px;">
         <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">💭 Today's Thought</div>
-        <div id="dash-quote-text" style="font-size:13px;color:var(--text);line-height:1.5;font-style:italic;">Loading…</div>
+        <div id="dash-quote-text" style="font-family:'Playfair Display',serif;font-size:14.5px;color:var(--gold2);line-height:1.6;font-style:italic;letter-spacing:0.3px;">Loading…</div>
         <div id="dash-quote-author" style="font-size:11px;color:var(--gold);margin-top:6px;text-align:right;"></div>
       </div>
       <div class="dash-card gold dash-wide" style="padding:16px;cursor:pointer;" onclick="_cashFilter='revenue';showTab('cash',document.querySelector('.nb:nth-child(4)'))">
@@ -2308,6 +2333,75 @@ function openTrialReg(){
   _cSetCategory('trial',true);
 }
 /* [v145a] removed dead code: openEditClient() — zero call sites */
+/* ===== [v145n] saveClient RESTORED =====
+   The base saveClient function was deleted in a much earlier cleanup as
+   "dead code" (its only caller is an HTML onclick attribute, which that
+   scan missed). Every wrapper around it kept working silently until
+   someone pressed Save Client — then: TypeError, frozen form. This is a
+   faithful reconstruction using the form's own fields and the app's
+   existing conventions (memNo PPxxx / T-xx, +91 phones, _validateEmail,
+   trial flags matching the conversion logic in assignMembership). */
+function saveClient(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','addClient','edit')){toast('🔒 View-only access');return;}
+  const fname=document.getElementById('c-fname').value.trim();
+  if(!fname){toast('First name is required');return;}
+  const email=document.getElementById('c-email').value.trim();
+  const cid0=document.getElementById('c-id').value;
+  if(email&&typeof _validateEmail==='function'&&!_validateEmail(email,cid0))return;
+  const clients=ld('pp_clients',[]);
+  const cat=(document.getElementById('c-category')||{}).value||'regular';
+  const isTrial=cat==='trial';
+  /* [v145p] email is the booking-app login key — mandatory for trials so
+     every trial lady can experience the app from day one */
+  if(isTrial&&!email){toast('📧 Email is required for trials — it is their booking-app login');return;}
+  const phoneRaw=document.getElementById('c-phone').value.replace(/\D/g,'');
+  /* duplicate guard: same 10-digit mobile on a different, non-archived client */
+  if(phoneRaw){
+    const dup=clients.find(c=>!c.archived&&c.id!==cid0&&(c.phone||'').replace(/\D/g,'').slice(-10)===phoneRaw);
+    if(dup){toast('⚠️ '+dup.fname+' '+(dup.lname||'')+' already has this mobile number');return;}
+  }
+  const rec={
+    fname,
+    lname:document.getElementById('c-lname').value.trim(),
+    phone:phoneRaw?'+91'+phoneRaw:'',
+    email,
+    insta:document.getElementById('c-insta').value.trim(),
+    addr:document.getElementById('c-addr').value.trim(),
+    bday:document.getElementById('c-bday').value||'',
+    anni:document.getElementById('c-anni').value||'',
+    join:document.getElementById('c-join').value||td(),
+    refId:document.getElementById('c-ref').value||'',
+    notes:document.getElementById('c-notes').value.trim(),
+    photo:document.getElementById('c-photo').value||''
+  };
+  if(cid0){
+    /* edit path (kept for safety, though editing normally happens in the unified form) */
+    const idx=clients.findIndex(x=>x.id===cid0);
+    if(idx<0){toast('Client not found');return;}
+    clients[idx]={...clients[idx],...rec};
+    sv('pp_clients',clients);
+    closeM('m-client');
+    toast('✓ Client updated');
+  }else{
+    const id='c_'+Date.now();
+    let memNo;
+    if(isTrial){
+      const lastT=clients.reduce((max,x)=>{const n=parseInt((((x.memNo||'').match(/^T-(\d+)/)||[])[1])||0);return n>max?n:max;},0);
+      memNo='T-'+String(lastT+1).padStart(2,'0');
+      rec.isTrial=true;
+      rec.trialDate=document.getElementById('c-trialdate').value||td();
+    }else{
+      const lastPP=clients.reduce((max,x)=>{const n=parseInt((((x.memNo||'').match(/^PP(\d+)/)||[])[1])||0);return n>max?n:max;},0);
+      memNo='PP'+String(lastPP+1).padStart(3,'0');
+    }
+    clients.push({id,memNo,createdAt:td(),...rec});
+    sv('pp_clients',clients);
+    closeM('m-client');
+    toast(isTrial?('🎯 Trial registered — '+memNo):('✓ Client saved — '+memNo));
+  }
+  try{renderClients();}catch(_e){}
+  try{renderDash();}catch(_e){}
+}
 
 // ===== MEMBERSHIP =====
 function openAssignMembership(cid){
@@ -3242,6 +3336,7 @@ function showConfirm(icon, title, msg, buttons){
   document.getElementById('confirm-icon').textContent=icon;
   document.getElementById('confirm-title').textContent=title;
   document.getElementById('confirm-msg').innerHTML=msg;
+  const _one=buttons.length===1?'grid-column:1/-1;max-width:260px;margin:0 auto;width:100%;':'';
   document.getElementById('confirm-btns').innerHTML=buttons.map((b,i)=>`
     <button onclick="handleConfirm(${i})" style="padding:12px;border-radius:30px;border:${b.outline?'1.5px solid '+b.color:'none'};background:${b.outline?'none':b.color};color:${b.outline?b.color:'#1a1a2e'};font-family:'Jost',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">${b.label}</button>
   `).join('');
@@ -3721,8 +3816,8 @@ function renderCredits(){
       <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 4px;">Studio Admin</div>
       <div style="font-size:13px;color:var(--text2);letter-spacing:1px;margin-bottom:8px;">${typeof _appVer==='function'?_appVer():''}</div>
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Built with</div>
-      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;opacity:0.9;"><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Playfair Display',serif;font-weight:800;font-size:19px;color:#e8e0d4;">A\</span></div><div style="font-size:10px;font-weight:600;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M5 19.5 7.6 3.6c.06-.37.55-.46.73-.13l2.1 3.9L5 19.5zm14 .3-2-13.1c-.05-.33-.46-.45-.68-.2L5.3 19.8l6.1 3.4c.38.21.85.21 1.23 0L19 19.8zM13.2 9.2 11.7 6.4c-.14-.27-.52-.27-.66 0L4.5 19.5l8.7-10.3z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">Google</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M18.5 17H6a4 4 0 1 1 .8-7.92A6 6 0 0 1 18.2 10.4 3.5 3.5 0 0 1 18.5 17z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">GitHub</div><div style="font-size:9px;color:var(--text3);">Source</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Jost',sans-serif;font-weight:800;font-size:17px;color:#e8e0d4;letter-spacing:0.5px;">JS</span></div><div style="font-size:10px;font-weight:600;color:var(--text);">JavaScript</div><div style="font-size:9px;color:var(--text3);">HTML · CSS</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 0C12.7 6.5 17.5 11.3 24 12C17.5 12.7 12.7 17.5 12 24C11.3 17.5 6.5 12.7 0 12C6.5 11.3 11.3 6.5 12 0Z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">Gemini</div><div style="font-size:9px;color:var(--text3);">Google</div></div></div></div>
-      <div style="font-size:11px;color:var(--text3);">Designed together with its user</div>
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;opacity:0.9;"><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Playfair Display',serif;font-weight:800;font-size:19px;color:#e8e0d4;">A\</span></div><div style="font-size:10px;font-weight:600;color:var(--text);">Claude</div><div style="font-size:9px;color:var(--text3);">Anthropic</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M5 19.5 7.6 3.6c.06-.37.55-.46.73-.13l2.1 3.9L5 19.5zm14 .3-2-13.1c-.05-.33-.46-.45-.68-.2L5.3 19.8l6.1 3.4c.38.21.85.21 1.23 0L19 19.8zM13.2 9.2 11.7 6.4c-.14-.27-.52-.27-.66 0L4.5 19.5l8.7-10.3z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">Firebase</div><div style="font-size:9px;color:var(--text3);">Google</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M18.5 17H6a4 4 0 1 1 .8-7.92A6 6 0 0 1 18.2 10.4 3.5 3.5 0 0 1 18.5 17z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">Cloudflare</div><div style="font-size:9px;color:var(--text3);">Pages</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">GitHub</div><div style="font-size:9px;color:var(--text3);">Source</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Jost',sans-serif;font-weight:800;font-size:17px;color:#e8e0d4;letter-spacing:0.5px;">JS</span></div><div style="font-size:10px;font-weight:600;color:var(--text);">JavaScript</div><div style="font-size:9px;color:var(--text3);">HTML · CSS</div></div><div style="text-align:center;"><div style="width:40px;height:40px;margin:0 auto 4px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 0C12.7 6.5 17.5 11.3 24 12C17.5 12.7 12.7 17.5 12 24C11.3 17.5 6.5 12.7 0 12C6.5 11.3 11.3 6.5 12 0Z"/></svg></div><div style="font-size:10px;font-weight:600;color:var(--text);">Gemini</div><div style="font-size:9px;color:var(--text3);">Google</div></div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;">Designed together with its user</div>
     </div>
     <div id="about-signout-slot" style="margin:0 16px 10px;"></div>
     <div id="about-reset-card" style="margin:0 16px 30px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
@@ -5194,7 +5289,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145k</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145p</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5726,14 +5821,25 @@ function doLogout(){
   if(tb)tb.remove();
   /* Reset any nav tab visibility that applyRole may have changed */
   document.querySelectorAll('.bnav .nb').forEach(b=>b.style.display='');
-  /* Close any open modals */
-  document.querySelectorAll('.mo.open').forEach(m=>{m.classList.remove('open');m.style.display='none';});
+  /* Close any open modals — via closeM so history entries are consumed */
+  document.querySelectorAll('.mo.open').forEach(m=>{try{closeM(m.id);}catch(_e){m.classList.remove('open');m.style.display='none';}});
 }
 document.getElementById('lg-pin').addEventListener('keyup',e=>{if(e.key==='Enter')doLogin();});
 
 /* ================= ROLE APPLICATION ================= */
 function applyRole(){
   try{_applyTabAccess();}catch(_e){}
+  /* [v145l] role letter chip in topbar: A=Admin R=Reception T=Trainer V=Visitor */
+  try{
+    const chip=document.getElementById('tb-rolechip');
+    if(chip){
+      if(PPS&&PPS.id){
+        chip.textContent=({admin:'A',staff:'R',trainer:'T',visitor:'V'})[PPS.role]||'?';
+        chip.title=PPS.name+' ('+PPS.role+')';
+        chip.style.display='inline-block';
+      }else chip.style.display='none';
+    }
+  }catch(_e){}
   /* HARD SAFETY NET: this full-screen login overlay has NO inline
      display:none by default — it's visible until JS hides it. If
      ppAuthGate() is ever re-triggered after a successful login (a real,
@@ -5918,6 +6024,8 @@ function openUserEdit(id){
   _renderSecRows(u);
   _renderTplSelect();
   const _tn=document.getElementById('ue-tpl-name');if(_tn)_tn.value='';
+  /* [v145m] every section starts collapsed; opens only on tap */
+  setTimeout(()=>{document.querySelectorAll('.ue-sec-select').forEach(sel=>{try{_ueSecCollapse(sel.dataset.sec,false,true);}catch(_e){}});},60);
   document.getElementById('ue-del').style.display=u?'block':'none';
   openM('m-useredit');
   setTimeout(()=>armDirty('m-useredit','ue-save-btn'),50);
@@ -6353,7 +6461,6 @@ try{
     const _isAdm=(typeof ppIsAdmin==='function')&&ppIsAdmin();
     const _btns=[];
     if(_P('about','reports','view'))  _btns.push('<button class="sb2" onclick="openReports()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">📊 Reports</button>');
-    if(_P('cash','statement','view')) _btns.push('<button class="sb2" onclick="openStatement()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">📑 Statement</button>');
     if(_P('about','plans','view'))    _btns.push('<button class="sb2" onclick="openManagePlans()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">⚙️ Plans</button>');
     if(_P('about','studio','view'))   _btns.push('<button class="sb2" onclick="openStudioEdit()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">🏛 Studio Details</button>');
     if(_P('about','announce','view')) _btns.push('<button class="sb2" onclick="openAnnounce()" style="margin:0;font-size:12px;padding:10px 6px;border:1.5px solid #5a4632;">📢 Announcements</button>');
@@ -6756,8 +6863,8 @@ function renderReports(){
         <div><div style="font-size:17px;font-weight:800;color:var(--red);">₹${expTotal.toLocaleString('en-IN')}</div><div style="font-size:11px;color:var(--text2);">Expenses</div></div>
         <div><div style="font-size:17px;font-weight:800;color:${profit>=0?'var(--gold)':'var(--red)'};">${profit<0?'−':''}₹${Math.abs(profit).toLocaleString('en-IN')}</div><div style="font-size:11px;color:var(--text2);">${profit>=0?'Net Profit':'Net Loss'}</div></div>
       </div>
-      ${revCats.length?'<div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px;">REVENUE BY CATEGORY</div>'+revCats.map(([k,v])=>_bar(k,v,maxRev,'var(--green)')).join(''):''}
-      ${expCats.length?'<div style="font-size:12px;font-weight:700;color:var(--red);margin:10px 0 6px;">EXPENSES BY CATEGORY</div>'+expCats.map(([k,v])=>_bar(k,v,maxExp,'var(--red)')).join(''):''}
+      ${revCats.length?'<div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px;">REVENUE BY CATEGORY <span style="color:var(--text3);font-weight:400;">('+rev.length+' entr'+(rev.length===1?'y':'ies')+')</span></div>'+revCats.map(([k,v])=>_bar(k,v,maxRev,'var(--green)')).join(''):''}
+      ${expCats.length?'<div style="font-size:12px;font-weight:700;color:var(--red);margin:10px 0 6px;">EXPENSES BY CATEGORY <span style="color:var(--text3);font-weight:400;">('+exp.length+' entr'+(exp.length===1?'y':'ies')+')</span></div>'+expCats.map(([k,v])=>_bar(k,v,maxExp,'var(--red)')).join(''):''}
       ${!revCats.length&&!expCats.length?'<div style="text-align:center;color:var(--text3);font-size:13px;padding:10px;">No entries this month</div>':''}
       <div style="font-size:11px;color:var(--text3);margin-top:8px;">Excluded from P&amp;L: contra transfers, security deposits, capital &amp; loans — these are not operating income/expense.</div>
     </div>`;
@@ -6823,8 +6930,8 @@ function renderReports(){
         <div><div style="font-size:17px;font-weight:800;color:var(--gold);">${_compClassTotal}</div><div style="font-size:11px;color:var(--text2);">Complimentary Classes</div></div>
         <div><div style="font-size:17px;font-weight:800;color:var(--rose);">₹${_compCashTotal.toLocaleString('en-IN')}</div><div style="font-size:11px;color:var(--text2);">Complimentary Cash</div></div>
       </div>
-      ${_compClasses.length?'<div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px;">CLASSES BY MEMBER</div>'+_compClasses.map(x=>'<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0;"><span>'+_esc(x.name)+'</span><span>'+x.n+'</span></div>').join(''):''}
-      ${_compCash.length?'<div style="font-size:12px;font-weight:700;color:var(--rose);margin:10px 0 4px;">CASH BY MEMBER</div>'+_compCash.map(x=>'<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0;"><span>'+_esc(x.name)+' <span style="color:var(--text3);">('+x.src+')</span></span><span>₹'+x.amt.toLocaleString('en-IN')+'</span></div>').join(''):''}
+      ${_compClasses.length?'<div onclick="toggleRepSec(\'compcls\')" style="cursor:pointer;font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px;display:flex;justify-content:space-between;"><span>CLASSES BY MEMBER ('+_compClasses.length+')</span><span id="rsa-compcls">▶</span></div><div id="rsb-compcls" style="display:none;">'+_compClasses.map(x=>'<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0;"><span>'+_esc(x.name)+'</span><span>'+x.n+'</span></div>').join('')+'</div>':''}
+      ${_compCash.length?'<div onclick="toggleRepSec(\'compcash\')" style="cursor:pointer;font-size:12px;font-weight:700;color:var(--rose);margin:10px 0 4px;display:flex;justify-content:space-between;"><span>CASH BY MEMBER ('+_compCash.length+')</span><span id="rsa-compcash">▶</span></div><div id="rsb-compcash" style="display:none;">'+_compCash.map(x=>'<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0;"><span>'+_esc(x.name)+' <span style="color:var(--text3);">('+x.src+')</span></span><span>₹'+x.amt.toLocaleString('en-IN')+'</span></div>').join('')+'</div>':''}
       ${!_compClasses.length&&!_compCash.length?'<div style="text-align:center;color:var(--text3);font-size:13px;padding:10px;">No complimentary classes or cash on record</div>':''}
     </div>`;
 
@@ -7436,7 +7543,7 @@ function _receiptHtml(pay,forPrint){
   <div style="text-align:center;font-size:11px;color:#999;margin-top:10px;">Thank you for choosing ${s.name} 🙏</div>`;
 }
 function showReceipt(payId){
-  if(!(_permCheck('cash','receiptPrint','edit')||_permCheck('clients','payment','view'))){toast('🔒 Access restricted');return;}
+  if(!_permCheck('clients','payment','edit')){toast('🔒 Access restricted');return;}
   const pay=ld('pp_payments',[]).find(p=>p.id===payId);
   if(!pay){toast('Payment not found');return;}
   _curReceiptId=payId;_curReceiptSrc='pay';
@@ -7465,7 +7572,7 @@ function _cashToPay(ce){
 function showReceiptCash(ceId){
   /* v145b: reception (clients.payment access) may print receipts even when
      the whole Cash section is 'No' — a receipt is a client-facing action. */
-  if(!(_permCheck('cash','receiptPrint','edit')||_permCheck('clients','payment','view'))){toast('🔒 Access restricted');return;}
+  if(!_permCheck('clients','payment','edit')){toast('🔒 Access restricted');return;}
   const ce=ld('pp_cash',[]).find(x=>x.id===ceId);
   if(!ce){toast('Entry not found');return;}
   _curReceiptId=ceId;_curReceiptSrc='cash';
@@ -8097,27 +8204,17 @@ function printStatement(){
     </div>
     <div class="fr">
       <div class="fg"><label class="fl">Type</label>
-        <select class="fi" id="an-type">
+        <select class="fi" id="an-type" style="height:46px;">
           <option value="info">ℹ️ Info (blue)</option>
           <option value="warn">⚠️ Important (amber)</option>
           <option value="offer">🎉 Offer (gold)</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">Show Until</label><input class="fi" id="an-until" type="date"/></div>
+      <div class="fg"><label class="fl">Show Until</label><input class="fi" id="an-until" type="date" style="height:46px;"/></div>
     </div>
     <button class="sb2" id="an-save-btn" onclick="saveAnnounce()" disabled style="opacity:0.45;">Save Announcement</button>
     <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:8px;" onclick="clearAnnounce()">Clear / Hide</button>
-    <div class="div-section" style="margin:14px 0 8px;">👤 Personal Message (one member only)</div>
-    <div class="fg"><label class="fl">Members (tick one or many)</label>
-      <input class="fi" id="anp-search" placeholder="🔍 Search member…" oninput="_anpFilter()" style="margin-bottom:6px;"/>
-      <div id="anp-cids" style="max-height:150px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;"></div>
-    </div>
-    <div class="fg"><label class="fl">Message</label>
-      <textarea class="fi" id="anp-msg" rows="3" style="resize:none;" placeholder="e.g. Your plan ends Friday — renew at the desk 🙏"></textarea>
-    </div>
-    <div class="fg"><label class="fl">Show Until</label><input class="fi" id="anp-until" type="date"/></div>
-    <button class="sb2" onclick="savePersonalMsg()" style="font-size:13px;">Send Personal Message</button>
-    <div id="anp-list" style="margin-top:10px;"></div>
+
   </div>
 </div>
 
@@ -8131,14 +8228,6 @@ function openAnnounce(){
     document.getElementById('an-msg').value=a.msg||'';
     document.getElementById('an-type').value=a.type||'info';
     document.getElementById('an-until').value=a.until||'';
-    const _cl=ld('pp_clients',[]).filter(c=>!c.archived).sort((x,y)=>(x.fname||'').localeCompare(y.fname||''));
-    document.getElementById('anp-search').value='';
-    document.getElementById('anp-cids').innerHTML=_cl.map(c=>{
-      const nm=_esc((c.fname+' '+(c.lname||'')).trim());
-      return `<label class="anp-row" data-nm="${nm.toLowerCase()}" style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:var(--text);cursor:pointer;">
-        <input type="checkbox" class="anp-chk" value="${c.id}" style="width:17px;height:17px;accent-color:var(--gold);"/>${nm}</label>`;
-    }).join('');
-    _renderPersonalMsgs();
     setTimeout(()=>armDirty('m-announce','an-save-btn'),50);
   }catch(_e){console.warn('Announcement failed to render:',_e);}
 }
@@ -8148,26 +8237,6 @@ function saveAnnounce(){
   sv('pp_announce',a);
   if(typeof AUD==='function')AUD('📢 Booking announcement updated',a.msg?a.msg.slice(0,40):'(cleared)');
   closeM('m-announce');toast('✓ Announcement saved');
-}
-function _anpFilter(){
-  const q=(document.getElementById('anp-search').value||'').toLowerCase();
-  document.querySelectorAll('#anp-cids .anp-row').forEach(r=>{r.style.display=(!q||r.dataset.nm.indexOf(q)>-1)?'flex':'none';});
-}
-function savePersonalMsg(){
-  if(!_gate('about','announce','edit'))return;
-  const cids=Array.from(document.querySelectorAll('#anp-cids .anp-chk:checked')).map(c=>c.value);
-  const msg=document.getElementById('anp-msg').value.trim();
-  const until=document.getElementById('anp-until').value;
-  if(!cids.length){toast('Tick at least one member');return;}
-  if(!msg){toast('Write the message');return;}
-  const a=getAnnounce();
-  if(!a.personal)a.personal={};
-  cids.forEach(cid=>{a.personal[cid]={msg,until,ts:Date.now()};});
-  sv('pp_announce',a);
-  if(typeof AUD==='function')AUD('👤 Personal message set',cids.length+' member(s): '+msg.slice(0,30));
-  document.getElementById('anp-msg').value='';document.getElementById('anp-until').value='';
-  document.querySelectorAll('#anp-cids .anp-chk:checked').forEach(c=>{c.checked=false;});
-  _renderPersonalMsgs();toast('✓ Sent to '+cids.length+' member'+(cids.length>1?'s':''));
 }
 function delPersonalMsg(cid){
   if(!_gate('about','announce','edit'))return;
@@ -8189,6 +8258,39 @@ function _renderPersonalMsgs(){
       <button onclick="delPersonalMsg('${cid}')" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;flex-shrink:0;">🗑</button>
     </div>`;}).join('')
   :'<div style="font-size:11px;color:var(--text3);text-align:center;">No personal messages active</div>';
+}
+function openPersonalMsgFor(cid){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','whatsapp','edit')){toast('🔒 Access restricted');return;}
+  const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
+  document.getElementById('pm-cid').value=cid;
+  document.getElementById('pm-name').textContent=(c.fname+' '+(c.lname||'')).trim();
+  document.getElementById('pm-msg').value='';
+  document.getElementById('pm-until').value='';
+  _renderPmCurrent(cid);
+  openM('m-pmsg');
+}
+function _renderPmCurrent(cid){
+  const box=document.getElementById('pm-current');if(!box)return;
+  const a=getAnnounce();const m=a.personal&&a.personal[cid];
+  box.innerHTML=m&&(m.msg||'').trim()
+    ?`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);">
+        <div style="flex:1;min-width:0;font-size:12px;color:var(--text2);">Current: ${_esc(m.msg)}${m.until?' <span style="color:var(--text3);">(until '+fmt(m.until)+')</span>':''}</div>
+        <button onclick="delPersonalMsg('${cid}');_renderPmCurrent('${cid}');" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;">🗑</button>
+      </div>`
+    :'<div style="font-size:11px;color:var(--text3);text-align:center;">No active message for this member</div>';
+}
+function savePersonalMsgFor(){
+  if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','whatsapp','edit')){toast('🔒 Access restricted');return;}
+  const cid=document.getElementById('pm-cid').value;
+  const msg=document.getElementById('pm-msg').value.trim();
+  if(!msg){toast('Write the message first');return;}
+  const a=getAnnounce();if(!a.personal)a.personal={};
+  a.personal[cid]={msg,until:document.getElementById('pm-until').value,ts:Date.now()};
+  sv('pp_announce',a);
+  if(typeof AUD==='function')AUD('💌 Personal message set',(_clientName?_clientName(cid):cid)+': '+msg.slice(0,30));
+  document.getElementById('pm-msg').value='';
+  _renderPmCurrent(cid);
+  toast('💌 Message live on their booking page');
 }
 function clearAnnounce(){
   if(!_gate('about','announce','edit'))return;
@@ -8636,10 +8738,15 @@ function _navConsume(tag){
      entry is ours for this layer, swallow it so Back stays in sync */
   if(history.state&&history.state.pdl===tag){window._navSkip++;try{history.back();}catch(_e){window._navSkip--;}}
 }
-window.addEventListener('keydown',function(e){if(e.key==='Escape'){e.preventDefault();try{history.back();}catch(_x){}}});
+/* [v145o] duplicate Escape handler removed — TWO handlers fired on every
+   press (this one + the keyboard-section one): the modal closed AND an
+   extra history entry popped, dumping the user onto a previous tab. The
+   keyboard-section handler (stepped unified close, ✕-click path) remains
+   the single Escape authority; Android Back keeps using popstate below. */
 window.addEventListener('popstate',function(){
   if(window._navSkip>0){window._navSkip--;return;} /* our own cleanup, not a user Back */
-  const _openModal=document.querySelector('.mo.open');
+  const _confirm=document.querySelector('#m-confirm.open');
+  const _openModal=_confirm||document.querySelector('.mo.open');
   if(_openModal){
     if(_openModal.id==='m-unified'&&typeof closeUnified==='function')closeUnified(true);
     else closeM(_openModal.id,true);
@@ -9985,6 +10092,7 @@ function ufSavePayment(){
         </div>
         <div style="display:flex;gap:8px;margin-top:8px;">
           <button onclick="const _cid=document.getElementById('uf-cid').value;closeM('m-unified');setTimeout(()=>openWA(_cid),200)" class="uf-act-btn" style="flex:1;">💬 WhatsApp</button>
+          <button onclick="openPersonalMsgFor(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;">💌 In-App Msg</button>
           <button onclick="openAddComp(document.getElementById('uf-cid').value)" class="uf-act-btn" style="flex:1;">🎁 Add Complimentary</button>
         </div>
       </div>
@@ -10183,6 +10291,5 @@ function ufSavePayment(){
   };
 })();
 </script>
-
 </body>
 </html>

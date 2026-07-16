@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header" style="padding:5px 20px 4px;">
   <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 2px;overflow:hidden;"><img src="/bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v42</small></div>
+  <div class="logo"><small>Book a Session · v47</small></div>
 </div>
 
 <div class="container">
@@ -141,7 +141,7 @@ const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 let _clients=[], _bookings={}, _mems={}, _closedDays={};
-let _selDate='', _client=null, _googleUser=null, _appUsers=[], _viewerMode=false;
+let _selDate='', _client=null, _googleUser=null, _appUsers=[], _viewerMode=false, _studio={};
 async function pdlHashPin(cid,pin){
   try{
     const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('pdlbook|'+cid+'|'+pin));
@@ -261,20 +261,27 @@ async function loadDataAndVerify(){
   document.getElementById('main-content').innerHTML='<div class="loading"><span class="spinner">⟳</span><br/><br/>Loading your profile...</div>';
   try{
     const opts={source:'server'}; /* always fetch fresh from server */
-    const [cSnap, bSnap, mSnap, cdSnap, anSnap, uSnap]=await Promise.all([
+    const [cSnap, bSnap, mSnap, cdSnap, anSnap]=await Promise.all([
       db.collection(COL).doc('pp_clients').get(opts),
       db.collection(COL).doc('pp_bookings').get(opts),
       db.collection(COL).doc('pp_memberships').get(opts),
       db.collection(COL).doc('pp_closed_days').get(opts),
-      db.collection(COL).doc('pp_announce').get(opts),
-      db.collection(COL).doc('pp_users').get(opts)
+      db.collection(COL).doc('pp_announce').get(opts)
     ]);
+    /* [v44] staff-viewer list is OPTIONAL — if security rules deny this doc,
+       members must still load normally. This isolation is what restores
+       booking after the v43 outage. */
+    let uSnap=null;
+    try{uSnap=await db.collection(COL).doc('pp_users').get(opts);}catch(_e){uSnap=null;}
+    /* [v47] studio details (feedback number etc.) — optional, never fatal */
+    try{const stSnap=await db.collection(COL).doc('pp_studio').get(opts);
+        _studio=stSnap.exists?JSON.parse(stSnap.data().value):{};}catch(_e){_studio={};}
     _clients=cSnap.exists?JSON.parse(cSnap.data().value):[];
     _bookings=bSnap.exists?JSON.parse(bSnap.data().value):{};
     _mems=mSnap.exists?JSON.parse(mSnap.data().value):{};
     _closedDays=cdSnap.exists?JSON.parse(cdSnap.data().value):{};
     try{_announce=anSnap.exists?JSON.parse(anSnap.data().value):null;}catch(e){_announce=null;}
-    try{_appUsers=uSnap.exists?JSON.parse(uSnap.data().value):[];}catch(e){_appUsers=[];}
+    try{_appUsers=(uSnap&&uSnap.exists)?JSON.parse(uSnap.data().value):[];}catch(e){_appUsers=[];}
   }catch(e){
     document.getElementById('main-content').innerHTML='<div class="loading">⚠️ Could not load data. Please refresh.</div>';
     return;
@@ -441,23 +448,91 @@ function renderDashboard(){
   const endDate=mem&&mem.endDate?fmt(mem.endDate):'—';
   const initial=(c.fname||'?')[0].toUpperCase();
 
+  /* [v45] plan-window maths for the always-visible My Plan card */
+  const _todayS=td();
+  const _frozen=mem&&mem.status==='frozen';
+  let _daysLeft=null,_pctUsedBar=0;
+  if(mem&&mem.startDate&&mem.endDate&&plan!=='trial'){
+    const _d1=new Date(mem.startDate+'T00:00:00'),_d2=new Date(mem.endDate+'T00:00:00'),_dn=new Date(_todayS+'T00:00:00');
+    const _span=Math.max(1,Math.round((_d2-_d1)/86400000));
+    _daysLeft=Math.max(0,Math.round((_d2-_dn)/86400000));
+    _pctUsedBar=Math.min(100,Math.max(0,Math.round((_span-_daysLeft)/_span*100)));
+  }
+  const _flower=['🌸','💐','🌷','🌺'][new Date().getDate()%4];
+  /* feedback goes to the STUDIO's own number (admin edits it in Studio
+     Details) — never a hardcoded person */
+  const _fbNum=((_studio&&_studio.phone)||'+91-9354106025').replace(/\D/g,'');
   document.getElementById('main-content').innerHTML=`
+    <!-- Warm greeting -->
+    <div style="margin:2px 2px 10px;display:flex;align-items:baseline;gap:8px;">
+      <span style="font-size:22px;">${_flower}</span>
+      <span style="font-family:'Playfair Display',serif;font-style:italic;font-size:19px;color:var(--gold);">Hi ${c.fname}!</span>
+    </div>
     <!-- Client Dashboard -->
     <div class="card" style="padding:14px 16px;">
       <div class="client-dash">
         <div class="client-avatar">${initial}</div>
         <div class="client-info">
           <div class="client-name">${c.fname} ${c.lname||''}</div>
-          <div class="client-plan">📋 ${planName} • Ends: ${endDate}</div>
+          <div class="client-plan">${
+            _frozen
+            ?''
+            :plan==='none'
+              ?'📋 No active plan — ask us at the desk '+_flower
+              :plan==='trial'
+                ?'🎯 Your trial session awaits — pick a slot below 👇'
+                :'📋 '+planName+(mem&&mem.startDate?' • '+fmt(mem.startDate):'')+' → '+endDate
+          }</div>
         </div>
         <div class="qr-mini" onclick="openMyQR()" title="Show my QR code"><span class="qr-glyph">▦</span><span class="qr-label">QR</span></div>
         <div class="qr-mini" onclick="firebase.auth().signOut();_googleUser=null;_client=null;" title="Sign out" style="background:var(--surface2,#241f18);border:1px solid var(--border);color:var(--gold);"><span class="qr-glyph"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span><span class="qr-label" style="color:#c9a84c;">EXIT</span></div>
       </div>
+      ${_frozen?`
+      <div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(52,152,219,0.1);border:1px solid rgba(52,152,219,0.35);font-size:12.5px;line-height:1.6;color:var(--text);">
+        ${_flower} <b>${c.fname}</b>, your short break ends on <b>${mem.expectedReturn?fmt(mem.expectedReturn):'—'}</b> — looking forward to seeing you soon! WhatsApp or call the desk when you're back — we'll revive your online booking right away.
+      </div>`:''}
+      ${(!_frozen&&_daysLeft!==null)?`
+      <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:${_daysLeft<=7?'#e6a23c':'var(--text2)'};margin-bottom:3px;">
+          <span>${_daysLeft<=7?'⏳ Ending soon':'Plan period'}</span><span><b>${_daysLeft}</b> day${_daysLeft===1?'':'s'} left</span>
+        </div>
+        <div style="height:6px;background:var(--surface2,#241f18);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${_pctUsedBar}%;background:${_daysLeft<=7?'#e6a23c':'var(--gold)'};border-radius:4px;"></div>
+        </div>
+      </div>`:''}
       <div class="client-sessions">
         <div class="sess-item"><div class="sess-num">${sessTotal}</div><div class="sess-lbl">Total</div></div>
         <div class="sess-item"><div class="sess-num" style="color:var(--green);">${sessUsed}</div><div class="sess-lbl">Attended</div></div>
         <div class="sess-item"><div class="sess-num" style="color:${sessLeft===0?'var(--red)':'var(--gold)'};">${sessLeft}</div><div class="sess-lbl">Remaining</div></div>
       </div>
+    </div>
+
+    <!-- Your Profile (collapsible) -->
+    <div class="card" style="padding:12px 16px;">
+      <div class="section-title" style="cursor:pointer;display:flex;justify-content:space-between;" onclick="const b=document.getElementById('my-profile-body');b.style.display=b.style.display==='none'?'':'none';this.querySelector('span').textContent=b.style.display==='none'?'▶':'▼';">${_flower} Your Profile<span style="font-size:10px;">▶</span></div>
+      <div id="my-profile-body" style="display:none;">
+        ${[
+          ['Member ID',c.memNo||'—'],
+          ['Mobile',c.phone?c.phone.replace('+91','+91 '):'—'],
+          ['Email',c.email||'—'],
+          ['Instagram',c.insta||'—'],
+          ['Birthday',c.bday?fmt(c.bday):'—'],
+          ['With us since',c.join?fmt(c.join):(c.createdAt?fmt(c.createdAt):'—')],
+          ['Current plan',plan==='none'?'—':planName],
+          ['Valid till',plan==='none'?'—':endDate]
+        ].map(r=>'<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span style="color:var(--text2);">'+r[0]+'</span><span style="text-align:right;color:var(--text);font-weight:600;">'+r[1]+'</span></div>').join('')}
+        <div style="font-size:11px;color:var(--text2);margin-top:8px;text-align:center;">Something needs updating? Just tell us at the desk ${_flower}</div>
+      </div>
+    </div>
+
+    <!-- Share a thought -->
+    <div class="card" style="padding:12px 16px;">
+      <div class="section-title">💬 Share a Thought</div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <a href="https://wa.me/${_fbNum}?text=${encodeURIComponent('Hi! Feedback about the STUDIO from '+c.fname+' '+(c.lname||'')+': ')}" target="_blank" style="flex:1;text-align:center;padding:10px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);color:var(--gold);font-size:12px;font-weight:700;text-decoration:none;">🏛 About the Studio</a>
+        <a href="https://wa.me/${_fbNum}?text=${encodeURIComponent('Hi! Feedback about the APP from '+c.fname+' '+(c.lname||'')+': ')}" target="_blank" style="flex:1;text-align:center;padding:10px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);color:var(--gold);font-size:12px;font-weight:700;text-decoration:none;">📱 About the App</a>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:8px;text-align:center;">Opens WhatsApp — your name comes pre-filled ${_flower}</div>
     </div>
 
     <!-- My Upcoming Bookings (collapsible) -->
@@ -633,6 +708,8 @@ function closePopup(){
 
 async function confirmBooking(){
   if(_viewerMode){showAlert('👁 Viewer access — booking is disabled for studio accounts.','🔒');return;}
+  const _m=_mems[_client.id];
+  if(_m&&_m.status==='frozen'){showAlert((_client.fname||'')+', your plan is on a short break'+(_m.expectedReturn?' until '+fmt(_m.expectedReturn):'')+'. WhatsApp or call the desk when you are back, and we will revive your booking right away! 🌸','⏸');return;}
   const slot=document.getElementById('popup-confirm-btn').getAttribute('data-slot');
   closePopup();
   askPin('Enter PIN to Confirm Booking',()=>_doConfirmBooking(slot));
