@@ -658,7 +658,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145l</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145m</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1210,52 +1210,9 @@ try{
   </div>
 </div>
 <script>
-/* ===== [v145l] BACK / ESCAPE — one deterministic rule =====
-   Back (Android/browser) or Escape closes the TOPMOST open thing first:
-   1) the most recently opened modal (tracked in a stack), else
-   2) return to the previously visited tab. Always exactly one step back. */
-window._moStack=window._moStack||[];
-window._tabHist=window._tabHist||[];
-(function(){
-  const _openM0=window.openM,_closeM0=window.closeM;
-  window.openM=function(id){
-    const i=window._moStack.indexOf(id);if(i>-1)window._moStack.splice(i,1);
-    window._moStack.push(id);
-    return _openM0.apply(this,arguments);
-  };
-  window.closeM=function(id){
-    const i=window._moStack.indexOf(id);if(i>-1)window._moStack.splice(i,1);
-    return _closeM0.apply(this,arguments);
-  };
-})();
-function _ppGoBack(){
-  while(window._moStack.length){
-    const id=window._moStack[window._moStack.length-1];
-    const el=document.getElementById(id);
-    if(el&&el.classList.contains('open')){
-      if(id==='m-cashentry'&&typeof closeCashEntry==='function')closeCashEntry();
-      else closeM(id);
-      return true;
-    }
-    window._moStack.pop();
-  }
-  if(window._tabHist.length){
-    const t=window._tabHist.pop();
-    window._tabHistLock=true;
-    try{showTab(t);}finally{window._tabHistLock=false;}
-    return true;
-  }
-  return false;
-}
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){if(_ppGoBack())e.preventDefault();}
-});
-try{
-  history.pushState({pp:1},'');
-  window.addEventListener('popstate',()=>{
-    if(_ppGoBack())history.pushState({pp:1},'');
-  });
-}catch(_e){}
+/* [v145m] duplicate back/escape system removed — the app's ORIGINAL
+   history-based navigation (further below, _navPush/_navConsume) is the
+   single authority again. Two systems fighting caused random tab jumps. */
 function _cSetCategory(cat,lock){
   document.getElementById('c-category').value=cat;
   const trialBtn=document.getElementById('c-cat-trial');
@@ -1575,7 +1532,7 @@ function printClientList(){
   document.getElementById('confirm-icon').textContent='📋';
   document.getElementById('confirm-title').textContent='Client List Preview';
   document.getElementById('confirm-msg').innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -20px;padding:0 20px;">'+html+'</div>';
-  document.getElementById('confirm-btns').innerHTML='<button onclick="closeM(\'m-confirm\')" style="padding:12px;border-radius:30px;border:none;background:var(--gold);color:#1a1a2e;font-family:\'Jost\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Close</button>';
+  document.getElementById('confirm-btns').innerHTML='<button onclick="closeM(\'m-confirm\')" style="grid-column:1/-1;max-width:260px;margin:0 auto;width:100%;padding:12px;border-radius:30px;border:none;background:var(--gold);color:#1a1a2e;font-family:\'Jost\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Close</button>';
   const _md=document.querySelector('#m-confirm .md');
   if(_md)_md.style.maxWidth='94vw';
   openM('m-confirm');
@@ -2006,7 +1963,7 @@ function renderDash(){
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">${overdueNames.slice(0,2).join(', ')}${overdueLeave>2?' +'+(overdueLeave-2)+' more':''}</div>
       </div>`:''}
       <div class="dash-card" style="cursor:pointer;background:rgba(155,89,182,0.12);border-color:rgba(155,89,182,0.4);" onclick="showTab('clients',document.querySelector('.nb:nth-child(2)'));setClientFilter('trial',document.querySelector('#tab-clients .ftab:nth-child(4)'))">
-        <div class="dash-num" style="color:#9b59b6;">${trialsAll-convAll}</div>
+        <div class="dash-num" style="color:#9b59b6;">${clients.filter(c=>c.isTrial).length}</div>
         <div class="dash-label">Trials Not Converted</div>
         <div style="font-size:9px;color:var(--text3);margin-top:4px;">tap to view →</div>
       </div>
@@ -3308,6 +3265,7 @@ function showConfirm(icon, title, msg, buttons){
   document.getElementById('confirm-icon').textContent=icon;
   document.getElementById('confirm-title').textContent=title;
   document.getElementById('confirm-msg').innerHTML=msg;
+  const _one=buttons.length===1?'grid-column:1/-1;max-width:260px;margin:0 auto;width:100%;':'';
   document.getElementById('confirm-btns').innerHTML=buttons.map((b,i)=>`
     <button onclick="handleConfirm(${i})" style="padding:12px;border-radius:30px;border:${b.outline?'1.5px solid '+b.color:'none'};background:${b.outline?'none':b.color};color:${b.outline?b.color:'#1a1a2e'};font-family:'Jost',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">${b.label}</button>
   `).join('');
@@ -5260,7 +5218,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145l</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145m</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5995,6 +5953,8 @@ function openUserEdit(id){
   _renderSecRows(u);
   _renderTplSelect();
   const _tn=document.getElementById('ue-tpl-name');if(_tn)_tn.value='';
+  /* [v145m] every section starts collapsed; opens only on tap */
+  setTimeout(()=>{document.querySelectorAll('.ue-sec-select').forEach(sel=>{try{_ueSecCollapse(sel.dataset.sec,false,true);}catch(_e){}});},60);
   document.getElementById('ue-del').style.display=u?'block':'none';
   openM('m-useredit');
   setTimeout(()=>armDirty('m-useredit','ue-save-btn'),50);
@@ -8183,17 +8143,7 @@ function printStatement(){
     </div>
     <button class="sb2" id="an-save-btn" onclick="saveAnnounce()" disabled style="opacity:0.45;">Save Announcement</button>
     <button class="sb2" style="background:none;border:1.5px solid var(--border2);color:var(--text2);margin-top:8px;" onclick="clearAnnounce()">Clear / Hide</button>
-    <div class="div-section" style="margin:14px 0 8px;">👤 Personal Message (one member only)</div>
-    <div class="fg"><label class="fl">Members (tick one or many)</label>
-      <input class="fi" id="anp-search" placeholder="🔍 Search member…" oninput="_anpFilter()" style="margin-bottom:6px;"/>
-      <div id="anp-cids" style="max-height:150px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;"></div>
-    </div>
-    <div class="fg"><label class="fl">Message</label>
-      <textarea class="fi" id="anp-msg" rows="3" style="resize:none;" placeholder="e.g. Your plan ends Friday — renew at the desk 🙏"></textarea>
-    </div>
-    <div class="fg"><label class="fl">Show Until</label><input class="fi" id="anp-until" type="date"/></div>
-    <button class="sb2" onclick="savePersonalMsg()" style="font-size:13px;">Send Personal Message</button>
-    <div id="anp-list" style="margin-top:10px;"></div>
+
   </div>
 </div>
 
@@ -8207,14 +8157,6 @@ function openAnnounce(){
     document.getElementById('an-msg').value=a.msg||'';
     document.getElementById('an-type').value=a.type||'info';
     document.getElementById('an-until').value=a.until||'';
-    const _cl=ld('pp_clients',[]).filter(c=>!c.archived).sort((x,y)=>(x.fname||'').localeCompare(y.fname||''));
-    document.getElementById('anp-search').value='';
-    document.getElementById('anp-cids').innerHTML=_cl.map(c=>{
-      const nm=_esc((c.fname+' '+(c.lname||'')).trim());
-      return `<label class="anp-row" data-nm="${nm.toLowerCase()}" style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:var(--text);cursor:pointer;">
-        <input type="checkbox" class="anp-chk" value="${c.id}" style="width:17px;height:17px;accent-color:var(--gold);"/>${nm}</label>`;
-    }).join('');
-    _renderPersonalMsgs();
     setTimeout(()=>armDirty('m-announce','an-save-btn'),50);
   }catch(_e){console.warn('Announcement failed to render:',_e);}
 }
@@ -8224,26 +8166,6 @@ function saveAnnounce(){
   sv('pp_announce',a);
   if(typeof AUD==='function')AUD('📢 Booking announcement updated',a.msg?a.msg.slice(0,40):'(cleared)');
   closeM('m-announce');toast('✓ Announcement saved');
-}
-function _anpFilter(){
-  const q=(document.getElementById('anp-search').value||'').toLowerCase();
-  document.querySelectorAll('#anp-cids .anp-row').forEach(r=>{r.style.display=(!q||r.dataset.nm.indexOf(q)>-1)?'flex':'none';});
-}
-function savePersonalMsg(){
-  if(!_gate('about','announce','edit'))return;
-  const cids=Array.from(document.querySelectorAll('#anp-cids .anp-chk:checked')).map(c=>c.value);
-  const msg=document.getElementById('anp-msg').value.trim();
-  const until=document.getElementById('anp-until').value;
-  if(!cids.length){toast('Tick at least one member');return;}
-  if(!msg){toast('Write the message');return;}
-  const a=getAnnounce();
-  if(!a.personal)a.personal={};
-  cids.forEach(cid=>{a.personal[cid]={msg,until,ts:Date.now()};});
-  sv('pp_announce',a);
-  if(typeof AUD==='function')AUD('👤 Personal message set',cids.length+' member(s): '+msg.slice(0,30));
-  document.getElementById('anp-msg').value='';document.getElementById('anp-until').value='';
-  document.querySelectorAll('#anp-cids .anp-chk:checked').forEach(c=>{c.checked=false;});
-  _renderPersonalMsgs();toast('✓ Sent to '+cids.length+' member'+(cids.length>1?'s':''));
 }
 function delPersonalMsg(cid){
   if(!_gate('about','announce','edit'))return;
@@ -10290,21 +10212,6 @@ function ufSavePayment(){
     });
     html+='</div>';
     out.innerHTML=(window._diagPermHtml||'')+html;
-  };
-})();
-</script>
-<script>
-/* [v145l] tab history recorder — wraps the FINAL showTab (after all overrides) */
-(function(){
-  const _o=window.showTab;
-  window.showTab=function(n,btn){
-    try{
-      if(!window._tabHistLock&&typeof _activeTab!=='undefined'&&_activeTab&&_activeTab!==n){
-        window._tabHist.push(_activeTab);
-        if(window._tabHist.length>20)window._tabHist.shift();
-      }
-    }catch(_e){}
-    return _o.apply(this,arguments);
   };
 })();
 </script>
