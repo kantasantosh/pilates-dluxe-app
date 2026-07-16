@@ -141,7 +141,7 @@ const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 let _clients=[], _bookings={}, _mems={}, _closedDays={};
-let _selDate='', _client=null, _googleUser=null;
+let _selDate='', _client=null, _googleUser=null, _appUsers=[], _viewerMode=false;
 async function pdlHashPin(cid,pin){
   try{
     const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('pdlbook|'+cid+'|'+pin));
@@ -261,18 +261,20 @@ async function loadDataAndVerify(){
   document.getElementById('main-content').innerHTML='<div class="loading"><span class="spinner">⟳</span><br/><br/>Loading your profile...</div>';
   try{
     const opts={source:'server'}; /* always fetch fresh from server */
-    const [cSnap, bSnap, mSnap, cdSnap, anSnap]=await Promise.all([
+    const [cSnap, bSnap, mSnap, cdSnap, anSnap, uSnap]=await Promise.all([
       db.collection(COL).doc('pp_clients').get(opts),
       db.collection(COL).doc('pp_bookings').get(opts),
       db.collection(COL).doc('pp_memberships').get(opts),
       db.collection(COL).doc('pp_closed_days').get(opts),
-      db.collection(COL).doc('pp_announce').get(opts)
+      db.collection(COL).doc('pp_announce').get(opts),
+      db.collection(COL).doc('pp_users').get(opts)
     ]);
     _clients=cSnap.exists?JSON.parse(cSnap.data().value):[];
     _bookings=bSnap.exists?JSON.parse(bSnap.data().value):{};
     _mems=mSnap.exists?JSON.parse(mSnap.data().value):{};
     _closedDays=cdSnap.exists?JSON.parse(cdSnap.data().value):{};
     try{_announce=anSnap.exists?JSON.parse(anSnap.data().value):null;}catch(e){_announce=null;}
+    try{_appUsers=uSnap.exists?JSON.parse(uSnap.data().value):[];}catch(e){_appUsers=[];}
   }catch(e){
     document.getElementById('main-content').innerHTML='<div class="loading">⚠️ Could not load data. Please refresh.</div>';
     return;
@@ -281,6 +283,16 @@ async function loadDataAndVerify(){
   /* Verify this Google email is a registered client */
   const email=_googleUser.email.toLowerCase();
   _client=_clients.find(c=>!c.archived&&c.email&&c.email.toLowerCase()===email);
+  /* [b43] Studio team viewer access: any Users & Access account's email
+     opens the booking page in VIEW-ONLY mode — see everything members see,
+     book/cancel nothing. Real changes stay with members & the admin app. */
+  const _appUser=(_appUsers||[]).find(u=>u.active!==false&&u.email&&u.email.toLowerCase()===email);
+  if(!_client&&_appUser){
+    _viewerMode=true;
+    _client={id:'viewer_'+_appUser.id,fname:_appUser.name||'Studio',lname:'(Viewer)',email:email,isViewer:true};
+    renderDashboard();
+    return;
+  }
   if(!_client){
     document.getElementById('main-content').innerHTML=`
       <div class="auth-card">
@@ -461,7 +473,7 @@ function renderDashboard(){
 
     <!-- Date Picker -->
     <div class="card" style="padding:14px 16px;">
-      ${announceBanner()}
+      ${_viewerMode?'<div style="margin:0 0 12px;padding:9px 12px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);background:rgba(201,168,76,0.1);color:var(--gold);font-size:12px;font-weight:700;text-align:center;">👁 Studio viewer — read-only, booking disabled</div>':''}${personalBanner()}${announceBanner()}
       <div class="section-title"><span class="live-dot"></span> Live Schedule</div>
       <div class="date-row" id="date-row">${renderDates()}</div>
     </div>
@@ -481,6 +493,22 @@ function _announceActive(){
   if(!_announce||!(_announce.msg||'').trim())return false;
   if(_announce.until){const today=new Date();const t=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;if(_announce.until<t)return false;}
   return true;
+}
+function _personalMsg(){
+  /* Personal message addressed to THIS logged-in member only. Stored by the
+     admin app inside the same pp_announce doc under personal:{cid:{msg,until}},
+     so it arrives through the existing announcement sync — no new wiring. */
+  if(!_announce||!_announce.personal||!_client)return null;
+  const m=_announce.personal[_client.id];
+  if(!m||!(m.msg||'').trim())return null;
+  if(m.until){const today=new Date();const t=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;if(m.until<t)return null;}
+  return m;
+}
+function personalBanner(){
+  const m=_personalMsg();
+  if(!m)return '';
+  const nm=(_client.fname||'').trim();
+  return `<div style="margin:0 0 14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(201,168,76,0.65);background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));color:var(--gold);font-size:13px;line-height:1.55;font-weight:600;">💌 <b>${nm?nm+', ':''}</b>${m.msg}</div>`;
 }
 function announceBanner(){
   if(!_announceActive())return '';
@@ -604,6 +632,7 @@ function closePopup(){
 }
 
 async function confirmBooking(){
+  if(_viewerMode){showAlert('👁 Viewer access — booking is disabled for studio accounts.','🔒');return;}
   const slot=document.getElementById('popup-confirm-btn').getAttribute('data-slot');
   closePopup();
   askPin('Enter PIN to Confirm Booking',()=>_doConfirmBooking(slot));
@@ -634,6 +663,7 @@ async function _doConfirmBooking(slot){
 }
 
 async function cancelBooking(slot){
+  if(_viewerMode){showAlert('👁 Viewer access — cancelling is disabled for studio accounts.','🔒');return;}
   showConfirmDialog('Cancel your '+slot+' booking on '+fmtDay(_selDate)+'?',()=>{
     askPin('Enter PIN to Cancel Booking',()=>_doCancelBooking(slot));
   });
