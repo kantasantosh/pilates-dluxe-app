@@ -660,7 +660,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145r</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145t</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -5289,7 +5289,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145r</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145t</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5829,6 +5829,7 @@ document.getElementById('lg-pin').addEventListener('keyup',e=>{if(e.key==='Enter
 /* ================= ROLE APPLICATION ================= */
 function applyRole(){
   try{_applyTabAccess();}catch(_e){}
+  if(!window._dctSched){window._dctSched=true;setTimeout(()=>{try{_dailyClientTouch();}catch(_e){}},2500);}
   /* [v145l] role letter chip in topbar: A=Admin R=Reception T=Trainer V=Visitor */
   try{
     const chip=document.getElementById('tb-rolechip');
@@ -8272,6 +8273,49 @@ function _renderPersonalMsgs(){
       <button onclick="delPersonalMsg('${cid}')" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;flex-shrink:0;">🗑</button>
     </div>`;}).join('')
   :'<div style="font-size:11px;color:var(--text3);text-align:center;">No personal messages active</div>';
+}
+/* ===== [v145s] DAILY CLIENT TOUCH =====
+   Runs once per day on the ADMIN device. For every active member:
+   1. writes the current due amount (same formula as the Payment Due list)
+      onto her membership record — the booking-page profile shows it;
+   2. plants automatic personal messages: birthday greeting (top priority),
+      else plan-ending-within-7-days reminder.
+   Hand-written 💌 notes are NEVER touched (only entries marked auto:true
+   are created, replaced, or cleaned up). */
+function _dailyClientTouch(){
+  try{
+    if(!(typeof ppIsAdmin==='function'&&ppIsAdmin()))return;
+    const today=td();
+    const _skipMsgs=localStorage.getItem('pp_automsg_last')===today; /* dues always refresh; messages once/day */
+    const clients=ld('pp_clients',[]).filter(c=>!c.archived);
+    const mems=ld('pp_memberships',{});
+    const a=getAnnounce();if(!a.personal)a.personal={};
+    const mmdd=today.slice(5);
+    let changed=false;
+    clients.forEach(c=>{
+      const m=mems[c.id];
+      /* dues → booking profile */
+      const due=Math.max(0,getClientTotalCharged(c.id)-getClientTotalPaid(c.id));
+      if(m&&(m.dueAmt||0)!==due){m.dueAmt=due;changed=true;}
+      if(_skipMsgs)return;
+      const cur=a.personal[c.id];
+      if(cur&&!cur.auto)return; /* respect hand-written notes */
+      if(c.bday&&c.bday.slice(5)===mmdd){
+        a.personal[c.id]={msg:'Happy Birthday, '+c.fname+'! 🎂 May your year be full of strength, grace and joy — with love from all of us at the studio 💐',until:today,ts:Date.now(),auto:true};
+        changed=true;return;
+      }
+      if(m&&m.endDate&&m.status!=='frozen'&&m.plan!=='trial'){
+        const dl=Math.round((new Date(m.endDate+'T00:00:00')-new Date(today+'T00:00:00'))/86400000);
+        if(dl>=0&&dl<=7){
+          a.personal[c.id]={msg:c.fname+', your plan ends on '+fmt(m.endDate)+' — renew at the desk to keep your sessions flowing 🌸',until:m.endDate,ts:Date.now(),auto:true};
+          changed=true;return;
+        }
+      }
+      if(cur&&cur.auto){delete a.personal[c.id];changed=true;} /* stale auto note */
+    });
+    if(changed){sv('pp_announce',a);sv('pp_memberships',mems);}
+    localStorage.setItem('pp_automsg_last',today);
+  }catch(_e){}
 }
 function openPersonalMsgFor(cid){
   if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','whatsapp','edit')){toast('🔒 Access restricted');return;}
