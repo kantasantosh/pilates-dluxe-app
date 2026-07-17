@@ -660,7 +660,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145t</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145v</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -5289,7 +5289,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145t</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145v</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5829,7 +5829,15 @@ document.getElementById('lg-pin').addEventListener('keyup',e=>{if(e.key==='Enter
 /* ================= ROLE APPLICATION ================= */
 function applyRole(){
   try{_applyTabAccess();}catch(_e){}
-  if(!window._dctSched){window._dctSched=true;setTimeout(()=>{try{_dailyClientTouch();}catch(_e){}},2500);}
+  if(!window._dctSched){window._dctSched=true;
+    /* [v145v] the sweep must not fire before the cloud channel opens
+       (_pSync=true) — earlier it ran at 2.5s, the push was silently
+       skipped as "not ready", and the cloud never learned the dues. */
+    const _dct=setInterval(()=>{
+      if(typeof _pSync!=='undefined'&&_pSync){clearInterval(_dct);try{_dailyClientTouch();}catch(_e){}}
+    },1500);
+    setTimeout(()=>clearInterval(_dct),120000);
+  }
   /* [v145l] role letter chip in topbar: A=Admin R=Reception T=Trainer V=Visitor */
   try{
     const chip=document.getElementById('tb-rolechip');
@@ -8291,12 +8299,14 @@ function _dailyClientTouch(){
     const mems=ld('pp_memberships',{});
     const a=getAnnounce();if(!a.personal)a.personal={};
     const mmdd=today.slice(5);
-    let changed=false;
+    let changed=false,_okN=0,_dueN=0,_errN=0;
     clients.forEach(c=>{
+     try{
       const m=mems[c.id];
       /* dues → booking profile */
       const due=Math.max(0,getClientTotalCharged(c.id)-getClientTotalPaid(c.id));
-      if(m&&(m.dueAmt||0)!==due){m.dueAmt=due;changed=true;}
+      if(m){if((m.dueAmt||0)!==due){m.dueAmt=due;changed=true;}if(due>0)_dueN++;}
+      _okN++;
       if(_skipMsgs)return;
       const cur=a.personal[c.id];
       if(cur&&!cur.auto)return; /* respect hand-written notes */
@@ -8312,11 +8322,15 @@ function _dailyClientTouch(){
         }
       }
       if(cur&&cur.auto){delete a.personal[c.id];changed=true;} /* stale auto note */
+     }catch(_ce){_errN++;console.warn('[touch] client failed:',c&&c.id,_ce);}
     });
-    if(changed){sv('pp_announce',a);sv('pp_memberships',mems);}
+    if(changed||!window._dctPushed){window._dctPushed=true;sv('pp_announce',a);sv('pp_memberships',mems);}
     localStorage.setItem('pp_automsg_last',today);
-  }catch(_e){}
+    console.log('[touch] swept '+_okN+' clients, '+_dueN+' with dues, '+_errN+' errors, saved:'+changed);
+    return {swept:_okN,withDues:_dueN,errors:_errN,saved:changed};
+  }catch(_e){console.warn('[touch] sweep failed:',_e);return {failed:String(_e)};}
 }
+window._dailyClientTouch=_dailyClientTouch; /* manual: _dailyClientTouch() in console */
 function openPersonalMsgFor(cid){
   if(PPS&&PPS.role!=='admin'&&!_permCheck('clients','whatsapp','edit')){toast('🔒 Access restricted');return;}
   const c=ld('pp_clients',[]).find(x=>x.id===cid);if(!c)return;
