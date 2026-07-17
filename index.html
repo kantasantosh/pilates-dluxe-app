@@ -308,7 +308,8 @@ async function _pInit(){
   const _alreadyStarted=window._pStarted;
   const el=document.createElement('div');el.id='p-sync';
   el.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#4a9eff;padding:6px 16px;border-radius:20px;font-size:11px;z-index:9999;pointer-events:none;';
-  el.textContent='⟳ Syncing...';if(!_alreadyStarted)document.body.appendChild(el);else{el.style.opacity='0';document.body.appendChild(el);}
+  el.textContent='⟳ Syncing...';
+  if(!_alreadyStarted)document.body.appendChild(el); /* [v145q] pill only on first load */
   try{
     const snap=await _pdb.collection('pilates').get();
     let _gotRealData=false;
@@ -498,6 +499,7 @@ setInterval(()=>{
 },5000);
 function _pRerenderActive(){
   try{
+    if(document.querySelector('.mo.open'))return; /* [v145q] anti-flicker under modals */
     const t=_activeTab;
     if(typeof renderDash==='function'&&t==='dashboard')renderDash();
     else if(typeof renderClients==='function'&&t==='clients')renderClients();
@@ -644,7 +646,7 @@ try{
 <div class="topbar">
   <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;min-height:88px;">
     <div style="display:flex;flex-direction:column;align-items:center;justify-self:start;">
-      <div class="logo-mark" style="overflow:hidden;padding:0;width:70px;height:70px;border:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
+      <div class="logo-mark" onclick="_logoZoom()" style="overflow:hidden;padding:0;width:70px;height:70px;border:none;cursor:pointer;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
       <div style="margin-top:2px;font-family:'Playfair Display',serif;font-style:italic;font-size:11px;letter-spacing:1.5px;white-space:nowrap;background:linear-gradient(180deg,#ecd9a0,#c9a84c 55%,#8f6f2e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">Pilates D&#39;Luxe</div>
       <svg width="0" height="0" style="position:absolute;"><defs>
         <linearGradient id="goldg" x1="0" y1="0" x2="0" y2="1">
@@ -658,7 +660,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145p</span>
+    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145q</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1232,7 +1234,7 @@ function _cSetCategory(cat,lock){
     trialBtn.disabled=false;trialBtn.style.opacity='';
     regBtn.disabled=false;regBtn.style.opacity='';
   }
-  document.getElementById('c-email-optional-tag').textContent=isTrial?'(optional)':'';
+  document.getElementById('c-email-optional-tag').textContent=isTrial?'(required — booking login)':'(optional)';
   document.getElementById('c-join-row').style.display=isTrial?'none':'';
   document.getElementById('c-trialdate-row').style.display=isTrial?'':'none';
   if(isTrial&&!document.getElementById('c-trialdate').value)document.getElementById('c-trialdate').value=td();
@@ -2355,6 +2357,7 @@ function saveClient(){
      every trial lady can experience the app from day one */
   if(isTrial&&!email){toast('📧 Email is required for trials — it is their booking-app login');return;}
   const phoneRaw=document.getElementById('c-phone').value.replace(/\D/g,'');
+  if(!phoneRaw){toast('📱 Mobile number is required');return;}
   /* duplicate guard: same 10-digit mobile on a different, non-archived client */
   if(phoneRaw){
     const dup=clients.find(c=>!c.archived&&c.id!==cid0&&(c.phone||'').replace(/\D/g,'').slice(-10)===phoneRaw);
@@ -3338,7 +3341,7 @@ function showConfirm(icon, title, msg, buttons){
   document.getElementById('confirm-msg').innerHTML=msg;
   const _one=buttons.length===1?'grid-column:1/-1;max-width:260px;margin:0 auto;width:100%;':'';
   document.getElementById('confirm-btns').innerHTML=buttons.map((b,i)=>`
-    <button onclick="handleConfirm(${i})" style="padding:12px;border-radius:30px;border:${b.outline?'1.5px solid '+b.color:'none'};background:${b.outline?'none':b.color};color:${b.outline?b.color:'#1a1a2e'};font-family:'Jost',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">${b.label}</button>
+    <button onclick="handleConfirm(${i})" style="${_one}padding:12px;border-radius:30px;border:${b.outline?'1.5px solid '+b.color:'none'};background:${b.outline?'none':b.color};color:${b.outline?b.color:'#1a1a2e'};font-family:'Jost',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">${b.label}</button>
   `).join('');
   _confirmButtons=buttons;
   openM('m-confirm');
@@ -5289,7 +5292,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145p</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145q</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -7102,7 +7105,7 @@ function printProfile(cid){
     <tr><th>Period</th><td>${fmt(m.startDate)} → ${fmt(m.endDate)} (${getMembershipStatus(m,cid)})</td></tr>
     <tr><th>Sessions</th><td>${m.plan==='unlimited'?'Unlimited':getSessionsLeft(m,cid)+' left of '+((m.sessions||m.sessionsTotal||0)+(m.bonus||0))}</td></tr>
     <tr><th>Fee</th><td>₹${(m.fee||0).toLocaleString('en-IN')}${(m.disc||0)>0?' − ₹'+(m.disc||0).toLocaleString('en-IN')+' complimentary = ₹'+Math.max(0,(m.fee||0)-(m.disc||0)).toLocaleString('en-IN'):''}${(m.disc||0)<0?' + ₹'+Math.abs(m.disc||0).toLocaleString('en-IN')+' premium = ₹'+((m.fee||0)+Math.abs(m.disc||0)).toLocaleString('en-IN'):''}</td></tr>
-    <tr><th>Paid / Due</th><td>₹${totalPaid.toLocaleString('en-IN')} paid${due>0?' • <b>₹'+due.toLocaleString('en-IN')+' DUE</b>':' • Fully paid'}</td></tr>
+    <tr><th>Paid / Due</th><td>${(totalPaid>0||due>0)?('₹'+totalPaid.toLocaleString('en-IN')+' paid'+(due>0?' • <b>₹'+due.toLocaleString('en-IN')+' DUE</b>':' • Fully paid')):'No payments recorded'}</td></tr>
     ${(m.bonus||0)>0?`<tr><th>Complimentary</th><td>${m.bonus} class(es)</td></tr>`:''}</table>`;
   }
   /* ALL plan history — past plans the member has held, not just the current one */
@@ -7716,8 +7719,8 @@ function _autoCheckForUpdate(){
      silent — no "checking…" toast, no "up to date" dialog. Only ever
      interrupts the user if a genuine version mismatch is found. */
   fetch('sw.js?_t='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(txt=>{
-    const m=txt.match(/CACHE='([^']+)'/);
-    const serverVer=m?m[1]:'';
+    const m=txt.match(/CACHE='(pilates-v[0-9]+[a-z]?)'/);
+    const serverVer=(m&&/^pilates-v\d+[a-z]?$/.test(m[1]))?m[1]:'';
     const localVer='pilates-'+_appVer().replace(/^v/,'v');
     if(serverVer&&serverVer!==localVer){
       showConfirm('🆕','Update Available','A newer version ('+serverVer.replace('pilates-','')+') is available.<br><br>You are on '+_appVer()+'.',[
@@ -7735,6 +7738,18 @@ function _autoCheckForUpdate(){
     }
   }).catch(()=>{}); /* silent — no error dialog for an automatic background check */
 }
+function _logoZoom(){
+  let ov=document.getElementById('logo-zoom-ov');
+  if(ov){ov.remove();return;}
+  const st=getStudio();
+  ov=document.createElement('div');ov.id='logo-zoom-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(10,9,7,0.92);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer;';
+  ov.innerHTML=`<img src="icon192.png" style="width:min(64vw,260px);height:min(64vw,260px);border-radius:50%;box-shadow:0 0 0 3px rgba(201,169,110,0.5),0 0 60px rgba(201,169,110,0.35);"/>
+    <div style="font-family:'Playfair Display',serif;font-style:italic;font-size:24px;color:var(--gold);letter-spacing:1px;">${_esc(st.name)}</div>
+    <div style="font-size:11px;color:var(--text3);letter-spacing:3px;text-transform:uppercase;">${_esc(st.tagline||'')}</div>`;
+  ov.onclick=()=>ov.remove();
+  document.body.appendChild(ov);
+}
 function checkForUpdate(){
   if(!('serviceWorker' in navigator)){showConfirm('ℹ️','Version','You are on '+_appVer()+'.',[{label:'OK',color:'var(--gold)',action:null}]);return;}
   toast('Checking for updates…');
@@ -7742,8 +7757,8 @@ function checkForUpdate(){
      CACHE version, compare with the current page's version. No more flaky
      r.waiting checks that get stuck forever. */
   fetch('sw.js?_t='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(txt=>{
-    const m=txt.match(/CACHE='([^']+)'/);
-    const serverVer=m?m[1]:'';
+    const m=txt.match(/CACHE='(pilates-v[0-9]+[a-z]?)'/);
+    const serverVer=(m&&/^pilates-v\d+[a-z]?$/.test(m[1]))?m[1]:'';
     const localVer='pilates-'+_appVer().replace(/^v/,'v');
     if(serverVer&&serverVer!==localVer){
       showConfirm('🆕','Update Available','A newer version ('+serverVer.replace('pilates-','')+') is available.<br><br>You are on '+_appVer()+'.',[ 
@@ -7811,6 +7826,8 @@ document.addEventListener('keydown',function(e){
         const x=modal.querySelector('.mc2');
         if(x)x.click();else{modal.classList.remove('open');modal.style.display='none';}
       }
+    }else{
+      e.preventDefault();try{history.back();}catch(_x){} /* [v145q] tab step-back */
     }
     return;
   }

@@ -110,7 +110,8 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header" style="padding:5px 20px 4px;">
   <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 2px;overflow:hidden;"><img src="/bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v47</small></div>
+  <div class="logo"><small>Book a Session · v48</small></div>
+  <button onclick="location.reload()" title="Refresh data" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-size:12px;color:var(--gold);cursor:pointer;">🔄</button>
 </div>
 
 <div class="container">
@@ -471,7 +472,8 @@ function renderDashboard(){
     <!-- Client Dashboard -->
     <div class="card" style="padding:14px 16px;">
       <div class="client-dash">
-        <div class="client-avatar">${initial}</div>
+        <div class="client-avatar" onclick="_dpPick()" style="cursor:pointer;position:relative;overflow:hidden;" title="Tap to set your photo">${c.photo?`<img src="${c.photo}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initial}<span style="position:absolute;right:-2px;bottom:-2px;font-size:11px;">📷</span></div>
+        <input type="file" id="dp-file" accept="image/*" style="display:none;" onchange="_dpUpload(this)"/>
         <div class="client-info">
           <div class="client-name">${c.fname} ${c.lname||''}</div>
           <div class="client-plan">${
@@ -518,7 +520,7 @@ function renderDashboard(){
           ['Instagram',c.insta||'—'],
           ['Birthday',c.bday?fmt(c.bday):'—'],
           ['With us since',c.join?fmt(c.join):(c.createdAt?fmt(c.createdAt):'—')],
-          ['Current plan',plan==='none'?'—':planName],
+          ['Current plan',plan==='none'?'—':(planName+(plan!=='trial'&&sessTotal&&sessTotal!=='∞'?' / '+sessTotal:(sessTotal==='∞'?' / Unlimited':'')))],
           ['Valid till',plan==='none'?'—':endDate]
         ].map(r=>'<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span style="color:var(--text2);">'+r[0]+'</span><span style="text-align:right;color:var(--text);font-weight:600;">'+r[1]+'</span></div>').join('')}
         <div style="font-size:11px;color:var(--text2);margin-top:8px;text-align:center;">Something needs updating? Just tell us at the desk ${_flower}</div>
@@ -706,6 +708,44 @@ function closePopup(){
   document.getElementById('confirm-popup').classList.remove('open');
 }
 
+function _dpPick(){
+  if(_viewerMode)return;
+  const f=document.getElementById('dp-file');if(f)f.click();
+}
+async function _dpUpload(input){
+  const file=input.files&&input.files[0];input.value='';
+  if(!file||!_client||_viewerMode)return;
+  try{
+    /* compress to a tiny square jpeg so the shared clients doc stays light */
+    const b64=await new Promise((res,rej)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const S=96,cv=document.createElement('canvas');cv.width=S;cv.height=S;
+        const cx=cv.getContext('2d');
+        const m=Math.min(img.width,img.height);
+        cx.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,S,S);
+        res(cv.toDataURL('image/jpeg',0.72));
+      };
+      img.onerror=rej;
+      img.src=URL.createObjectURL(file);
+    });
+    /* transaction: read fresh, change ONLY my own photo, write back */
+    await db.runTransaction(async tx=>{
+      const ref=db.collection(COL).doc('pp_clients');
+      const snap=await tx.get(ref);
+      const list=JSON.parse(snap.data().value);
+      const me=list.find(x=>x.id===_client.id);
+      if(me){me.photo=b64;}
+      tx.set(ref,{value:JSON.stringify(list),updated:Date.now()},{merge:true});
+    });
+    _client.photo=b64;
+    const i=_clients.findIndex(x=>x.id===_client.id);if(i>-1)_clients[i].photo=b64;
+    renderDashboard();
+    showAlert('Looking lovely! Your photo is saved 🌸','✨');
+  }catch(e){
+    showAlert('Could not save the photo — please try again.','⚠️');
+  }
+}
 async function confirmBooking(){
   if(_viewerMode){showAlert('👁 Viewer access — booking is disabled for studio accounts.','🔒');return;}
   const _m=_mems[_client.id];
