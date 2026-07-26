@@ -683,7 +683,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146d</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146e</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1169,8 +1169,8 @@ try{
   <button class="nb" data-tab="clients" onclick="showTab('clients',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,-0.5)"><circle cx="8.5" cy="8" r="2.8"/><path d="M3.5 19.5c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="16" cy="9" r="2.3"/><path d="M14.7 12.2c2.3.2 3.8 2 3.8 4.5"/></g></svg></span>Clients</button>
   <button class="nb" data-tab="schedule" onclick="showTab('schedule',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,0.4)"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v3.5"/><path d="M16 3v3.5"/><circle cx="12" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></g></svg></span>Schedule</button>
   <button class="nb" data-tab="cash" onclick="showTab('cash',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,-1.1)"><rect x="3" y="6.5" width="18" height="12.5" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.3" r="1.2" fill="currentColor" stroke="none"/></g></svg></span>Cash</button>
-  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,1.6)"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 14.5h7"/><path d="M8.5 18h4.5"/></g></svg></span>TnS</button>
-  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,1.6)"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></g></svg></span>About</button>
+  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,3.2)"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 14.5h7"/><path d="M8.5 18h4.5"/></g></svg></span>TnS</button>
+  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,3.2)"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></g></svg></span>About</button>
 </div>
 
 <!-- ===== MODALS ===== -->
@@ -7815,6 +7815,7 @@ function _showChangelog(){
     ['v146b','Fixed the real root cause of missing trial in plan history: trial clients never got a membership record created at registration, so conversion had nothing to push into history. TnS/About icons nudged down; nav icon vertical alignment tightened further. Fixed a double checkForUpdate() firing on every version-number tap.'],
     ['v146c','Trial now also shown in plan history for clients who already converted before v146b (retroactive display fix). Cashbook chips + search/category outlined to match Credit/Debit/Contra. Nav icons TnS/About nudged down further.'],
     ['v146d','Real fix for trial history: one-time migration tool (diagnostic panel) permanently writes trial into stored history for already-converted clients. Login/logout removed from Audit Log (kept: all actual data changes).'],
+    ['v146e','Migration button now shows a persistent on-screen result (was toast-only, easy to miss). Nav icons TnS/About pushed down further — earlier nudges were too small to actually register.'],
     ['v146a','Ending/Ended wording everywhere, changelog long-press fixed properly (was being stomped by a trailing click), cashbook chips + search/category now truly equal width, Profile section in client form closed by default, bottom nav icons replaced with uniform SVGs (no more emoji-font inconsistency across phones)'],
     ['v145z','All 19 items: trial restored, viewer mode, changelog, spots hidden, Built With compact, WhatsApp icons, client list fixes, collapsibles closed'],
     ['v145y','Trial in print/history, spots hidden, Audit Log full-width, Unlock button'],
@@ -10397,7 +10398,7 @@ function ufSavePayment(){
     if(panel){panel.style.display=panel.style.display==='none'?'block':'none';_refreshDiag();return;}
     panel=document.createElement('div');panel.id='diag-panel';
     panel.style.cssText='position:fixed;top:0;left:0;right:0;bottom:60px;background:var(--bg);z-index:99999;overflow-y:auto;padding:16px;font-size:12px;color:var(--text);';
-    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><button onclick="_migrateTrialHistory()" style="width:100%;margin-bottom:12px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write trial into stored plan history for already-converted clients</button><div id="diag-output"></div>';
+    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><button onclick="_migrateTrialHistory()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write trial into stored plan history for already-converted clients</button><div id="migrate-result" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><div id="diag-output"></div>';
     document.body.appendChild(panel);
     _refreshDiag();
   }
@@ -10423,7 +10424,9 @@ function ufSavePayment(){
       fixed++;
     });
     if(fixed>0)sv('pp_memberships',mems);
-    toast(fixed>0?('✓ Fixed '+fixed+' client(s) — permanently saved'):'Nothing to fix — already up to date');
+    const _msg=fixed>0?('✓ Fixed '+fixed+' client(s) — permanently saved'):'Already up to date — nothing left to fix';
+    toast(_msg);
+    const _rEl=document.getElementById('migrate-result');if(_rEl)_rEl.textContent=_msg; /* v146e — toast alone fades too fast to confirm; this stays on screen */
     if(typeof AUD==='function')AUD('migrate_trial_history','Backfilled '+fixed+' client(s)');
     if(typeof _refreshDiag==='function')_refreshDiag();
   };
