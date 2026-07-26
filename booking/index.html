@@ -115,7 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header" style="padding:5px 20px 4px;">
   <div onclick="_coinZoom()" style="width:48px;height:48px;border-radius:50%;margin:0 auto 2px;overflow:hidden;cursor:pointer;"><img src="/bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v55</small></div>
+  <div class="logo"><small>Book a Session · v56</small></div>
   <button onclick="location.reload()" title="Refresh data" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 7px;color:var(--gold);cursor:pointer;line-height:0;"><svg style="width:19px;height:19px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
 </div>
 
@@ -147,7 +147,7 @@ const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 let _clients=[], _bookings={}, _mems={}, _closedDays={};
-let _selDate='', _client=null, _googleUser=null, _appUsers=[], _viewerMode=false, _studio={};
+let _selDate='', _client=null, _googleUser=null, _appUsers=[], _viewerMode=false, _studio={}, _isAdminViewer=false, _bookingForClient=null;
 async function pdlHashPin(cid,pin){
   try{
     const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('pdlbook|'+cid+'|'+pin));
@@ -311,6 +311,7 @@ async function loadDataAndVerify(){
   const _appUser=(_appUsers||[]).find(u=>u.active!==false&&u.email&&u.email.toLowerCase()===email);
   if(!_client&&_appUser){
     _viewerMode=true;
+    _isAdminViewer=(_appUser.role==='admin');
     _client={id:'viewer_'+_appUser.id,fname:_appUser.name||'Studio',lname:'(Viewer)',email:email,isViewer:true};
     renderDashboard();
     return;
@@ -568,7 +569,7 @@ function renderDashboard(){
 
     <!-- Date Picker -->
     <div class="card" style="padding:14px 16px;">
-      ${_viewerMode?'<div style="margin:0 0 12px;padding:9px 12px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);background:rgba(201,168,76,0.1);color:var(--gold);font-size:12px;font-weight:700;text-align:center;">👁 Studio viewer — read-only, booking disabled</div>':''}${personalBanner()}${announceBanner()}
+      ${_viewerMode?(_isAdminViewer?('<div style="margin:0 0 12px;padding:9px 12px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);background:rgba(201,168,76,0.1);color:var(--gold);font-size:12px;font-weight:700;text-align:center;cursor:pointer;" onclick="_openClientPicker()">👑 Admin — booking for: '+(_bookingForClient?(_bookingForClient.fname+' '+(_bookingForClient.lname||'')).replace(/</g,"&lt;"):'tap to choose a client')+'</div>'):'<div style="margin:0 0 12px;padding:9px 12px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);background:rgba(201,168,76,0.1);color:var(--gold);font-size:12px;font-weight:700;text-align:center;">👁 Studio viewer — read-only, booking disabled</div>'):''}${personalBanner()}${announceBanner()}
       <div class="section-title"><span class="live-dot"></span> Live Schedule</div>
       <div class="date-row" id="date-row">${renderDates()}</div>
     </div>
@@ -737,6 +738,42 @@ function _coinZoom(){
   ov.onclick=()=>ov.remove();
   document.body.appendChild(ov);
 }
+/* v146 — admin/developer booking-on-behalf-of. Viewer mode has no real
+   client behind it (just a placeholder), so an admin picks a REAL client
+   from the already-loaded list here; that client's real ID is what
+   actually gets written to the booking, never the placeholder. */
+function _openClientPicker(){
+  let ov=document.getElementById('client-picker-ov');
+  if(ov){ov.remove();}
+  ov=document.createElement('div');ov.id='client-picker-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(10,9,7,0.96);z-index:9999;display:flex;flex-direction:column;padding:20px;';
+  ov.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
+    +'<div style="font-family:\'Playfair Display\',serif;font-size:18px;color:var(--gold);">Book for which client?</div>'
+    +'<button onclick="document.getElementById(\'client-picker-ov\').remove()" style="background:none;border:1px solid var(--border2);color:var(--text2);border-radius:8px;padding:6px 12px;cursor:pointer;">✕</button></div>'
+    +'<input id="cp-search" placeholder="Search by name or phone…" oninput="_cpFilter()" style="padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:12px;"/>'
+    +(_bookingForClient?'<button onclick="_bookingForClient=null;document.getElementById(\'client-picker-ov\').remove();renderDashboard();" style="margin-bottom:10px;padding:8px;background:none;border:1px solid var(--rose);color:var(--rose);border-radius:8px;cursor:pointer;">Clear current selection ('+((_bookingForClient.fname||'')+' '+(_bookingForClient.lname||'')).trim()+')</button>':'')
+    +'<div id="cp-list" style="flex:1;overflow-y:auto;"></div>';
+  document.body.appendChild(ov);
+  _cpFilter();
+  setTimeout(()=>{const el=document.getElementById('cp-search');if(el)el.focus();},100);
+}
+function _cpFilter(){
+  const q=(document.getElementById('cp-search').value||'').toLowerCase().trim();
+  const list=document.getElementById('cp-list');
+  const matches=(_clients||[]).filter(c=>!c.archived&&(!q||((c.fname||'')+' '+(c.lname||'')).toLowerCase().includes(q)||(c.phone||'').includes(q))).slice(0,40);
+  if(!q){list.innerHTML='<div style="text-align:center;color:var(--text3);font-size:12px;padding:20px;">Start typing a name or phone number…</div>';return;}
+  if(!matches.length){list.innerHTML='<div style="text-align:center;color:var(--text3);font-size:12px;padding:20px;">No matches</div>';return;}
+  list.innerHTML=matches.map(c=>'<div onclick="_cpPick(\''+c.id+'\')" style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;color:var(--text);">'
+    +'<b>'+((c.fname||'')+' '+(c.lname||'')).replace(/</g,'&lt;')+'</b>'
+    +'<div style="font-size:11px;color:var(--text3);">'+(c.phone||'')+'</div></div>').join('');
+}
+function _cpPick(cid){
+  const c=(_clients||[]).find(x=>x.id===cid);if(!c)return;
+  _bookingForClient=c;
+  const ov=document.getElementById('client-picker-ov');if(ov)ov.remove();
+  renderDashboard();
+  showToast('Booking for '+(c.fname||''));
+}
 function _dpPick(){
   if(_viewerMode)return;
   const f=document.getElementById('dp-file');if(f)f.click();
@@ -776,14 +813,22 @@ async function _dpUpload(input){
   }
 }
 async function confirmBooking(){
-  if(_viewerMode){showAlert('👁 Viewer access — booking is disabled for studio accounts.','🔒');return;}
-  const _m=_mems[_client.id];
-  if(_m&&_m.status==='frozen'){showAlert((_client.fname||'')+', your plan is on a short break'+(_m.expectedReturn?' until '+fmt(_m.expectedReturn):'')+'. WhatsApp or call the desk when you are back, and we will revive your booking right away! 🌸','⏸');return;}
+  if(_viewerMode&&!_isAdminViewer){showAlert('👁 Viewer access — booking is disabled for studio accounts.','🔒');return;}
+  if(_isAdminViewer&&!_bookingForClient){showAlert('Pick a client first — tap the gold banner at the top.','👤');return;}
+  const _bookClient=_isAdminViewer?_bookingForClient:_client;
+  const _m=_mems[_bookClient.id];
+  if(_m&&_m.status==='frozen'){showAlert((_bookClient.fname||'')+", this plan is on a short break"+(_m.expectedReturn?' until '+fmt(_m.expectedReturn):'')+'. WhatsApp or call the desk when back, and the booking can be revived right away! 🌸','⏸');return;}
   const slot=document.getElementById('popup-confirm-btn').getAttribute('data-slot');
   closePopup();
-  askPin('Enter PIN to Confirm Booking',()=>_doConfirmBooking(slot));
+  /* Admin authority is already established via Google sign-in matching a
+     Users & Access account — the PIN box would check the PICKED client's
+     PIN, which the admin doesn't have and shouldn't need. Skip straight
+     to the write for admin bookings; members still confirm their own PIN. */
+  if(_isAdminViewer)_doConfirmBooking(slot,_bookClient);
+  else askPin('Enter PIN to Confirm Booking',()=>_doConfirmBooking(slot,_client));
 }
-async function _doConfirmBooking(slot){
+async function _doConfirmBooking(slot,_bookClient){
+  _bookClient=_bookClient||_client;
   try{
     /* Re-fetch latest to avoid conflicts */
     const bSnap=await db.collection(COL).doc('pp_bookings').get();
@@ -794,15 +839,15 @@ async function _doConfirmBooking(slot){
       showAlert('This slot just filled up! Please choose another.','😅');
       renderSlots();return;
     }
-    if(freshBk[_selDate][slot].some(b=>b.cid===_client.id)){
-      showAlert('You are already booked for this slot!','📌');return;
+    if(freshBk[_selDate][slot].some(b=>b.cid===_bookClient.id)){
+      showAlert((_isAdminViewer?(_bookClient.fname||'This client'):'You')+' already booked for this slot!','📌');return;
     }
     /* Add booking */
-    freshBk[_selDate][slot].push({cid:_client.id,notes:'Online booking',attended:false,bookedAt:new Date().toISOString()});
+    freshBk[_selDate][slot].push({cid:_bookClient.id,notes:_isAdminViewer?('Booked by studio ('+(_googleUser&&_googleUser.email||'admin')+')'):'Online booking',attended:false,bookedAt:new Date().toISOString()});
     await db.collection(COL).doc('pp_bookings').set({value:JSON.stringify(freshBk),updated:Date.now()});
     _bookings=freshBk;
     renderDashboard(); /* refresh entire view including My Bookings */
-    showToast('🎉 Booked! '+fmtDay(_selDate)+' at '+slot);
+    showToast('🎉 Booked! '+fmtDay(_selDate)+' at '+slot+(_isAdminViewer?(' for '+(_bookClient.fname||'')):''));
   }catch(e){
     showAlert('Booking failed. Please try again.','😕');
   }
