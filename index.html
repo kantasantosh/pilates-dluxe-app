@@ -59,7 +59,8 @@ body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--text);min-he
 .bnav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 6px;background:none;border:none;color:var(--text3);cursor:pointer;font-family:'Jost',sans-serif;font-size:9px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;transition:color 0.2s;gap:3px;}
 .nb.active{color:var(--gold);}
-.nb .ni{font-size:20px;line-height:1;}
+.nb .ni{font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;}
+.nb .ni svg{width:21px;height:21px;display:block;}
 .nb.active .ni{filter:drop-shadow(0 0 6px var(--gold));}
 
 /* TABS */
@@ -506,10 +507,8 @@ function _pRerenderActive(){
 function _pRerenderNow(){
   try{
     if(document.querySelector('.mo.open'))return; /* anti-flicker under modals */
-    /* [v145z] prevent shivering: skip if we painted less than 2s ago */
-    const _now=Date.now();
-    if(window._lastRenderTs&&(_now-window._lastRenderTs)<2000)return;
-    window._lastRenderTs=_now;
+    /* [v145z] shivering guard: only skip rapid repaints from SYNC events,
+       never from user actions (opening forms, clicking cards, etc.) */
     const t=_activeTab;
     if(typeof renderDash==='function'&&t==='dashboard')renderDash();
     else if(typeof renderClients==='function'&&t==='clients')renderClients();
@@ -672,7 +671,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" onclick="checkForUpdate()" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v145z</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146a</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -798,9 +797,9 @@ try{
   <div id="cash-summary"></div>
   <!-- Sticky: search + category only -->
   <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding-bottom:4px;">
-  <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries…" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
-    <select id="cash-catfilter" onchange="renderCash()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;margin-bottom:6px;">
+    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries…" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
+    <select id="cash-catfilter" onchange="renderCash()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">All categories</option>
     </select>
   </div>
@@ -1154,12 +1153,12 @@ try{
 
 <!-- BOTTOM NAV -->
 <div class="bnav">
-  <button class="nb active" data-tab="dashboard" onclick="showTab('dashboard',this)"><span class="ni">🏠</span>Home</button>
-  <button class="nb" data-tab="clients" onclick="showTab('clients',this)"><span class="ni">👥</span>Clients</button>
-  <button class="nb" data-tab="schedule" onclick="showTab('schedule',this)"><span class="ni">📅</span>Schedule</button>
-  <button class="nb" data-tab="cash" onclick="showTab('cash',this)"><span class="ni">💰</span>Cash</button>
-  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni">📋</span>TnS</button>
-  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni">ℹ️</span>About</button>
+  <button class="nb active" data-tab="dashboard" onclick="showTab('dashboard',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9"/><path d="M9.5 20v-6h5v6"/></svg></span>Home</button>
+  <button class="nb" data-tab="clients" onclick="showTab('clients',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.8"/><path d="M3.5 19.5c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="16" cy="9" r="2.3"/><path d="M14.7 12.2c2.3.2 3.8 2 3.8 4.5"/></svg></span>Clients</button>
+  <button class="nb" data-tab="schedule" onclick="showTab('schedule',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v3.5"/><path d="M16 3v3.5"/><circle cx="12" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></svg></span>Schedule</button>
+  <button class="nb" data-tab="cash" onclick="showTab('cash',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="18" height="12.5" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.3" r="1.2" fill="currentColor" stroke="none"/></svg></span>Cash</button>
+  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 14.5h7"/><path d="M8.5 18h4.5"/></svg></span>TnS</button>
+  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></svg></span>About</button>
 </div>
 
 <!-- ===== MODALS ===== -->
@@ -1367,7 +1366,7 @@ function _cSetCategory(cat,lock){
       <select class="fi" id="wa-template" onchange="applyWATemplate()">
         <option value="">— Choose a message —</option>
         <option value="payment">💳 Payment Reminder (dues)</option>
-        <option value="expiring">⏳ Membership Expiring</option>
+        <option value="expiring">⏳ Membership Ending</option>
         <option value="welcome">🙏 Welcome Message</option>
         <option value="cancelled">⚠️ Class Cancelled</option>
         <option value="festival">🎉 Festival Greeting</option>
@@ -2260,7 +2259,7 @@ function renderClients(){
       <div style="display:flex;justify-content:space-between;margin-top:7px;${(()=>{const _fus=ld('pp_followups',[]).filter(x=>x.cid===c.id&&x.remindDate&&!x.done).sort((a,b)=>a.remindDate.localeCompare(b.remindDate));if(!_fus.length)return '';const _nr=_fus[0];const _over=_nr.remindDate<td();return '<div style="font-size:10.5px;margin-bottom:4px;color:'+(_over?'#e74c3c':'var(--amber)')+';">'+ (_over?'⚠ Follow up overdue':'🕐 Follow up due')+' '+fmt(_nr.remindDate)+'</div>';})()}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:var(--text3);">
         ${_isTr?`<span style="flex:1;white-space:nowrap;">Trial <span style="color:#afa9ec;">${c.trialDate?(()=>{const _p=c.trialDate.split('-');return _p[2]+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+_p[1]-1];})():'—'}</span></span><span style="color:var(--gold);cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();openFollowUp('${c.id}')">📞 Follow up</span>`
-        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;">${(st!=="expired"&&!c.archived)?'<span onclick="event.stopPropagation();_goBookSlot(\''+c.id+'\')" title="Book a slot" style="cursor:pointer;">📅</span>':''}<span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;">💬</span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
+        :`<span>${(c.join||c.joinDate)?'Started <span style="color:var(--text2);">'+fmt(c.join||c.joinDate)+'</span>':''}</span><span style="display:flex;gap:14px;">${(st!=="expired"&&!c.archived)?'<span onclick="event.stopPropagation();_goBookSlot(\''+c.id+'\')" title="Book a slot" style="cursor:pointer;">📅</span>':''}<span onclick="event.stopPropagation();openWA('${c.id}')" title="WhatsApp" style="cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg></span></span><span>${mem&&mem.endDate?'Ends <span style="color:var(--amber);">'+fmt(mem.endDate)+'</span>':''}</span>`}
       </div>
     </div>`;
   }).join('');
@@ -3113,13 +3112,13 @@ function openWA(cid){
   const daysLeft=mem?getDaysLeft(mem):0;
   let msg=`Hi ${c.fname}! 👋\n\n`;
   if(mem&&getMembershipStatus(mem,cid)==='expiring'){
-    msg+=`This is a reminder that your *${plan?.name||''}* membership at our Pilates Studio expires in *${daysLeft} day${daysLeft!==1?'s':''}* (on ${fmt(mem.endDate)}).\n\nWould you like to renew? Please contact us to continue your fitness journey! 💪\n\n`;
+    msg+=`This is a reminder that your *${plan?.name||''}* membership at our Pilates Studio ends in *${daysLeft} day${daysLeft!==1?'s':''}* (on ${fmt(mem.endDate)}).\n\nWould you like to renew? Please contact us to continue your fitness journey! 💪\n\n`;
   } else if(mem&&getMembershipStatus(mem,cid)==='active'){
     msg+=`Your *${plan?.name||''}* membership is active until *${fmt(mem.endDate)}*.\n`;
     if(mem.plan!=='unlimited')msg+=`Sessions remaining: *${getSessionsLeft(mem,cid)}*\n`;
     msg+=`\nSee you at the studio! 🏋️\n\n`;
   } else {
-    msg+=`We miss you at the Pilates Studio! Your membership has expired. Please contact us to renew and get back on track. 💪\n\n`;
+    msg+=`We miss you at the Pilates Studio! Your membership has ended. Please contact us to renew and get back on track. 💪\n\n`;
   }
   msg+=`Thank you! 🙏`;
   document.getElementById('wa-phone').value=c.phone||'';
@@ -3199,7 +3198,7 @@ function applyWATemplate(){
       msg=`Hi ${nm}! 👋\n\nThis is a gentle reminder regarding your pending payment of *₹${due.toLocaleString('en-IN')}* for your ${plan} membership at ${s.name}.\n\nKindly clear it at your convenience. Thank you! 🙏`;
       break;
     case 'expiring':
-      msg=`Hi ${nm}! 👋\n\nYour *${plan}* membership at ${s.name} ${daysLeft>0?'expires in *'+daysLeft+' day'+(daysLeft!==1?'s':'')+'*':'has expired'} (on ${m?fmt(m.endDate):''}).\n\nWould you like to renew and continue your fitness journey? 💪\n\nSee you at the studio!`;
+      msg=`Hi ${nm}! 👋\n\nYour *${plan}* membership at ${s.name} ${daysLeft>0?'ends in *'+daysLeft+' day'+(daysLeft!==1?'s':'')+'*':'has ended'} (on ${m?fmt(m.endDate):''}).\n\nWould you like to renew and continue your fitness journey? 💪\n\nSee you at the studio!`;
       break;
     case 'welcome':
       msg=`Hi ${nm}! 🌸\n\nWelcome to *${s.name}* — ${s.tagline}! We're delighted to have you with us.\n\nYour ${plan} membership is now active. We look forward to seeing you in class! 💪\n\n📍 ${s.addr}`;
@@ -4982,9 +4981,9 @@ function renderCash(){
   document.getElementById('cash-summary').innerHTML=`
     <div style="display:grid;grid-template-columns:72px 1fr 72px;gap:5px;align-items:stretch;margin-bottom:6px;">
       <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
-        <button onclick="openStatement()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;">STATEMENT</button>
-        <button onclick="openDaybook()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">DAY BOOK</button>
-        <button onclick="_cashFilter='all';renderCash();" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">ALL</button>
+        <button onclick="openStatement()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;">STATEMENT</button>
+        <button onclick="openDaybook()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">DAY BOOK</button>
+        <button onclick="_cashFilter='all';renderCash();" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">ALL</button>
       </div>
       <div class="card card-gold" style="padding:8px 10px;text-align:center;min-width:0;overflow:hidden;">
         <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">Overall Balance</div>
@@ -4997,9 +4996,9 @@ function renderCash(){
         <div style="font-size:9px;color:var(--text3);margin-top:3px;">Cash movement · not profit</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
-        <button onclick="_cashFilter='in';renderCash();" style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--green);cursor:pointer;">CREDIT</button>
-        <button onclick="_cashFilter='out';renderCash();" style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--red);cursor:pointer;">DEBIT</button>
-        <button onclick="_cashFilter='contra';renderCash();" style="background:rgba(155,138,175,0.12);border:1px solid rgba(155,138,175,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--purple);cursor:pointer;">CONTRA</button>
+        <button onclick="_cashFilter='in';renderCash();" style="width:100%;box-sizing:border-box;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--green);cursor:pointer;">CREDIT</button>
+        <button onclick="_cashFilter='out';renderCash();" style="width:100%;box-sizing:border-box;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--red);cursor:pointer;">DEBIT</button>
+        <button onclick="_cashFilter='contra';renderCash();" style="width:100%;box-sizing:border-box;background:rgba(155,138,175,0.12);border:1px solid rgba(155,138,175,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--purple);cursor:pointer;">CONTRA</button>
       </div>
     </div>`;
   // populate category filter dropdown (once per render, preserving selection)
@@ -7079,10 +7078,10 @@ function printMembers(){
     return `<tr><td>${_esc(c.memNo)}</td><td>${_esc(c.fname+' '+(c.lname||''))}</td><td>${_esc(c.phone)}</td><td>${_esc(c.email||'—')}</td><td>${_esc(plan)}</td>
       <td>${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}</td><td>${m?fmt(m.startDate):'—'}</td><td>${m?fmt(m.endDate):'—'}</td>
       <td>${m&&m.plan!=='unlimited'?getSessionsLeft(m,c.id)+'/'+((m.sessions||m.sessionsTotal||0)+(m.bonus||0)):'—'}</td>
-      <td>${due>0?'₹'+due.toLocaleString('en-IN'):'—'}</td><td>${st==='none'?'No Plan':st.charAt(0).toUpperCase()+st.slice(1)}</td></tr>`;
+      <td>${due>0?'₹'+due.toLocaleString('en-IN'):'—'}</td><td>${({active:'Active',expiring:'Ending',expired:'Ended',none:'No Plan',due:'Due'}[st]||st)}</td></tr>`;
   }).join('');
   // build a readable title describing the filter
-  const fLabel={all:'All',active:'Active',trial:'Trial',expiring:'Expiring',expired:'Expired',due:'Payment Due',inactive:'Inactive'}[_clientFilter2]||'All';
+  const fLabel={all:'All',active:'Active',trial:'Trial',expiring:'Ending',expired:'Ended',due:'Payment Due',inactive:'Inactive'}[_clientFilter2]||'All';
   const pf=(document.getElementById('client-planfilter')||{}).value||'';
   const planName=pf?((getPlans().find(p=>p.id===pf)||{}).name||pf):'';
   let title='Member List — '+fLabel+(planName?' · '+planName+' plan':'')+' ('+clients.length+')';
@@ -7110,7 +7109,8 @@ function printProfile(cid){
     ${c.insta?`<tr><th>Instagram</th><td>${_esc(c.insta)}</td></tr>`:''}
     ${c.bday?`<tr><th>Birthday</th><td>${fmt(c.bday)}</td></tr>`:''}
     ${c.anni?`<tr><th>Anniversary</th><td>${fmt(c.anni)}</td></tr>`:''}
-    <tr><th>Registered</th><td>${isTrialClient?'NA':((c.join||c.joinDate)?fmt(c.join||c.joinDate):'—')}</td></tr>
+    <tr><th>Registered</th><td>${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}</td></tr>
+    ${(c.trialDate||c.isTrial)?'<tr><th>Trial Date</th><td>'+(c.trialDate?fmt(c.trialDate):'—')+'</td></tr>':''}
     ${refBy?`<tr><th>Referred By</th><td>${_esc(refBy)}</td></tr>`:''}
     ${c.notes?`<tr><th>Notes</th><td>${_esc(c.notes)}</td></tr>`:''}</table>`;
   if(m&&isTrialClient){
@@ -7128,11 +7128,13 @@ function printProfile(cid){
     <tr><th>Paid / Due</th><td>${(totalPaid>0||due>0)?('₹'+totalPaid.toLocaleString('en-IN')+' paid'+(due>0?' • <b>₹'+due.toLocaleString('en-IN')+' DUE</b>':' • Fully paid')):'No payments recorded'}</td></tr>
     ${(m.bonus||0)>0?`<tr><th>Complimentary</th><td>${m.bonus} class(es)</td></tr>`:''}</table>`;
   }
-  /* ALL plan history — past plans the member has held, not just the current one */
-  if(m&&m.history&&m.history.length){
+  /* ALL plan history — synthesize trial from client flags if absent */
+  const _printHist=(m&&m.history)?[...m.history]:[];
+  if((c.trialDate||c.isTrial)&&!_printHist.some(h=>h.plan==='trial'))_printHist.unshift({plan:'trial',startDate:c.trialDate||c.join,endDate:c.trialDate||'',sessionsTotal:1,fee:0});
+  if(_printHist.length){
     const allPlans=getPlans();
-    html+=`<h2>📋 Previous Plans (${m.history.length})</h2><table><tr><th>Plan</th><th>Period</th><th>Fee</th><th>Outcome</th></tr>`+
-      m.history.map(h=>{
+    html+=`<h2>📋 Previous Plans (${_printHist.length})</h2><table><tr><th>Plan</th><th>Period</th><th>Fee</th><th>Outcome</th></tr>`+
+      _printHist.map(h=>{
         const hp=allPlans.find(x=>x.id===h.plan);
         return `<tr><td>${_esc(hp?hp.name:h.plan)}</td><td>${h.plan==='trial'?fmt(h.startDate):fmt(h.startDate)+' → '+fmt(h.endDate)}</td><td>₹${(h.fee||0).toLocaleString('en-IN')}</td><td>${_esc((h.endReason||'—').replace(/^Converted to/,'Subscribed to'))}</td></tr>`;
       }).join('')+'</table>';
@@ -7780,13 +7782,30 @@ function _verAhead(server,local){
 /* Long-press version → changelog */
 (function(){
   const el=document.getElementById('app-ver');if(!el)return;
-  let _lpt;
-  el.addEventListener('touchstart',()=>{_lpt=setTimeout(_showChangelog,600);},{passive:true});
-  el.addEventListener('touchend',()=>clearTimeout(_lpt));
-  el.addEventListener('touchmove',()=>clearTimeout(_lpt));
+  let _lpt,_lpFired=false;
+  const _lpStart=()=>{_lpFired=false;_lpt=setTimeout(()=>{_lpFired=true;_showChangelog();},600);};
+  const _lpCancel=()=>clearTimeout(_lpt);
+  el.addEventListener('touchstart',_lpStart,{passive:true});
+  el.addEventListener('touchend',_lpCancel);
+  el.addEventListener('touchmove',_lpCancel);
+  el.addEventListener('mousedown',_lpStart);
+  el.addEventListener('mouseup',_lpCancel);
+  el.addEventListener('mouseleave',_lpCancel);
+  /* v146a — root cause of "long-press doesn't work" on phone too: touchstart
+     WAS firing and the 600ms timer WAS opening the changelog, but on
+     release the browser still fires a plain click right after, which used
+     to call checkForUpdate() via inline onclick and immediately covered/
+     replaced the changelog with its own toast. A normal short tap must
+     still open checkForUpdate(); only the long-press's trailing click
+     needs to be swallowed. */
+  el.addEventListener('click',()=>{
+    if(_lpFired){_lpFired=false;return;}
+    checkForUpdate();
+  });
 })();
 function _showChangelog(){
   const log=[
+    ['v146a','Ending/Ended wording everywhere, changelog long-press fixed properly (was being stomped by a trailing click), cashbook chips + search/category now truly equal width, Profile section in client form closed by default, bottom nav icons replaced with uniform SVGs (no more emoji-font inconsistency across phones)'],
     ['v145z','All 19 items: trial restored, viewer mode, changelog, spots hidden, Built With compact, WhatsApp icons, client list fixes, collapsibles closed'],
     ['v145y','Trial in print/history, spots hidden, Audit Log full-width, Unlock button'],
     ['v145x','Direction-aware update checker'],
@@ -9092,7 +9111,7 @@ function _ufPopulatePlan(cid){
     }
     const statusLabel=isFrozen?_leaveLabel:
       isActive?'<span style="color:var(--green);">● Active</span>':
-      '<span style="color:var(--red);">✗ Expired</span>';
+      '<span style="color:var(--red);">✗ Ended</span>';
     
     const _isUnlimited=sessTotal>=999;
     const _sessLabel=_isUnlimited?'Unlimited':''+sessTotal;
@@ -9173,7 +9192,7 @@ planInfo.innerHTML=`${_staleTrialFlag?`<div style="background:rgba(231,76,60,0.1
           <button data-action="change" onclick="ufPlanAction('change')" class="uf-act-btn" style="flex:1;">🔀 Change</button>
           <button data-action="freeze" onclick="ufPlanAction('freeze')" class="uf-act-btn" style="flex:1;">❄️ Freeze</button>
           <button data-action="extend" onclick="ufPlanAction('extend')" class="uf-act-btn" style="flex:1;">➕ Extend</button>`;
-        summary.textContent=pName+(st==='expired'?' · expired '+fmt(m.endDate):' · expires '+fmt(m.endDate));
+        summary.textContent=pName+(st==='expired'?' · ended '+fmt(m.endDate):' · ends '+fmt(m.endDate));
       }
     }
   }else{
@@ -10170,9 +10189,9 @@ function ufSavePayment(){
       <div class="uf-sec-hdr" style="background:rgba(90,130,200,0.14);border-left:3px solid #5a82c8;" onclick="if(event.target.closest('a'))return;ufToggle('profile')">
         <span>👤 Profile</span>
         <span id="uf-profile-summary" style="font-size:11px;color:var(--text3);margin-left:auto;text-align:right;"></span>
-        <span id="uf-profile-arrow" style="font-size:12px;margin-left:auto;">▼</span>
+        <span id="uf-profile-arrow" style="font-size:12px;margin-left:auto;">▶</span>
       </div>
-      <div class="uf-sec-body" id="uf-body-profile">
+      <div class="uf-sec-body" id="uf-body-profile" style="display:none;">
         <input type="hidden" id="uf-cid"/>
         <input type="hidden" id="uf-photo-data"/>
         <div class="fr">
