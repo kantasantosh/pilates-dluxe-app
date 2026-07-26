@@ -683,7 +683,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146b</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146d</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -810,8 +810,8 @@ try{
   <!-- Sticky: search + category only -->
   <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding-bottom:4px;">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;margin-bottom:6px;">
-    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries…" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
-    <select id="cash-catfilter" onchange="renderCash()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
+    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries…" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(201,168,76,0.3);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
+    <select id="cash-catfilter" onchange="renderCash()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(201,168,76,0.3);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">All categories</option>
     </select>
   </div>
@@ -1169,8 +1169,8 @@ try{
   <button class="nb" data-tab="clients" onclick="showTab('clients',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,-0.5)"><circle cx="8.5" cy="8" r="2.8"/><path d="M3.5 19.5c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="16" cy="9" r="2.3"/><path d="M14.7 12.2c2.3.2 3.8 2 3.8 4.5"/></g></svg></span>Clients</button>
   <button class="nb" data-tab="schedule" onclick="showTab('schedule',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,0.4)"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v3.5"/><path d="M16 3v3.5"/><circle cx="12" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></g></svg></span>Schedule</button>
   <button class="nb" data-tab="cash" onclick="showTab('cash',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,-1.1)"><rect x="3" y="6.5" width="18" height="12.5" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.3" r="1.2" fill="currentColor" stroke="none"/></g></svg></span>Cash</button>
-  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,0.8)"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 14.5h7"/><path d="M8.5 18h4.5"/></g></svg></span>TnS</button>
-  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,0.8)"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></g></svg></span>About</button>
+  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,1.6)"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 14.5h7"/><path d="M8.5 18h4.5"/></g></svg></span>TnS</button>
+  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,1.6)"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></g></svg></span>About</button>
 </div>
 
 <!-- ===== MODALS ===== -->
@@ -4993,9 +4993,9 @@ function renderCash(){
   document.getElementById('cash-summary').innerHTML=`
     <div style="display:grid;grid-template-columns:72px 1fr 72px;gap:5px;align-items:stretch;margin-bottom:6px;">
       <div style="display:flex;flex-direction:column;gap:5px;justify-content:center;">
-        <button onclick="openStatement()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;">STATEMENT</button>
-        <button onclick="openDaybook()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">DAY BOOK</button>
-        <button onclick="_cashFilter='all';renderCash();" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">ALL</button>
+        <button onclick="openStatement()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(201,168,76,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;">STATEMENT</button>
+        <button onclick="openDaybook()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(201,168,76,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">DAY BOOK</button>
+        <button onclick="_cashFilter='all';renderCash();" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(201,168,76,0.3);border-radius:8px;padding:7px 2px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;">ALL</button>
       </div>
       <div class="card card-gold" style="padding:8px 10px;text-align:center;min-width:0;overflow:hidden;">
         <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">Overall Balance</div>
@@ -5796,7 +5796,7 @@ async function doLogin(){
   }else{
     const n=L.n+1;const until=n>=5?Date.now()+60000:0;
     localStorage.setItem('pp_lock',JSON.stringify({n:until?0:n,until}));
-    PPS={name:u.name+' (failed)'};AUD('⚠️ Failed login attempt','User: '+u.name);PPS=null;
+    PPS={name:u.name+' (failed)'};PPS=null;
     err.textContent=until?'5 wrong attempts — locked for 60 seconds':'Wrong PIN ('+n+'/5)';
     document.getElementById('lg-pin').value='';
   }
@@ -7436,7 +7436,6 @@ function cloudSignOut(){
   showConfirm('☁️','Sign out this device from cloud?','The app will stop syncing on this device until the studio email & password are entered again. Local data stays on the device.',[
     {label:'Cancel',color:'var(--border2)',outline:true,action:null},
     {label:'Sign Out Device',color:'var(--rose)',action:()=>{
-      if(typeof AUD==='function')AUD('☁️ Cloud device signed out','');
       localStorage.removeItem('pp_cloud_ok');
       localStorage.removeItem('pp_offline_choice');
       setTimeout(()=>{firebase.auth().signOut().then(()=>location.reload()).catch(()=>location.reload());},400);
@@ -7814,6 +7813,8 @@ function _verAhead(server,local){
 function _showChangelog(){
   const log=[
     ['v146b','Fixed the real root cause of missing trial in plan history: trial clients never got a membership record created at registration, so conversion had nothing to push into history. TnS/About icons nudged down; nav icon vertical alignment tightened further. Fixed a double checkForUpdate() firing on every version-number tap.'],
+    ['v146c','Trial now also shown in plan history for clients who already converted before v146b (retroactive display fix). Cashbook chips + search/category outlined to match Credit/Debit/Contra. Nav icons TnS/About nudged down further.'],
+    ['v146d','Real fix for trial history: one-time migration tool (diagnostic panel) permanently writes trial into stored history for already-converted clients. Login/logout removed from Audit Log (kept: all actual data changes).'],
     ['v146a','Ending/Ended wording everywhere, changelog long-press fixed properly (was being stomped by a trailing click), cashbook chips + search/category now truly equal width, Profile section in client form closed by default, bottom nav icons replaced with uniform SVGs (no more emoji-font inconsistency across phones)'],
     ['v145z','All 19 items: trial restored, viewer mode, changelog, spots hidden, Built With compact, WhatsApp icons, client list fixes, collapsibles closed'],
     ['v145y','Trial in print/history, spots hidden, Audit Log full-width, Unlock button'],
@@ -9244,15 +9245,28 @@ function ufPlanSelected(){
 function _ufRenderHistory(cid){
   const mems=ld('pp_memberships',{});
   const m=mems[cid];
-  const hist=(m&&m.history)?m.history:[];
+  const hist=(m&&m.history)?[...m.history]:[];
+  /* v146b — retroactive cover for clients who converted BEFORE the v146b
+     registration-time fix existed: their stored history can't be changed
+     after the fact, only shown correctly. Synthesize a display-only entry
+     from client flags if a real one isn't already there. */
+  const c=(ld('pp_clients',[])||[]).find(x=>x.id===cid);
+  if(c&&(c.trialDate||c.isTrial)&&!hist.some(h=>h.plan==='trial')){
+    hist.unshift({plan:'trial',startDate:c.trialDate||c.join||'',endDate:c.trialDate||'',fee:0,_synthetic:true});
+  }
   const events=(m&&m.events)?m.events:[];
   const el=document.getElementById('uf-plan-history');
   if(!hist.length&&!events.length){el.innerHTML='';return;}
   let html='';
   if(hist.length){
-    html+=hist.map((h,idx)=>{
+    let _realIdx=-1;
+    html+=hist.map((h)=>{
       const plans=getPlans();
       const p=plans.find(x=>x.id===h.plan);
+      if(h._synthetic){
+        return '<div class="uf-history-item" style="opacity:0.85;"><b>🎯 Trial</b> · '+fmt(h.startDate)+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">reconstructed from client record — edit the trial date in Profile to correct it</div></div>';
+      }
+      const idx=++_realIdx;
       return '<div class="uf-history-item" style="cursor:pointer;" onclick="_ufEditHistoryEntry(\''+cid+'\','+idx+')"><b>'+(p?p.name:h.plan)+'</b> · '+(h.plan==='trial'?fmt(h.startDate):fmt(h.startDate)+' → '+fmt(h.endDate))+(h.plan==='trial'?'':'<br/>Fee: ₹'+(h.fee||0).toLocaleString('en-IN'))+(h.endReason?' · <span style="color:var(--gold);">'+h.endReason.replace(/^Converted to/,'Subscribed to')+'</span>':'')+(h.adjustmentNote?'<br/><span style="font-size:11px;color:var(--text3);">'+h.adjustmentNote+'</span>':'')+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">✏️ tap to correct</div></div>';
     }).join('');
   }
@@ -10383,10 +10397,36 @@ function ufSavePayment(){
     if(panel){panel.style.display=panel.style.display==='none'?'block':'none';_refreshDiag();return;}
     panel=document.createElement('div');panel.id='diag-panel';
     panel.style.cssText='position:fixed;top:0;left:0;right:0;bottom:60px;background:var(--bg);z-index:99999;overflow-y:auto;padding:16px;font-size:12px;color:var(--text);';
-    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><div id="diag-output"></div>';
+    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><button onclick="_migrateTrialHistory()" style="width:100%;margin-bottom:12px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write trial into stored plan history for already-converted clients</button><div id="diag-output"></div>';
     document.body.appendChild(panel);
     _refreshDiag();
   }
+  window._migrateTrialHistory=function(){
+    if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+    /* Permanently backfill missing trial entries into the REAL stored
+       membership.history — not just display. Only touches clients who (a)
+       have trial flags, (b) already have a real membership record, and
+       (c) don't already have a trial entry in history. Safe to run more
+       than once — it's a no-op the second time. */
+    const mems=ld('pp_memberships',{});
+    const clients=ld('pp_clients',[]);
+    const plans=getPlans();
+    let fixed=0;
+    clients.forEach(c=>{
+      if(!(c.trialDate||c.isTrial))return;
+      const m=mems[c.id];
+      if(!m)return; /* no membership record exists at all - nothing to attach history to */
+      if(!m.history)m.history=[];
+      if(m.history.some(h=>h.plan==='trial'))return; /* already has one */
+      const pName=(plans.find(p=>p.id===m.plan)||{}).name||m.plan;
+      m.history.unshift({plan:'trial',startDate:c.trialDate||c.join||'',endDate:c.trialDate||'',fee:0,endReason:'Subscribed to '+pName});
+      fixed++;
+    });
+    if(fixed>0)sv('pp_memberships',mems);
+    toast(fixed>0?('✓ Fixed '+fixed+' client(s) — permanently saved'):'Nothing to fix — already up to date');
+    if(typeof AUD==='function')AUD('migrate_trial_history','Backfilled '+fixed+' client(s)');
+    if(typeof _refreshDiag==='function')_refreshDiag();
+  };
   window._refreshDiag=function(){
     const out=document.getElementById('diag-output');if(!out)return;
     /* PERMISSION STATE — exactly what's making a decision right now */
