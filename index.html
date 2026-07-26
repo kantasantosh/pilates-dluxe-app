@@ -683,7 +683,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146f</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146g</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -7827,6 +7827,7 @@ function _showChangelog(){
     ['v146d','Real fix for trial history: one-time migration tool (diagnostic panel) permanently writes trial into stored history for already-converted clients. Login/logout removed from Audit Log (kept: all actual data changes).'],
     ['v146e','Migration button now shows a persistent on-screen result (was toast-only, easy to miss). Nav icons TnS/About pushed down further — earlier nudges were too small to actually register.'],
     ['v146f','Removed remaining login/logout audit entries (missed 2 earlier). About page: Built With logos now flank the coin (3 left, 3 right) instead of stacking below — much shorter card.'],
+    ['v146g','Real plan names now written into membership records at assignment/renewal/change time, and a one-time migration backfills existing clients — fixes booking app showing "Custom Plan" instead of the real plan name.'],
     ['v146a','Ending/Ended wording everywhere, changelog long-press fixed properly (was being stomped by a trailing click), cashbook chips + search/category now truly equal width, Profile section in client form closed by default, bottom nav icons replaced with uniform SVGs (no more emoji-font inconsistency across phones)'],
     ['v145z','All 19 items: trial restored, viewer mode, changelog, spots hidden, Built With compact, WhatsApp icons, client list fixes, collapsibles closed'],
     ['v145y','Trial in print/history, spots hidden, Audit Log full-width, Unlock button'],
@@ -9950,7 +9951,7 @@ function ufAssignPlan(){
   /* Create new membership */
   const _totalSess=p.sessions+(bonus||0);
   const newMem={
-    plan:pid,startDate,endDate,fee,disc,bonus,
+    plan:pid,planName:p.name,startDate,endDate,fee,disc,bonus,
     sessions:p.sessions,
     sessionsLeft:_totalSess,  /* booking app reads this */
     status:'active',
@@ -10043,7 +10044,7 @@ function ufDoChange(){
   
   /* Update membership */
   const newMem={
-    plan:newPid,startDate,endDate:_localDate(nEndDt),
+    plan:newPid,planName:newP.name,startDate,endDate:_localDate(nEndDt),
     fee:netCharge,disc:0,bonus:0,
     sessions:newP.sessions, /* NO carry forward — monetary adjustment only */
     sessionsLeft:newP.sessions, /* booking app reads this */
@@ -10409,7 +10410,7 @@ function ufSavePayment(){
     if(panel){panel.style.display=panel.style.display==='none'?'block':'none';_refreshDiag();return;}
     panel=document.createElement('div');panel.id='diag-panel';
     panel.style.cssText='position:fixed;top:0;left:0;right:0;bottom:60px;background:var(--bg);z-index:99999;overflow-y:auto;padding:16px;font-size:12px;color:var(--text);';
-    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><button onclick="_migrateTrialHistory()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write trial into stored plan history for already-converted clients</button><div id="migrate-result" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><div id="diag-output"></div>';
+    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><button onclick="_migrateTrialHistory()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write trial into stored plan history for already-converted clients</button><div id="migrate-result" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_migratePlanNames()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write real plan name into existing memberships (fixes "Custom Plan" in booking app)</button><div id="migrate-result2" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><div id="diag-output"></div>';
     document.body.appendChild(panel);
     _refreshDiag();
   }
@@ -10439,6 +10440,31 @@ function ufSavePayment(){
     toast(_msg);
     const _rEl=document.getElementById('migrate-result');if(_rEl)_rEl.textContent=_msg; /* v146e — toast alone fades too fast to confirm; this stays on screen */
     if(typeof AUD==='function')AUD('migrate_trial_history','Backfilled '+fixed+' client(s)');
+    if(typeof _refreshDiag==='function')_refreshDiag();
+  };
+  window._migratePlanNames=function(){
+    if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+    /* Client-facing fix: booking app has no access to pp_plans, so any
+       membership without a real name saved on it renders as a raw ID or a
+       generic "Custom Plan" label. Write the actual plan name onto every
+       existing membership record permanently. Safe to run more than once. */
+    const mems=ld('pp_memberships',{});
+    const plans=getPlans();
+    let fixed=0;
+    Object.keys(mems).forEach(cid=>{
+      const m=mems[cid];
+      if(!m||!m.plan||m.plan==='trial'||m.plan==='unlimited')return;
+      if(m.planName)return; /* already has one */
+      const p=plans.find(x=>x.id===m.plan);
+      if(!p)return; /* plan itself was deleted — nothing to resolve */
+      m.planName=p.name;
+      fixed++;
+    });
+    if(fixed>0)sv('pp_memberships',mems);
+    const _msg2=fixed>0?('✓ Fixed '+fixed+' membership(s) — permanently saved'):'Already up to date — nothing left to fix';
+    toast(_msg2);
+    const _rEl2=document.getElementById('migrate-result2');if(_rEl2)_rEl2.textContent=_msg2;
+    if(typeof AUD==='function')AUD('migrate_plan_names','Backfilled '+fixed+' membership(s)');
     if(typeof _refreshDiag==='function')_refreshDiag();
   };
   window._refreshDiag=function(){
