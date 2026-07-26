@@ -683,7 +683,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146e</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146f</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -3834,15 +3834,25 @@ function renderCredits(){
       </div>
     </div>
     <div style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
-      <div style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;overflow:hidden;box-shadow:0 0 0 2px rgba(201,169,110,0.35),0 0 18px rgba(201,169,110,0.25);"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-      <div style="font-family:'Playfair Display',serif;font-size:19px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
-      <div style="font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:4px 0 4px;">Studio Admin</div>
-      <div style="font-size:13px;color:var(--text2);letter-spacing:1px;margin-bottom:8px;">${typeof _appVer==='function'?_appVer():''}</div>
-      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Built with</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px;margin-bottom:6px;opacity:0.85;">
-        <div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><div style="width:28px;height:28px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-family:'Playfair Display',serif;font-weight:800;font-size:14px;color:#e8e0d4;">A\</span></div><div><span style="font-size:10px;font-weight:600;color:var(--text);">Claude</span> <span style="font-size:9px;color:var(--text3);">Anthropic</span></div></div><div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><div style="width:28px;height:28px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div><div><span style="font-size:10px;font-weight:600;color:var(--text);">GitHub</span> <span style="font-size:9px;color:var(--text3);">Source</span></div></div><div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><div style="width:28px;height:28px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M5 19.5 7.6 3.6c.06-.37.55-.46.73-.13l2.1 3.9L5 19.5zm14 .3-2-13.1c-.05-.33-.46-.45-.68-.2L5.3 19.8l6.1 3.4c.38.21.85.21 1.23 0L19 19.8zM13.2 9.2 11.7 6.4c-.14-.27-.52-.27-.66 0L4.5 19.5l8.7-10.3z"/></svg></div><div><span style="font-size:10px;font-weight:600;color:var(--text);">Firebase</span> <span style="font-size:9px;color:var(--text3);">Google</span></div></div><div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><div style="width:28px;height:28px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-family:'Jost',sans-serif;font-weight:800;font-size:13px;color:#e8e0d4;">JS</span></div><div><span style="font-size:10px;font-weight:600;color:var(--text);">JavaScript</span> <span style="font-size:9px;color:var(--text3);">HTML·CSS</span></div></div><div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><div style="width:28px;height:28px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M18.5 17H6a4 4 0 1 1 .8-7.92A6 6 0 0 1 18.2 10.4 3.5 3.5 0 0 1 18.5 17z"/></svg></div><div><span style="font-size:10px;font-weight:600;color:var(--text);">Cloudflare</span> <span style="font-size:9px;color:var(--text3);">Pages</span></div></div><div style="display:flex;align-items:center;gap:8px;padding:3px 0;"><div style="width:28px;height:28px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 0C12.7 6.5 17.5 11.3 24 12C17.5 12.7 12.7 17.5 12 24C11.3 17.5 6.5 12.7 0 12C6.5 11.3 11.3 6.5 12 0Z"/></svg></div><div><span style="font-size:10px;font-weight:600;color:var(--text);">Gemini</span> <span style="font-size:9px;color:var(--text3);">Google</span></div></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;">
+        <div style="display:flex;flex-direction:column;gap:9px;opacity:0.85;">
+          <div title="Claude · Anthropic" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Playfair Display',serif;font-weight:800;font-size:13px;color:#e8e0d4;">A\</span></div>
+          <div title="GitHub · Source" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div>
+          <div title="Firebase · Google" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M5 19.5 7.6 3.6c.06-.37.55-.46.73-.13l2.1 3.9L5 19.5zm14 .3-2-13.1c-.05-.33-.46-.45-.68-.2L5.3 19.8l6.1 3.4c.38.21.85.21 1.23 0L19 19.8zM13.2 9.2 11.7 6.4c-.14-.27-.52-.27-.66 0L4.5 19.5l8.7-10.3z"/></svg></div>
+        </div>
+        <div style="flex-shrink:0;">
+          <div style="width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;overflow:hidden;box-shadow:0 0 0 2px rgba(201,169,110,0.35),0 0 18px rgba(201,169,110,0.25);"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
+          <div style="font-family:'Playfair Display',serif;font-size:16px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
+          <div style="font-size:10px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin:3px 0 3px;">Studio Admin</div>
+          <div style="font-size:12px;color:var(--text2);letter-spacing:1px;">${typeof _appVer==='function'?_appVer():''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px;opacity:0.85;">
+          <div title="JavaScript · HTML/CSS" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Jost',sans-serif;font-weight:800;font-size:11px;color:#e8e0d4;">JS</span></div>
+          <div title="Cloudflare · Pages" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M18.5 17H6a4 4 0 1 1 .8-7.92A6 6 0 0 1 18.2 10.4 3.5 3.5 0 0 1 18.5 17z"/></svg></div>
+          <div title="Gemini · Google" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 0C12.7 6.5 17.5 11.3 24 12C17.5 12.7 12.7 17.5 12 24C11.3 17.5 6.5 12.7 0 12C6.5 11.3 11.3 6.5 12 0Z"/></svg></div>
+        </div>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px;">Designed together with its user</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px;">Designed together with its user</div>
     </div>
     <div id="about-signout-slot" style="margin:0 16px 10px;"></div>
     <div id="about-reset-card" style="margin:0 16px 30px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
@@ -5507,7 +5517,7 @@ async function bioLogin(userId){
     if(assertion){
       localStorage.removeItem('pp_lock');
       localStorage.setItem('pp_session',JSON.stringify({uid:u.id,ts:Date.now()}));
-      PPS=u;if(typeof AUD==='function')AUD('🔓 Logged in (fingerprint)','');
+      PPS=u;
       setTimeout(()=>location.reload(),300);
     }
   }catch(e){
@@ -5791,7 +5801,7 @@ async function doLogin(){
   if(h===u.pinH||('plain:'+pin)===u.pinH){
     localStorage.removeItem('pp_lock');
     localStorage.setItem('pp_session',JSON.stringify({uid:u.id,ts:Date.now()}));
-    PPS=u;AUD('🔓 Logged in','');
+    PPS=u;
     setTimeout(()=>location.reload(),400);
   }else{
     const n=L.n+1;const until=n>=5?Date.now()+60000:0;
@@ -5818,7 +5828,7 @@ async function doSetup(){
   setTimeout(()=>location.reload(),400);
 }
 function doLogout(){
-  AUD('🔒 Logged out','');
+  
   PPS=null;
   localStorage.removeItem('pp_session');
   localStorage.removeItem('pp_lock');
@@ -7816,6 +7826,7 @@ function _showChangelog(){
     ['v146c','Trial now also shown in plan history for clients who already converted before v146b (retroactive display fix). Cashbook chips + search/category outlined to match Credit/Debit/Contra. Nav icons TnS/About nudged down further.'],
     ['v146d','Real fix for trial history: one-time migration tool (diagnostic panel) permanently writes trial into stored history for already-converted clients. Login/logout removed from Audit Log (kept: all actual data changes).'],
     ['v146e','Migration button now shows a persistent on-screen result (was toast-only, easy to miss). Nav icons TnS/About pushed down further — earlier nudges were too small to actually register.'],
+    ['v146f','Removed remaining login/logout audit entries (missed 2 earlier). About page: Built With logos now flank the coin (3 left, 3 right) instead of stacking below — much shorter card.'],
     ['v146a','Ending/Ended wording everywhere, changelog long-press fixed properly (was being stomped by a trailing click), cashbook chips + search/category now truly equal width, Profile section in client form closed by default, bottom nav icons replaced with uniform SVGs (no more emoji-font inconsistency across phones)'],
     ['v145z','All 19 items: trial restored, viewer mode, changelog, spots hidden, Built With compact, WhatsApp icons, client list fixes, collapsibles closed'],
     ['v145y','Trial in print/history, spots hidden, Audit Log full-width, Unlock button'],
