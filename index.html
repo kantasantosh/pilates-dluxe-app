@@ -494,10 +494,20 @@ setInterval(()=>{
     if(dd&&dd.value!==undefined&&localStorage.getItem('pp_bookings')!==dd.value){
       localStorage.setItem('pp_bookings',dd.value);
       _pLast['pp_bookings']=dd.updated||Date.now();
+      if(typeof _logRepaint==='function')_logRepaint('watchdog-bookings-poll');
       _pRerenderActive();
     }
   }).catch(()=>{});
 },5000);
+/* v146a — lightweight repaint log for the flicker investigation. Visible in
+   the diagnostic panel (long-press... tap version 5x). Not a fix by itself —
+   this just tells us, with real timestamps, whether background sync is what's
+   causing it or whether we need to look somewhere else entirely. */
+window._repaintLog=[];
+function _logRepaint(src,extra){
+  window._repaintLog.push({t:Date.now(),src:src,extra:extra||''});
+  if(window._repaintLog.length>40)window._repaintLog.shift();
+}
 function _pRerenderActive(){
   /* [v145w] boot-flicker fix: several data arrivals in the first seconds
      each requested a repaint back-to-back. Coalesce bursts into ONE paint. */
@@ -510,6 +520,7 @@ function _pRerenderNow(){
     /* [v145z] shivering guard: only skip rapid repaints from SYNC events,
        never from user actions (opening forms, clicking cards, etc.) */
     const t=_activeTab;
+    _logRepaint('background-sync-repaint',t);
     if(typeof renderDash==='function'&&t==='dashboard')renderDash();
     else if(typeof renderClients==='function'&&t==='clients')renderClients();
     else if(typeof renderSchedule==='function'&&t==='schedule')renderSchedule();
@@ -576,6 +587,7 @@ document.addEventListener('visibilitychange',()=>{
   _restoreTabAndRender();
 });
 function _restoreTabAndRender(){
+  if(typeof _logRepaint==='function')_logRepaint('visibilitychange',_activeTab);
   const savedTab=sessionStorage.getItem('pp_activeTab');
   if(savedTab&&savedTab!==_activeTab){
     const btn=document.querySelector(`.nb[data-tab="${savedTab}"]`);
@@ -1154,9 +1166,9 @@ try{
 <!-- BOTTOM NAV -->
 <div class="bnav">
   <button class="nb active" data-tab="dashboard" onclick="showTab('dashboard',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9"/><path d="M9.5 20v-6h5v6"/></svg></span>Home</button>
-  <button class="nb" data-tab="clients" onclick="showTab('clients',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="2.8"/><path d="M3.5 19.5c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="16" cy="9" r="2.3"/><path d="M14.7 12.2c2.3.2 3.8 2 3.8 4.5"/></svg></span>Clients</button>
-  <button class="nb" data-tab="schedule" onclick="showTab('schedule',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v3.5"/><path d="M16 3v3.5"/><circle cx="12" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></svg></span>Schedule</button>
-  <button class="nb" data-tab="cash" onclick="showTab('cash',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="18" height="12.5" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.3" r="1.2" fill="currentColor" stroke="none"/></svg></span>Cash</button>
+  <button class="nb" data-tab="clients" onclick="showTab('clients',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,-0.5)"><circle cx="8.5" cy="8" r="2.8"/><path d="M3.5 19.5c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="16" cy="9" r="2.3"/><path d="M14.7 12.2c2.3.2 3.8 2 3.8 4.5"/></g></svg></span>Clients</button>
+  <button class="nb" data-tab="schedule" onclick="showTab('schedule',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,0.4)"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v3.5"/><path d="M16 3v3.5"/><circle cx="12" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></g></svg></span>Schedule</button>
+  <button class="nb" data-tab="cash" onclick="showTab('cash',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,-1.1)"><rect x="3" y="6.5" width="18" height="12.5" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.3" r="1.2" fill="currentColor" stroke="none"/></g></svg></span>Cash</button>
   <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 14.5h7"/><path d="M8.5 18h4.5"/></svg></span>TnS</button>
   <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></svg></span>About</button>
 </div>
@@ -7782,8 +7794,8 @@ function _verAhead(server,local){
 /* Long-press version → changelog */
 (function(){
   const el=document.getElementById('app-ver');if(!el)return;
-  let _lpt,_lpFired=false;
-  const _lpStart=()=>{_lpFired=false;_lpt=setTimeout(()=>{_lpFired=true;_showChangelog();},600);};
+  let _lpt;window._verLpFired=false;
+  const _lpStart=()=>{window._verLpFired=false;_lpt=setTimeout(()=>{window._verLpFired=true;_showChangelog();},600);};
   const _lpCancel=()=>clearTimeout(_lpt);
   el.addEventListener('touchstart',_lpStart,{passive:true});
   el.addEventListener('touchend',_lpCancel);
@@ -7791,17 +7803,13 @@ function _verAhead(server,local){
   el.addEventListener('mousedown',_lpStart);
   el.addEventListener('mouseup',_lpCancel);
   el.addEventListener('mouseleave',_lpCancel);
-  /* v146a — root cause of "long-press doesn't work" on phone too: touchstart
-     WAS firing and the 600ms timer WAS opening the changelog, but on
-     release the browser still fires a plain click right after, which used
-     to call checkForUpdate() via inline onclick and immediately covered/
-     replaced the changelog with its own toast. A normal short tap must
-     still open checkForUpdate(); only the long-press's trailing click
-     needs to be swallowed. */
-  el.addEventListener('click',()=>{
-    if(_lpFired){_lpFired=false;return;}
-    checkForUpdate();
-  });
+  /* v146a — the actual click handling (single tap = checkForUpdate, 5 taps =
+     diagnostic panel) lives in ONE place: the diagnostic panel block further
+     down. That handler checks window._verLpFired first and bails out if a
+     long-press just fired — this used to be a second, separate click
+     listener here that fired checkForUpdate() on every tap regardless,
+     double-firing alongside the diagnostic panel's own tap counter and
+     interrupting anyone trying to rapid-tap to it. */
 })();
 function _showChangelog(){
   const log=[
@@ -10353,6 +10361,7 @@ function ufSavePayment(){
   if(!ver)return;
   ver.removeAttribute('onclick'); /* diagnostic takes over — single tap still calls checkForUpdate */
   ver.addEventListener('click',function(e){
+    if(window._verLpFired){window._verLpFired=false;return;} /* long-press just handled this press */
     e.stopPropagation();
     _diagTaps++;
     clearTimeout(_diagTimer);
@@ -10425,6 +10434,18 @@ function ufSavePayment(){
         html+='<b>#'+el.id+'</b> z='+s.zIndex+' display='+s.display+' size='+el.offsetWidth+'x'+el.offsetHeight;
         html+='</div>';
       }
+    });
+    html+='</div>';
+    /* v146a — flicker investigation: show every background repaint from the
+       last few minutes with source + how long ago, so this can be checked
+       right when a flicker is noticed instead of guessing at causes. */
+    html+='<div style="margin-top:12px;"><b style="color:var(--gold);">🔄 Repaint Log (background triggers only, newest first):</b> <button onclick="_refreshDiag()" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;font-size:10px;color:var(--text2);cursor:pointer;margin-left:6px;">Refresh</button></div><div style="margin-top:6px;">';
+    const rl=(window._repaintLog||[]).slice().reverse();
+    if(!rl.length){html+='<div style="color:var(--text3);font-size:11px;">None yet this session.</div>';}
+    rl.slice(0,20).forEach(r=>{
+      const agoMs=Date.now()-r.t;
+      const ago=agoMs<60000?(Math.round(agoMs/100)/10)+'s ago':Math.round(agoMs/60000)+'m ago';
+      html+='<div style="padding:3px 6px;font-size:10px;background:rgba(74,222,128,0.08);margin:2px 0;border-radius:4px;"><b>'+ago+'</b> — '+r.src+(r.extra?' ('+r.extra+')':'')+'</div>';
     });
     html+='</div>';
     out.innerHTML=(window._diagPermHtml||'')+html;
