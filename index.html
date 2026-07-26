@@ -506,10 +506,8 @@ function _pRerenderActive(){
 function _pRerenderNow(){
   try{
     if(document.querySelector('.mo.open'))return; /* anti-flicker under modals */
-    /* [v145z] prevent shivering: skip if we painted less than 2s ago */
-    const _now=Date.now();
-    if(window._lastRenderTs&&(_now-window._lastRenderTs)<2000)return;
-    window._lastRenderTs=_now;
+    /* [v145z] shivering guard: only skip rapid repaints from SYNC events,
+       never from user actions (opening forms, clicking cards, etc.) */
     const t=_activeTab;
     if(typeof renderDash==='function'&&t==='dashboard')renderDash();
     else if(typeof renderClients==='function'&&t==='clients')renderClients();
@@ -7110,7 +7108,8 @@ function printProfile(cid){
     ${c.insta?`<tr><th>Instagram</th><td>${_esc(c.insta)}</td></tr>`:''}
     ${c.bday?`<tr><th>Birthday</th><td>${fmt(c.bday)}</td></tr>`:''}
     ${c.anni?`<tr><th>Anniversary</th><td>${fmt(c.anni)}</td></tr>`:''}
-    <tr><th>Registered</th><td>${isTrialClient?'NA':((c.join||c.joinDate)?fmt(c.join||c.joinDate):'—')}</td></tr>
+    <tr><th>Registered</th><td>${(c.join||c.joinDate)?fmt(c.join||c.joinDate):'—'}</td></tr>
+    ${(c.trialDate||c.isTrial)?'<tr><th>Trial Date</th><td>'+(c.trialDate?fmt(c.trialDate):'—')+'</td></tr>':''}
     ${refBy?`<tr><th>Referred By</th><td>${_esc(refBy)}</td></tr>`:''}
     ${c.notes?`<tr><th>Notes</th><td>${_esc(c.notes)}</td></tr>`:''}</table>`;
   if(m&&isTrialClient){
@@ -7128,11 +7127,13 @@ function printProfile(cid){
     <tr><th>Paid / Due</th><td>${(totalPaid>0||due>0)?('₹'+totalPaid.toLocaleString('en-IN')+' paid'+(due>0?' • <b>₹'+due.toLocaleString('en-IN')+' DUE</b>':' • Fully paid')):'No payments recorded'}</td></tr>
     ${(m.bonus||0)>0?`<tr><th>Complimentary</th><td>${m.bonus} class(es)</td></tr>`:''}</table>`;
   }
-  /* ALL plan history — past plans the member has held, not just the current one */
-  if(m&&m.history&&m.history.length){
+  /* ALL plan history — synthesize trial from client flags if absent */
+  const _printHist=(m&&m.history)?[...m.history]:[];
+  if((c.trialDate||c.isTrial)&&!_printHist.some(h=>h.plan==='trial'))_printHist.unshift({plan:'trial',startDate:c.trialDate||c.join,endDate:c.trialDate||'',sessionsTotal:1,fee:0});
+  if(_printHist.length){
     const allPlans=getPlans();
-    html+=`<h2>📋 Previous Plans (${m.history.length})</h2><table><tr><th>Plan</th><th>Period</th><th>Fee</th><th>Outcome</th></tr>`+
-      m.history.map(h=>{
+    html+=`<h2>📋 Previous Plans (${_printHist.length})</h2><table><tr><th>Plan</th><th>Period</th><th>Fee</th><th>Outcome</th></tr>`+
+      _printHist.map(h=>{
         const hp=allPlans.find(x=>x.id===h.plan);
         return `<tr><td>${_esc(hp?hp.name:h.plan)}</td><td>${h.plan==='trial'?fmt(h.startDate):fmt(h.startDate)+' → '+fmt(h.endDate)}</td><td>₹${(h.fee||0).toLocaleString('en-IN')}</td><td>${_esc((h.endReason||'—').replace(/^Converted to/,'Subscribed to'))}</td></tr>`;
       }).join('')+'</table>';

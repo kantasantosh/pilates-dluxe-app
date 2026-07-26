@@ -460,7 +460,9 @@ function renderDashboard(){
   const sessUsed=getSessionsUsed(c.id,mem);
   const _isUnlim=plan==='unlimited'||(typeof sessTotal==='number'&&sessTotal>=900);
   const sessLeft=_isUnlim?'∞':(typeof sessTotal==='number'?Math.max(0,sessTotal-sessUsed):0);
-  const planName=plan==='trial'?'Trial Session':(_isUnlim?'Unlimited':(mem?mem.plan:'No Plan'));
+  const _rawPlan=mem?mem.plan:'No Plan';
+  const _planLbl=(typeof _rawPlan==='string'&&_rawPlan.startsWith('custom_'))?'Custom Plan':_rawPlan;
+  const planName=plan==='trial'?'Trial Session':(_isUnlim?'Unlimited':(_planLbl||'No Plan'));
   const endDate=mem&&mem.endDate?fmt(mem.endDate):'—';
   const initial=(c.fname||'?')[0].toUpperCase();
 
@@ -601,7 +603,7 @@ function personalBanner(){
   const m=_personalMsg();
   if(!m)return '';
   const nm=(_client.fname||'').trim();
-  return `<div style="margin:0 0 14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(201,168,76,0.65);background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));color:var(--gold);font-size:13px;line-height:1.55;font-weight:600;">💌 ${m.msg}</div>`;
+  return `<div style="margin:0 0 14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(201,168,76,0.65);background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08));color:var(--gold);font-size:13px;line-height:1.55;font-weight:600;">💌 ${m.auto?m.msg:(nm?'<b>'+nm+'</b>, ':'')+m.msg}</div>`;
 }
 function announceBanner(){
   if(!_announceActive())return '';
