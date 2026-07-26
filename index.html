@@ -683,7 +683,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146a</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146b</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1169,8 +1169,8 @@ try{
   <button class="nb" data-tab="clients" onclick="showTab('clients',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,-0.5)"><circle cx="8.5" cy="8" r="2.8"/><path d="M3.5 19.5c0-3 2.2-5 5-5s5 2 5 5"/><circle cx="16" cy="9" r="2.3"/><path d="M14.7 12.2c2.3.2 3.8 2 3.8 4.5"/></g></svg></span>Clients</button>
   <button class="nb" data-tab="schedule" onclick="showTab('schedule',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,0.4)"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v3.5"/><path d="M16 3v3.5"/><circle cx="12" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></g></svg></span>Schedule</button>
   <button class="nb" data-tab="cash" onclick="showTab('cash',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,-1.1)"><rect x="3" y="6.5" width="18" height="12.5" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.3" r="1.2" fill="currentColor" stroke="none"/></g></svg></span>Cash</button>
-  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 14.5h7"/><path d="M8.5 18h4.5"/></svg></span>TnS</button>
-  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></svg></span>About</button>
+  <button class="nb" data-tab="tns" onclick="showTab('tns',this)" style="text-transform:none;"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,0.8)"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7"/><path d="M8.5 14.5h7"/><path d="M8.5 18h4.5"/></g></svg></span>TnS</button>
+  <button class="nb" data-tab="credits" onclick="showTab('credits',this)"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0,0.8)"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></g></svg></span>About</button>
 </div>
 
 <!-- ===== MODALS ===== -->
@@ -7813,6 +7813,7 @@ function _verAhead(server,local){
 })();
 function _showChangelog(){
   const log=[
+    ['v146b','Fixed the real root cause of missing trial in plan history: trial clients never got a membership record created at registration, so conversion had nothing to push into history. TnS/About icons nudged down; nav icon vertical alignment tightened further. Fixed a double checkForUpdate() firing on every version-number tap.'],
     ['v146a','Ending/Ended wording everywhere, changelog long-press fixed properly (was being stomped by a trailing click), cashbook chips + search/category now truly equal width, Profile section in client form closed by default, bottom nav icons replaced with uniform SVGs (no more emoji-font inconsistency across phones)'],
     ['v145z','All 19 items: trial restored, viewer mode, changelog, spots hidden, Built With compact, WhatsApp icons, client list fixes, collapsibles closed'],
     ['v145y','Trial in print/history, spots hidden, Audit Log full-width, Unlock button'],
@@ -9877,7 +9878,7 @@ function ufAssignPlan(){
   const plans=getPlans();
   const p=plans.find(x=>x.id===pid);if(!p){toast('Plan not found');return;}
   const mems=ld('pp_memberships',{});
-  const existing=mems[cid];
+  let existing=mems[cid];
   
   /* Calculate end date */
   const sDt=new Date(startDate+'T00:00:00');
@@ -9900,6 +9901,9 @@ function ufAssignPlan(){
      Checking memNo alone left such clients permanently stuck as "still
      trial" even after real plans were assigned/renewed for them. */
   const isTrialConvert=!!(c&&c.isTrial);
+  if(!existing&&isTrialConvert&&c){
+    existing={plan:'trial',startDate:c.trialDate||c.join||td(),endDate:c.trialDate||c.join||td(),sessionsTotal:1,fee:0};
+  }
   const eventType=(!existing||!existing.plan||isTrialConvert)?'assign':'renew';
   
   /* Push current plan to history if it exists.
