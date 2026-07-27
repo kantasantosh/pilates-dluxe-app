@@ -1534,7 +1534,7 @@ function printClientList(){
     const mem=mems[c.id];
     const st=mem?getMembershipStatus(mem,c.id):'none';
     const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
-    const _totSess=(mem&&mem.sessions||0)+(mem&&mem.bonus||0);const _isUnl=mem&&(mem.plan==='unlimited'||_totSess>=999);const planLbl=c.isTrial?(Math.max(0,Math.min(1,mem?getSessionsLeft(mem,c.id):1))+' Left of 1'):(mem&&mem.plan?(_isUnl?'Unlimited':(getSessionsLeft(mem,c.id)+'/'+_totSess+' sessions')):'—');const _statusTxt=c.isTrial?'Trial':(st==='expiring'&&mem&&mem.endDate?new Date(mem.endDate+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):badgeLabel(st));
+    const _totSess=(mem&&mem.sessions||0)+(mem&&mem.bonus||0);const _isUnl=mem&&(mem.plan==='unlimited'||_totSess>=999);const _t0=new Date();_t0.setHours(0,0,0,0);const planLbl=c.isTrial?((c.trialDate&&new Date(c.trialDate+'T00:00:00')<=_t0?0:1)+' Left of 1'):(mem&&mem.plan?(_isUnl?'Unlimited':(getSessionsLeft(mem,c.id)+'/'+_totSess+' sessions')):'—');const _statusTxt=c.isTrial?'Trial':(st==='expiring'&&mem&&mem.endDate?new Date(mem.endDate+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):badgeLabel(st));
     return '<tr><td>'+_esc(c.memNo||'')+'</td><td>'+_esc(c.fname+' '+(c.lname||''))+'</td>'
       +'<td>'+_esc(_fmtPhone(c.phone)||'')+'</td><td>'+_esc(planLbl)+'</td>'
       +'<td>'+_esc(_statusTxt)+'</td>'
