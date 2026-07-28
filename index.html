@@ -683,7 +683,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.1</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.2</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -5325,7 +5325,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.1</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.2</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -7519,19 +7519,20 @@ function _receiptHtml(pay,forPrint){
   const _allocIdx=x=>{
     const d=x.date||'';
     if(!_plansAll.length)return -1;
+    const _real=(x.amt||0)>0;const _ok=i=>!(_real&&_plansAll[i].plan==='trial');const _lastPaid=()=>{for(let k=_plansAll.length-1;k>=0;k--){if(_ok(k))return k;}return _plansAll.length-1;};
     if(/renew/i.test(_payFor(x))){
-      const i=_plansAll.findIndex(h=>(h.startDate||'')>=d);
-      return i>=0?i:_plansAll.length-1;
+      const i=_plansAll.findIndex((h,ix)=>(h.startDate||'')>=d&&_ok(ix));
+      return i>=0?i:_lastPaid();
     }
     for(let i=_plansAll.length-1;i>=0;i--){
-      if(d>=(_plansAll[i].startDate||'')&&d<=(_plansAll[i].endDate||''))return i;
+      if(d>=(_plansAll[i].startDate||'')&&d<=(_plansAll[i].endDate||'')&&_ok(i))return i;
     }
-    const i=_plansAll.findIndex(h=>(h.startDate||'')>d);
-    return i>=0?i:_plansAll.length-1;
+    const i=_plansAll.findIndex((h,ix)=>(h.startDate||'')>d&&_ok(ix));
+    return i>=0?i:_lastPaid();
   };
   const _mpIdx=_allocIdx(pay);
   let mp=_mpIdx>=0?_plansAll[_mpIdx]:m;
-  const _isFirstPaidPlan=_plansAll.length&&mp===_plansAll[0];
+  const _firstPaidIdx=_plansAll.findIndex(h=>h.plan!=='trial');const _isFirstPaidPlan=_plansAll.length&&_firstPaidIdx>=0&&mp===_plansAll[_firstPaidIdx];
   const plan=mp?(getPlans().find(p=>p.id===mp.plan)||{}).name||mp.plan:'';
   /* Paid within this plan = every payment the classifier assigns to the
      SAME plan, capped at the receipt's own date so future payments don't
@@ -7825,6 +7826,7 @@ function _verAhead(server,local){
 })();
 function _showChangelog(){
   const log=[
+    ['v147.2','A3 receipt fix — a real payment can no longer be allocated to the free trial plan, so trial→paid joining receipts (Pinki PP128, Sonia, Laghvi, etc.) now show the correct paid plan and a settled balance instead of "trial / Advance". Derived live from membership history, so past and future receipts self-correct with no data changes. Trial date now prints on the first paid plan\'s receipt.'],
     ['v147.1','Batch 1 — Trial list shows the live "X Left of 1" balance; Client-List print: Expiring renamed Ending Soon (now prints the actual end date), Expired renamed Ended and trial clients removed (paid ended plans only); Session Demand report adds Peak time of day (Morning/Evening); Credits page icon labels restored (each links out to the platform) + qrcode.js/html5-qrcode/Google Fonts acknowledged; login-screen version label synced to the app version.'],
     ['v146b','Fixed the real root cause of missing trial in plan history: trial clients never got a membership record created at registration, so conversion had nothing to push into history. TnS/About icons nudged down; nav icon vertical alignment tightened further. Fixed a double checkForUpdate() firing on every version-number tap.'],
     ['v146c','Trial now also shown in plan history for clients who already converted before v146b (retroactive display fix). Cashbook chips + search/category outlined to match Credit/Debit/Contra. Nav icons TnS/About nudged down further.'],
