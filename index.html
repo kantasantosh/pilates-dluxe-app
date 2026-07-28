@@ -683,7 +683,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v146g</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.3</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1517,7 +1517,7 @@ function printClientList(){
     const st=mem?getMembershipStatus(mem,c.id):'none';
     if(_clientFilter2==='active'&&!(st==='active'||st==='expiring'))return false;
     if(_clientFilter2==='expiring'&&st!=='expiring')return false;
-    if(_clientFilter2==='expired'&&st!=='expired')return false;
+    if(_clientFilter2==='expired'&&(st!=='expired'||c.isTrial))return false;
     if(_clientFilter2==='trial'&&!c.isTrial)return false;
     if(_clientFilter2==='converted'){const hasTrial=c.trialDate||c.isTrial;if(!(hasTrial&&mem&&mem.plan&&mem.plan!=='trial'))return false;}
     if(_clientFilter2==='due'){const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);if(due<=0)return false;}
@@ -1534,13 +1534,13 @@ function printClientList(){
     const mem=mems[c.id];
     const st=mem?getMembershipStatus(mem,c.id):'none';
     const due=getClientTotalCharged(c.id)-getClientTotalPaid(c.id);
-    const _totSess=(mem&&mem.sessions||0)+(mem&&mem.bonus||0);const _isUnl=mem&&(mem.plan==='unlimited'||_totSess>=999);const planLbl=mem&&mem.plan?(_isUnl?'Unlimited':(getSessionsLeft(mem,c.id)+'/'+_totSess+' sessions')):'—';
+    const _totSess=(mem&&mem.sessions||0)+(mem&&mem.bonus||0);const _isUnl=mem&&(mem.plan==='unlimited'||_totSess>=999);const _t0=new Date();_t0.setHours(0,0,0,0);const planLbl=c.isTrial?((c.trialDate&&new Date(c.trialDate+'T00:00:00')<=_t0?0:1)+' Left of 1'):(mem&&mem.plan?(_isUnl?'Unlimited':(getSessionsLeft(mem,c.id)+'/'+_totSess+' sessions')):'—');const _statusTxt=c.isTrial?'Trial':(st==='expiring'&&mem&&mem.endDate?new Date(mem.endDate+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):badgeLabel(st));
     return '<tr><td>'+_esc(c.memNo||'')+'</td><td>'+_esc(c.fname+' '+(c.lname||''))+'</td>'
       +'<td>'+_esc(_fmtPhone(c.phone)||'')+'</td><td>'+_esc(planLbl)+'</td>'
-      +'<td>'+_esc(c.isTrial?'Trial':badgeLabel(st))+'</td>'
+      +'<td>'+_esc(_statusTxt)+'</td>'
       +'<td style="text-align:right;color:'+(due>0?'#b00':'#2e7d32')+';">'+(due>0?'₹'+due.toLocaleString('en-IN'):due<0?'₹'+Math.abs(due).toLocaleString('en-IN')+' adv':'—')+'</td></tr>';
   }).join('');
-  const filterLabel=_clientFilter2==='all'?'All Clients':_clientFilter2.charAt(0).toUpperCase()+_clientFilter2.slice(1);
+  const filterLabel=({all:'All Clients',active:'Active',expiring:'Ending Soon',expired:'Ended',trial:'Trial',converted:'Converted',due:'Payment Due',inactive:'Inactive'}[_clientFilter2])||(_clientFilter2.charAt(0).toUpperCase()+_clientFilter2.slice(1));
   const html='<div style="background:#fff;color:#111;border-radius:10px;padding:12px;font-family:\'Jost\',Arial,sans-serif;min-width:480px;" id="clientlist-print-body">'
     +'<div style="text-align:center;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:10px;">'
     +'<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:18px;letter-spacing:3px;">'+getStudio().name+'</div>'
@@ -3834,25 +3834,26 @@ function renderCredits(){
       </div>
     </div>
     <div style="margin:0 16px 10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
-      <div style="display:flex;align-items:center;justify-content:center;gap:14px;">
-        <div style="display:flex;flex-direction:column;gap:9px;opacity:0.85;">
-          <div title="Claude · Anthropic" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Playfair Display',serif;font-weight:800;font-size:13px;color:#e8e0d4;">A\</span></div>
-          <div title="GitHub · Source" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div>
-          <div title="Firebase · Google" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M5 19.5 7.6 3.6c.06-.37.55-.46.73-.13l2.1 3.9L5 19.5zm14 .3-2-13.1c-.05-.33-.46-.45-.68-.2L5.3 19.8l6.1 3.4c.38.21.85.21 1.23 0L19 19.8zM13.2 9.2 11.7 6.4c-.14-.27-.52-.27-.66 0L4.5 19.5l8.7-10.3z"/></svg></div>
+      <div style="display:flex;align-items:flex-start;justify-content:center;gap:16px;">
+        <div style="display:flex;flex-direction:column;gap:12px;opacity:0.9;">
+          <a href="https://www.anthropic.com" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:3px;"><div title="Claude · Anthropic" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Playfair Display',serif;font-weight:800;font-size:13px;color:#e8e0d4;">A\</span></div><span style="font-size:8px;color:var(--text3);letter-spacing:.3px;white-space:nowrap;">Anthropic</span></a>
+          <a href="https://github.com" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:3px;"><div title="GitHub · Source" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7C6.7 20 6.1 18 6.1 18c-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg></div><span style="font-size:8px;color:var(--text3);letter-spacing:.3px;white-space:nowrap;">GitHub</span></a>
+          <a href="https://firebase.google.com" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:3px;"><div title="Firebase · Google" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M5 19.5 7.6 3.6c.06-.37.55-.46.73-.13l2.1 3.9L5 19.5zm14 .3-2-13.1c-.05-.33-.46-.45-.68-.2L5.3 19.8l6.1 3.4c.38.21.85.21 1.23 0L19 19.8zM13.2 9.2 11.7 6.4c-.14-.27-.52-.27-.66 0L4.5 19.5l8.7-10.3z"/></svg></div><span style="font-size:8px;color:var(--text3);letter-spacing:.3px;white-space:nowrap;">Firebase</span></a>
         </div>
-        <div style="flex-shrink:0;">
+        <div style="flex-shrink:0;padding-top:4px;">
           <div style="width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;overflow:hidden;box-shadow:0 0 0 2px rgba(201,169,110,0.35),0 0 18px rgba(201,169,110,0.25);"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
           <div style="font-family:'Playfair Display',serif;font-size:16px;font-style:italic;color:var(--text);letter-spacing:1px;">Pilates D'Luxe</div>
           <div style="font-size:10px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin:3px 0 3px;">Studio Admin</div>
           <div style="font-size:12px;color:var(--text2);letter-spacing:1px;">${typeof _appVer==='function'?_appVer():''}</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:9px;opacity:0.85;">
-          <div title="JavaScript · HTML/CSS" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Jost',sans-serif;font-weight:800;font-size:11px;color:#e8e0d4;">JS</span></div>
-          <div title="Cloudflare · Pages" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M18.5 17H6a4 4 0 1 1 .8-7.92A6 6 0 0 1 18.2 10.4 3.5 3.5 0 0 1 18.5 17z"/></svg></div>
-          <div title="Gemini · Google" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 0C12.7 6.5 17.5 11.3 24 12C17.5 12.7 12.7 17.5 12 24C11.3 17.5 6.5 12.7 0 12C6.5 11.3 11.3 6.5 12 0Z"/></svg></div>
+        <div style="display:flex;flex-direction:column;gap:12px;opacity:0.9;">
+          <a href="https://developer.mozilla.org/docs/Web/JavaScript" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:3px;"><div title="JavaScript · HTML/CSS" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Jost',sans-serif;font-weight:800;font-size:11px;color:#e8e0d4;">JS</span></div><span style="font-size:8px;color:var(--text3);letter-spacing:.3px;white-space:nowrap;">JavaScript</span></a>
+          <a href="https://www.cloudflare.com" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:3px;"><div title="Cloudflare · Pages" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M18.5 17H6a4 4 0 1 1 .8-7.92A6 6 0 0 1 18.2 10.4 3.5 3.5 0 0 1 18.5 17z"/></svg></div><span style="font-size:8px;color:var(--text3);letter-spacing:.3px;white-space:nowrap;">Cloudflare</span></a>
+          <a href="https://gemini.google.com" target="_blank" rel="noopener" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:3px;"><div title="Gemini · Google" style="width:26px;height:26px;border-radius:7px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e8e0d4"><path d="M12 0C12.7 6.5 17.5 11.3 24 12C17.5 12.7 12.7 17.5 12 24C11.3 17.5 6.5 12.7 0 12C6.5 11.3 11.3 6.5 12 0Z"/></svg></div><span style="font-size:8px;color:var(--text3);letter-spacing:.3px;white-space:nowrap;">Gemini</span></a>
         </div>
       </div>
-      <div style="font-size:10px;color:var(--text3);margin-top:8px;">Designed together with its user</div>
+      <div style="font-size:9px;color:var(--text3);margin-top:10px;line-height:1.6;">Also built with <a href="https://github.com/davidshimjs/qrcodejs" target="_blank" rel="noopener" style="color:var(--text3);">qrcode.js</a> &middot; <a href="https://github.com/mebjas/html5-qrcode" target="_blank" rel="noopener" style="color:var(--text3);">html5-qrcode</a> &middot; <a href="https://fonts.google.com" target="_blank" rel="noopener" style="color:var(--text3);">Google Fonts</a></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px;">Designed together with its user</div>
     </div>
     <div id="about-signout-slot" style="margin:0 16px 10px;"></div>
     <div id="about-reset-card" style="margin:0 16px 30px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
@@ -5324,7 +5325,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v145z</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.3</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -6039,8 +6040,9 @@ function openUsersModal(){
   openM('m-users');
   try{renderUsersList();}catch(_e){console.warn('Users list failed to render:',_e);}
 }
+function _pubViewerEmails(arr){try{const a=arr||ld('pp_users',[]);sv('pp_viewer_emails',a.filter(u=>u&&u.active!==false&&u.email).map(u=>({email:u.email.toLowerCase(),name:u.name||'',role:u.role||''})));}catch(_e){}}
 function renderUsersList(){
-  const users=ppUsers();
+  const users=ppUsers();_pubViewerEmails(users);
   document.getElementById('users-list').innerHTML=users.length?users.map(u=>`
     <div class="usr-row">
       <div class="av" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1a2e;background:${colorFor(u.name||'U')};">${initials(u.name||'U')}</div>
@@ -6233,7 +6235,7 @@ async function saveUser(){
   if(existing&&existing.uid!==uid&&!pin){alert('Login ID changed — please also set the PIN again');return;}
   const idx=users.findIndex(u=>u.id===data.id);
   if(idx>-1)users[idx]=data;else users.push(data);
-  sv('pp_users',users);
+  sv('pp_users',users);_pubViewerEmails(users);
   AUD('👥 User '+(existing?'updated':'added'),name+' ('+uid+', '+role+')');
   /* keep own session object fresh */
   if(PPS&&PPS.id===data.id)PPS=data;
@@ -6249,7 +6251,7 @@ function deleteUser(){
   showConfirm('🗑','Delete user?',u.name+' will no longer be able to log in.',[
     {label:'Cancel',color:'var(--border2)',outline:true,action:null},
     {label:'Delete',color:'var(--rose)',action:()=>{
-      sv('pp_users',users.filter(x=>x.id!==id));
+      const _rem=users.filter(x=>x.id!==id);sv('pp_users',_rem);_pubViewerEmails(_rem);
       AUD('🗑 User deleted',u.name+' ('+u.uid+')');
       closeM('m-useredit');renderUsersList();toast('User deleted');
     }}
@@ -6981,7 +6983,7 @@ function renderReports(){
 
   /* ===== D3: Session Demand ===== */
   const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const byDay={},bySlot={};
+  const byDay={},bySlot={},byTod={};
   let totalBk=0;
   Object.keys(bookings).forEach(dstr=>{
     if(!_inMonth(dstr,y,m))return;
@@ -6991,6 +6993,7 @@ function renderReports(){
       if(!n)return;
       byDay[dow]=(byDay[dow]||0)+n;
       bySlot[slot]=(bySlot[slot]||0)+n;
+      var _tod=slot.indexOf('PM')>-1?'Evening':'Morning';byTod[_tod]=(byTod[_tod]||0)+n;
       totalBk+=n;
     });
   });
@@ -7000,10 +7003,11 @@ function renderReports(){
   const maxSlot=Math.max(0,...slotRows.map(r=>r[1]));
   const peakDay=dayRows.slice().sort((a,b)=>b[1]-a[1])[0];
   const peakSlot=slotRows.slice().sort((a,b)=>b[1]-a[1])[0];
+  const peakTod=((byTod.Morning||0)+(byTod.Evening||0))?((byTod.Morning||0)>=(byTod.Evening||0)?'Morning':'Evening'):null;
   html+=`</div><div class="uf-sec-hdr" style="border-radius:var(--rsm);margin-top:14px;" onclick="toggleRepSec('demand')"><span>📈 Session Demand</span><span id="rsa-demand" style="font-size:12px;margin-left:auto;">▼</span></div><div class="uf-sec-body" id="rsb-demand" style="padding:12px 0 0;">
     <div class="card" style="margin-bottom:14px;">
       ${totalBk?`
-      <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">${totalBk} bookings this month${peakDay?' • Peak day: <b style="color:var(--gold)">'+peakDay[0]+'</b>':''}${peakSlot?' • Peak slot: <b style="color:var(--gold)">'+peakSlot[0]+'</b>':''}</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">${totalBk} bookings this month${peakDay?' • Peak day: <b style="color:var(--gold)">'+peakDay[0]+'</b>':''}${peakSlot?' • Peak slot: <b style="color:var(--gold)">'+peakSlot[0]+'</b>':''}${peakTod?' • Peak time: <b style="color:var(--gold)">'+peakTod+'</b>':''}</div>
       <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:6px;">BY DAY OF WEEK</div>
       ${dayRows.map(([k,v])=>_bar(k,v,maxDay,'var(--teal)')).join('')}
       <div style="font-size:12px;font-weight:700;color:var(--purple);margin:10px 0 6px;">BY TIME SLOT</div>
@@ -7516,19 +7520,20 @@ function _receiptHtml(pay,forPrint){
   const _allocIdx=x=>{
     const d=x.date||'';
     if(!_plansAll.length)return -1;
+    const _real=(x.amt||0)>0;const _ok=i=>!(_real&&_plansAll[i].plan==='trial');const _lastPaid=()=>{for(let k=_plansAll.length-1;k>=0;k--){if(_ok(k))return k;}return _plansAll.length-1;};
     if(/renew/i.test(_payFor(x))){
-      const i=_plansAll.findIndex(h=>(h.startDate||'')>=d);
-      return i>=0?i:_plansAll.length-1;
+      const i=_plansAll.findIndex((h,ix)=>(h.startDate||'')>=d&&_ok(ix));
+      return i>=0?i:_lastPaid();
     }
     for(let i=_plansAll.length-1;i>=0;i--){
-      if(d>=(_plansAll[i].startDate||'')&&d<=(_plansAll[i].endDate||''))return i;
+      if(d>=(_plansAll[i].startDate||'')&&d<=(_plansAll[i].endDate||'')&&_ok(i))return i;
     }
-    const i=_plansAll.findIndex(h=>(h.startDate||'')>d);
-    return i>=0?i:_plansAll.length-1;
+    const i=_plansAll.findIndex((h,ix)=>(h.startDate||'')>d&&_ok(ix));
+    return i>=0?i:_lastPaid();
   };
   const _mpIdx=_allocIdx(pay);
   let mp=_mpIdx>=0?_plansAll[_mpIdx]:m;
-  const _isFirstPaidPlan=_plansAll.length&&mp===_plansAll[0];
+  const _firstPaidIdx=_plansAll.findIndex(h=>h.plan!=='trial');const _isFirstPaidPlan=_plansAll.length&&_firstPaidIdx>=0&&mp===_plansAll[_firstPaidIdx];
   const plan=mp?(getPlans().find(p=>p.id===mp.plan)||{}).name||mp.plan:'';
   /* Paid within this plan = every payment the classifier assigns to the
      SAME plan, capped at the receipt's own date so future payments don't
@@ -7822,6 +7827,9 @@ function _verAhead(server,local){
 })();
 function _showChangelog(){
   const log=[
+    ['v147.3','Booking viewer-login fix — staff/admin emails now reach the booking app immediately. The booking page can\'t read pp_users (it holds PIN hashes), so it uses a safe pp_viewer_emails list; that list was only rebuilt once daily, so newly-set user emails showed "Not Registered". Now it republishes on every user save/delete and whenever Users & Access is opened.'],
+    ['v147.2','A3 receipt fix — a real payment can no longer be allocated to the free trial plan, so trial→paid joining receipts (Pinki PP128, Sonia, Laghvi, etc.) now show the correct paid plan and a settled balance instead of "trial / Advance". Derived live from membership history, so past and future receipts self-correct with no data changes. Trial date now prints on the first paid plan\'s receipt.'],
+    ['v147.1','Batch 1 — Trial list shows the live "X Left of 1" balance; Client-List print: Expiring renamed Ending Soon (now prints the actual end date), Expired renamed Ended and trial clients removed (paid ended plans only); Session Demand report adds Peak time of day (Morning/Evening); Credits page icon labels restored (each links out to the platform) + qrcode.js/html5-qrcode/Google Fonts acknowledged; login-screen version label synced to the app version.'],
     ['v146b','Fixed the real root cause of missing trial in plan history: trial clients never got a membership record created at registration, so conversion had nothing to push into history. TnS/About icons nudged down; nav icon vertical alignment tightened further. Fixed a double checkForUpdate() firing on every version-number tap.'],
     ['v146c','Trial now also shown in plan history for clients who already converted before v146b (retroactive display fix). Cashbook chips + search/category outlined to match Credit/Debit/Contra. Nav icons TnS/About nudged down further.'],
     ['v146d','Real fix for trial history: one-time migration tool (diagnostic panel) permanently writes trial into stored history for already-converted clients. Login/logout removed from Audit Log (kept: all actual data changes).'],

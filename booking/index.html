@@ -115,7 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header" style="padding:5px 20px 4px;">
   <div onclick="_coinZoom()" style="width:48px;height:48px;border-radius:50%;margin:0 auto 2px;overflow:hidden;cursor:pointer;"><img src="/bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v58</small></div>
+  <div class="logo"><small>Book a Session · v59</small></div>
   <button onclick="location.reload()" title="Refresh data" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 7px;color:var(--gold);cursor:pointer;line-height:0;"><svg style="width:19px;height:19px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
 </div>
 
@@ -461,7 +461,7 @@ function renderDashboard(){
   const _isUnlim=plan==='unlimited'||(typeof sessTotal==='number'&&sessTotal>=900);
   const sessLeft=_isUnlim?'∞':(typeof sessTotal==='number'?Math.max(0,sessTotal-sessUsed):0);
   const _rawPlan=mem?mem.plan:'No Plan';
-  const _planLbl=mem&&mem.planName?mem.planName:((typeof _rawPlan==='string'&&_rawPlan.startsWith('custom_'))?'Custom Plan':_rawPlan);
+  const _pm=(mem&&mem.startDate&&mem.endDate)?Math.max(1,Math.round((new Date(mem.endDate)-new Date(mem.startDate))/2629746000)):0;const _planLbl=mem&&mem.planName?mem.planName:((typeof _rawPlan==='string'&&_rawPlan.startsWith('custom_'))?((_pm?_pm+' Month'+(_pm>1?'s':''):'Plan')+' – '+(_isUnlim?'Unlimited':((typeof sessTotal==='number'?sessTotal:0)+' Sessions'))):_rawPlan);
   const planName=plan==='trial'?'Trial Session':(plan==='unlimited'?'Unlimited':(_planLbl||'No Plan'));
   const endDate=mem&&mem.endDate?fmt(mem.endDate):'—';
   const initial=(c.fname||'?')[0].toUpperCase();
@@ -486,12 +486,13 @@ function renderDashboard(){
       <span class="pdl-greet-flower">${_flower}</span>
       <span class="pdl-greet-text">Hi ${c.fname}!</span>
     </div>
+    ${personalBanner()}${announceBanner()}
     <!-- Client Dashboard -->
     <div class="card" style="padding:14px 16px;">
       <div class="client-dash">
         <div class="client-avatar" onclick="_dpPick()" style="cursor:pointer;position:relative;overflow:hidden;" title="Tap to set your photo">${c.photo?`<img src="${c.photo}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initial}<span style="position:absolute;right:-2px;bottom:-2px;font-size:11px;">📷</span></div>
         <input type="file" id="dp-file" accept="image/*" style="display:none;" onchange="_dpUpload(this)"/>
-        <div class="client-info">
+        <div class="client-info" style="cursor:pointer;" title="Tap to view your profile" onclick="const _pc=document.getElementById('my-profile-card');if(_pc)_pc.style.display=_pc.style.display==='none'?'':'none';">
           <div class="client-name">${c.fname} ${c.lname||''}</div>
           <div class="client-plan">${
             _frozen
@@ -526,10 +527,9 @@ function renderDashboard(){
       </div>
     </div>
 
-    <!-- Your Profile (collapsible) -->
-    <div class="card" style="padding:12px 16px;">
-      <div class="section-title" style="cursor:pointer;display:flex;align-items:center;" onclick="const b=document.getElementById('my-profile-body');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.pf-arrow').textContent=b.style.display==='none'?'▶':'▼';"><span style="flex:1;"></span><span>${_flower} Your Profile</span><span class="pf-arrow" style="flex:1;text-align:right;font-size:10px;">▶</span></div>
-      <div id="my-profile-body" style="display:none;">
+    <!-- Profile (opens from dashboard identity) -->
+    <div class="card" id="my-profile-card" style="padding:12px 16px;display:none;">
+      <div id="my-profile-body">
         ${[
           ['Member ID',c.memNo||'—'],
           ['Mobile',c.phone?c.phone.replace('+91','+91 '):'—'],
@@ -546,13 +546,12 @@ function renderDashboard(){
     </div>
 
     <!-- Share a thought -->
-    <div class="card" style="padding:12px 16px;">
+    <div class="card" style="padding:10px 16px 10px;">
       <div class="section-title">💬 Share a Thought</div>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <a href="https://wa.me/${_fbNum}?text=${encodeURIComponent('Hi! Feedback about the STUDIO from '+c.fname+' '+(c.lname||'')+': ')}" target="_blank" style="flex:1;text-align:center;padding:10px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);color:var(--gold);font-size:12px;font-weight:700;text-decoration:none;">🏛 About the Studio</a>
         <a href="https://wa.me/${_fbNum}?text=${encodeURIComponent('Hi! Feedback about the APP from '+c.fname+' '+(c.lname||'')+': ')}" target="_blank" style="flex:1;text-align:center;padding:10px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);color:var(--gold);font-size:12px;font-weight:700;text-decoration:none;">📱 About the App</a>
       </div>
-      <div style="font-size:11px;color:var(--text2);margin-top:8px;text-align:center;">Opens WhatsApp — your name comes pre-filled ${_flower}</div>
     </div>
 
     <!-- My Upcoming Bookings (collapsible) -->
@@ -568,7 +567,7 @@ function renderDashboard(){
 
     <!-- Date Picker -->
     <div class="card" style="padding:14px 16px;">
-      ${_viewerMode?'<div style="margin:0 0 12px;padding:9px 12px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);background:rgba(201,168,76,0.1);color:var(--gold);font-size:12px;font-weight:700;text-align:center;">👁 Studio viewer — read-only, booking disabled</div>':''}${personalBanner()}${announceBanner()}
+      ${_viewerMode?'<div style="margin:0 0 12px;padding:9px 12px;border-radius:10px;border:1px solid rgba(201,168,76,0.5);background:rgba(201,168,76,0.1);color:var(--gold);font-size:12px;font-weight:700;text-align:center;">👁 Studio viewer — read-only, booking disabled</div>':''}
       <div class="section-title"><span class="live-dot"></span> Live Schedule</div>
       <div class="date-row" id="date-row">${renderDates()}</div>
     </div>
