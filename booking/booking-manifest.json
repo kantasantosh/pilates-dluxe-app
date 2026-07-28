@@ -11,8 +11,8 @@
   "orientation": "portrait-primary",
   "icons": [
     {"src": "/bookingicon192.png","sizes": "192x192","type": "image/png","purpose": "any"},
-    {"src": "/bookingicon192.png","sizes": "192x192","type": "image/png","purpose": "maskable"},
     {"src": "/bookingicon.png","sizes": "512x512","type": "image/png","purpose": "any"},
-    {"src": "/bookingicon.png","sizes": "512x512","type": "image/png","purpose": "maskable"}
+    {"src": "/bookingicon-mask192.png","sizes": "192x192","type": "image/png","purpose": "maskable"},
+    {"src": "/bookingicon-mask.png","sizes": "512x512","type": "image/png","purpose": "maskable"}
   ]
 }
