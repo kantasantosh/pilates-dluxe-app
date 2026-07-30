@@ -685,7 +685,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.4</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.6</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -812,8 +812,8 @@ try{
   <!-- Sticky: search + category only -->
   <div style="position:sticky;top:var(--tbh,96px);z-index:10;background:var(--bg);padding-bottom:4px;">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;margin-bottom:6px;">
-    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries…" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(201,168,76,0.3);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
-    <select id="cash-catfilter" onchange="renderCash()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(201,168,76,0.3);border-radius:var(--rsm);padding:7px 10px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
+    <input id="cash-search" oninput="renderCash()" placeholder="🔍 Search entries…" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(201,168,76,0.3);border-radius:var(--rsm);padding:0 10px;height:38px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;"/>
+    <select id="cash-catfilter" onchange="renderCash()" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid rgba(201,168,76,0.3);border-radius:var(--rsm);padding:0 10px;height:38px;color:var(--text);font-size:12px;font-family:'Jost',sans-serif;">
       <option value="">All categories</option>
     </select>
   </div>
@@ -3251,7 +3251,7 @@ function showTab(n,btn){
     btn=Array.from(document.querySelectorAll('.nb')).find(b=>((b.getAttribute('onclick')||'').indexOf("'"+n+"'")>-1));
   }
   if(btn&&btn.classList)btn.classList.add('active');
-  _activeTab=n;
+  _activeTab=n;try{sessionStorage.setItem('pp_activeTab',n);}catch(_e){}
   /* Reset filters to default when freshly entering a tab from elsewhere
      (not when returning from a deeper screen within the same tab, e.g.
      closing the unified form) */
@@ -5327,7 +5327,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.4</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.6</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -7829,6 +7829,8 @@ function _verAhead(server,local){
 })();
 function _showChangelog(){
   const log=[
+    ['v147.6','CashBook: Search box and All-categories dropdown are now equal height (input vs select render differently; both forced to 38px).'],
+    ['v147.5','Refresh now stays on the current tab instead of jumping to Home. The restore mechanism already existed (reads pp_activeTab on boot) but showTab never saved it — added the one-line save so it works.'],
     ['v147.4','A6 flicker fix — live-sync repaints the active tab only when a doc shown there changes; background writes to infra docs (audit log especially) no longer force needless repaints. A7 — mild casual-copy deterrents (right-click + Ctrl+U disabled, console notice); F12 left open for development.'],
     ['v147.3','Booking viewer-login fix — staff/admin emails now reach the booking app immediately. The booking page can\'t read pp_users (it holds PIN hashes), so it uses a safe pp_viewer_emails list; that list was only rebuilt once daily, so newly-set user emails showed "Not Registered". Now it republishes on every user save/delete and whenever Users & Access is opened.'],
     ['v147.2','A3 receipt fix — a real payment can no longer be allocated to the free trial plan, so trial→paid joining receipts (Pinki PP128, Sonia, Laghvi, etc.) now show the correct paid plan and a settled balance instead of "trial / Advance". Derived live from membership history, so past and future receipts self-correct with no data changes. Trial date now prints on the first paid plan\'s receipt.'],
