@@ -115,7 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header" style="padding:5px 20px 4px;">
   <div onclick="_coinZoom()" style="width:48px;height:48px;border-radius:50%;margin:0 auto 2px;overflow:hidden;cursor:pointer;"><img src="/bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v62</small></div>
+  <div class="logo"><small>Book a Session · v63</small></div>
   <button onclick="location.reload()" title="Refresh data" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 7px;color:var(--gold);cursor:pointer;line-height:0;"><svg style="width:19px;height:19px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
 </div>
 
@@ -490,7 +490,7 @@ function renderDashboard(){
     <!-- Client Dashboard -->
     <div class="card" style="padding:14px 16px;">
       <div class="client-dash">
-        <div class="client-avatar" onclick="_dpPick()" style="cursor:pointer;position:relative;overflow:hidden;" title="Tap to set your photo">${c.photo?`<img src="${c.photo}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initial}<span style="position:absolute;right:-2px;bottom:-2px;font-size:11px;">📷</span></div>
+        <div class="client-avatar" onclick="_dpPick()" style="cursor:pointer;position:relative;overflow:hidden;" title="Tap to set your photo">${c.photo?`<img src="${c.photo}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`:initial}<span style="position:absolute;right:-2px;bottom:-2px;font-size:11px;">📷</span>${c.photo?`<span onclick="event.stopPropagation();_dpRemove()" title="Remove photo" style="position:absolute;left:-3px;top:-3px;width:17px;height:17px;line-height:17px;text-align:center;font-size:10px;background:#c0392b;color:#fff;border-radius:50%;cursor:pointer;">✕</span>`:''}</div>
         <input type="file" id="dp-file" accept="image/*" style="display:none;" onchange="_dpUpload(this)"/>
         <div class="client-info" style="cursor:pointer;" title="Tap to view your profile" onclick="const _pc=document.getElementById('my-profile-card');if(_pc)_pc.style.display=_pc.style.display==='none'?'':'none';">
           <div class="client-name">${c.fname} ${c.lname||''}</div>
@@ -606,8 +606,7 @@ function personalBanner(){
 }
 function announceBanner(){
   if(!_announceActive())return '';
-  const _S={info:{lab:'ℹ️ Info'},important:{lab:'⚠️ Important'},offer:{lab:'🎉 Offer'}}[_announce.type]||{lab:'📢 Announcement'};
-  return `<div style="margin:0 0 16px;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,#e6c65c,#c9a24b);box-shadow:0 4px 20px rgba(201,162,75,0.45);color:#4a3212;"><div style="font-family:'Marcellus',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:0.8;margin-bottom:6px;">${_S.lab}</div><div style="font-family:'Marcellus',serif;font-size:17px;line-height:1.5;">${_announce.msg}</div></div>`;
+  return `<div style="margin:0 0 16px;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,#e6c65c,#c9a24b);box-shadow:0 4px 20px rgba(201,162,75,0.45);color:#4a3212;"><div style="font-family:'Marcellus',serif;font-size:17px;line-height:1.5;">${_announce.msg}</div></div>`;
 }
 function renderDates(){
   const days=getNext7Days();
@@ -735,6 +734,24 @@ function _coinZoom(){
     +'<div style="font-size:11px;color:var(--text3);letter-spacing:3px;text-transform:uppercase;">Luxurious French Pilates</div>';
   ov.onclick=()=>ov.remove();
   document.body.appendChild(ov);
+}
+async function _dpRemove(){
+  if(_viewerMode||!_client)return;
+  if(!confirm('Remove your photo?'))return;
+  try{
+    await db.runTransaction(async tx=>{
+      const ref=db.collection(COL).doc('pp_clients');
+      const snap=await tx.get(ref);
+      const list=JSON.parse(snap.data().value);
+      const me=list.find(x=>x.id===_client.id);
+      if(me){me.photo='';}
+      tx.set(ref,{value:JSON.stringify(list),updated:Date.now()},{merge:true});
+    });
+    _client.photo='';
+    const i=_clients.findIndex(x=>x.id===_client.id);if(i>-1)_clients[i].photo='';
+    renderDashboard();
+    showAlert('Photo removed','🌸');
+  }catch(e){showAlert('Could not remove photo — please try again','⚠️');}
 }
 function _dpPick(){
   if(_viewerMode)return;
