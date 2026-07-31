@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Book Pilates">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Jost:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Jost:wght@300;400;600;700&family=Marcellus&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
@@ -115,7 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header" style="padding:5px 20px 4px;">
   <div onclick="_coinZoom()" style="width:48px;height:48px;border-radius:50%;margin:0 auto 2px;overflow:hidden;cursor:pointer;"><img src="/bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v61</small></div>
+  <div class="logo"><small>Book a Session · v62</small></div>
   <button onclick="location.reload()" title="Refresh data" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 7px;color:var(--gold);cursor:pointer;line-height:0;"><svg style="width:19px;height:19px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
 </div>
 
@@ -602,12 +602,12 @@ function personalBanner(){
   const m=_personalMsg();
   if(!m)return '';
   const nm=(_client.fname||'').trim();
-  return `<div style="margin:0 0 16px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#d4b25e,#b8923f);box-shadow:0 4px 20px rgba(201,168,76,0.4);color:#1a1608;"><div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;opacity:0.75;margin-bottom:5px;">💌 A message for you</div><div style="font-family:'Playfair Display',serif;font-size:16px;line-height:1.45;font-weight:600;">${m.auto?m.msg:(nm?'<b>'+nm+'</b>, ':'')+m.msg}</div></div>`;
+  return `<div style="margin:0 0 16px;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,#e6c65c,#c9a24b);box-shadow:0 4px 20px rgba(201,162,75,0.45);color:#4a3212;"><div style="font-family:'Marcellus',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:0.8;margin-bottom:6px;">💌 A message for you</div><div style="font-family:'Marcellus',serif;font-size:17px;line-height:1.5;">${m.auto?m.msg:(nm?'<b>'+nm+'</b>, ':'')+m.msg}</div></div>`;
 }
 function announceBanner(){
   if(!_announceActive())return '';
-  const _S={info:{bg:'linear-gradient(135deg,#4a90d9,#3a72ad)',gl:'rgba(74,144,217,0.4)',fg:'#ffffff',lab:'ℹ️ Info'},important:{bg:'linear-gradient(135deg,#e0a83a,#c78a25)',gl:'rgba(224,168,58,0.42)',fg:'#1a1608',lab:'⚠️ Important'},offer:{bg:'linear-gradient(135deg,#d4b25e,#b8923f)',gl:'rgba(201,168,76,0.4)',fg:'#1a1608',lab:'🎉 Offer'}}[_announce.type]||{bg:'linear-gradient(135deg,#d4b25e,#b8923f)',gl:'rgba(201,168,76,0.4)',fg:'#1a1608',lab:'📢 Announcement'};
-  return `<div style="margin:0 0 16px;padding:14px 16px;border-radius:14px;background:${_S.bg};box-shadow:0 4px 20px ${_S.gl};color:${_S.fg};"><div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;opacity:0.85;margin-bottom:5px;">${_S.lab}</div><div style="font-family:'Playfair Display',serif;font-size:16px;line-height:1.45;font-weight:600;">${_announce.msg}</div></div>`;
+  const _S={info:{lab:'ℹ️ Info'},important:{lab:'⚠️ Important'},offer:{lab:'🎉 Offer'}}[_announce.type]||{lab:'📢 Announcement'};
+  return `<div style="margin:0 0 16px;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,#e6c65c,#c9a24b);box-shadow:0 4px 20px rgba(201,162,75,0.45);color:#4a3212;"><div style="font-family:'Marcellus',serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;opacity:0.8;margin-bottom:6px;">${_S.lab}</div><div style="font-family:'Marcellus',serif;font-size:17px;line-height:1.5;">${_announce.msg}</div></div>`;
 }
 function renderDates(){
   const days=getNext7Days();
