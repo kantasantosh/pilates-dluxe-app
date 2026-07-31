@@ -497,7 +497,7 @@ setInterval(()=>{
       localStorage.setItem('pp_bookings',dd.value);
       _pLast['pp_bookings']=dd.updated||Date.now();
       if(typeof _logRepaint==='function')_logRepaint('watchdog-bookings-poll');
-      if(_activeTab==='schedule')_pRerenderActive(); /* [v147.8] only repaint if user is on the schedule tab where bookings matter; dashboard doesn't need it */
+      _pRerenderActive();
     }
   }).catch(()=>{});
 },5000);
@@ -685,7 +685,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.8</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.9</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -909,7 +909,7 @@ try{
       <div class="fg"><label class="fl">Last Name</label><input class="fi" id="sf-lname" placeholder="Last name" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/></div>
     </div>
     <div class="fg"><label class="fl">Role</label>
-      <select class="fi" id="sf-role"><option>Lead Trainer</option><option>Assistant Trainer</option><option>Receptionist</option><option>Manager</option><option>Other</option></select>
+      <select class="fi" id="sf-role"></select>
     </div>
     <div class="fr">
       <div class="fg"><label class="fl">Phone</label><input class="fi" id="sf-phone" type="tel" placeholder="Phone number" autocomplete="off"/></div>
@@ -2825,6 +2825,8 @@ function chDay(d){
 function toggleClosedDay(){
   if(!(typeof ppIsAdmin==='function'&&ppIsAdmin())&&!(typeof _permCheck==='function'&&_permCheck('schedule','markClosed','edit'))){toast('🔒 Access restricted');return;}
   const closed=ld('pp_closed_days',{});
+  const _tSun=new Date(_schedDate+'T00:00:00').getDay()===0;
+  if(_tSun&&!closed[_schedDate]){if(!closed[_schedDate+'_open']){closed[_schedDate+'_open']=true;sv('pp_closed_days',closed);toast('☀️ Sunday opened');renderSchedule();return;}else{delete closed[_schedDate+'_open'];sv('pp_closed_days',closed);toast('🔒 Sunday closed');renderSchedule();return;}}
   if(closed[_schedDate]){
     delete closed[_schedDate];
     sv('pp_closed_days',closed);
@@ -2896,10 +2898,13 @@ function renderSchedule(){
   let html=`
     ${(function(){
       const closed=ld('pp_closed_days',{});
-      const isClosed=!!closed[_schedDate];
+      const _isSun=new Date(_schedDate+'T00:00:00').getDay()===0;
+      const _sunOpen=!!closed[_schedDate+'_open'];
+      const _isAutoSunday=_isSun&&!closed[_schedDate]&&!_sunOpen;
+      const isClosed=!!closed[_schedDate]||_isAutoSunday;
       if(ppIsTrainer&&ppIsTrainer())return isClosed?`<div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.4);border-radius:10px;padding:10px;margin-bottom:12px;text-align:center;font-size:13px;color:var(--red);">🚫 Studio closed on this day${closed[_schedDate].reason?' — '+closed[_schedDate].reason:''}</div>`:'';
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:${isClosed?'rgba(150,150,150,0.08)':'var(--surface2)'};border:1px solid ${isClosed?'rgba(150,150,150,0.25)':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-        <div style="font-size:13px;color:${isClosed?'var(--text3)':'var(--text2)'};">${isClosed?'🔒 Studio closed this day'+(closed[_schedDate].reason?' — '+closed[_schedDate].reason:''):'Studio open on this day'}</div>
+        <div style="font-size:13px;color:${isClosed?'var(--text3)':'var(--text2)'};">${_isAutoSunday?'🔒 Sunday — weekly holiday':(isClosed?'🔒 Studio closed this day'+(closed[_schedDate].reason?' — '+closed[_schedDate].reason:''):'Studio open on this day')}</div>
         <button onclick="toggleClosedDay()" style="background:${isClosed?'var(--green)':'var(--surface3)'};border:1px solid ${isClosed?'var(--green)':'var(--border2)'};border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;color:${isClosed?'#1a1a2e':'var(--text2)'};font-family:'Jost',sans-serif;white-space:nowrap;">${isClosed?'Re-open day':'🚫 Mark closed'}</button>
       </div>`;
     })()}`;
@@ -3746,7 +3751,7 @@ function openAddStaff(id){
     const s=ld('pp_staff',[]).find(x=>x.id===id)||{};
     document.getElementById('sf-fname').value=s.fname||'';
     document.getElementById('sf-lname').value=s.lname||'';
-    document.getElementById('sf-role').value=s.role||'Lead Trainer';
+    _pR('sf-role','pp_staff_roles',_DSR,s.role||'Lead Trainer');
     document.getElementById('sf-phone').value=s.phone||'';
     document.getElementById('sf-email').value=s.email||'';
     document.getElementById('sf-sal').value=s.salary||'';
@@ -5327,7 +5332,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.8</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.9</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5367,7 +5372,7 @@ if('serviceWorker' in navigator){
     <div class="fg"><label class="fl">Login ID</label><input class="fi" id="ue-uid" placeholder="e.g. priyanka" autocapitalize="none"/></div>
     <div class="fg"><label class="fl">Email <span style="color:var(--text3);font-weight:400;">(for booking-page login)</span></label><input class="fi" id="ue-email" type="email" autocapitalize="none" placeholder="name@gmail.com" autocomplete="off"/></div>
     <div class="fr">
-      <div class="fg"><label class="fl">Role</label><select class="fi" id="ue-role"><option value="staff">Staff</option><option value="trainer">Trainer (view-only)</option><option value="visitor">Visitor (view-only, no staff record)</option><option value="admin">Admin</option></select></div>
+      <div class="fg"><label class="fl">Role</label><select class="fi" id="ue-role"></select></div>
       <div class="fg"><label class="fl">Active</label><select class="fi" id="ue-active"><option value="1">Yes</option><option value="0">No (disabled)</option></select></div>
     </div>
     <div class="fg"><label class="fl">Linked Staff Record (for own attendance &amp; tasks)</label><select class="fi" id="ue-staff"><option value="">— Not linked —</option></select></div>
@@ -6043,6 +6048,10 @@ function openUsersModal(){
   try{renderUsersList();}catch(_e){console.warn('Users list failed to render:',_e);}
 }
 function _pubViewerEmails(arr){try{const a=arr||ld('pp_users',[]);sv('pp_viewer_emails',a.filter(u=>u&&u.active!==false&&u.email).map(u=>({email:u.email.toLowerCase(),name:u.name||'',role:u.role||''})));}catch(_e){}}
+const _DUR=['admin','staff','trainer','visitor','receptionist','accountant','franchisor','manager'];
+const _DSR=['Lead Trainer','Assistant Trainer','Receptionist','Manager','Other'];
+function _gR(k,d){return ld(k,null)||d.slice();}
+function _pR(s,k,d,v){const e=document.getElementById(s);if(!e)return;e.innerHTML=_gR(k,d).map(r=>'<option value="'+r+'">'+r.charAt(0).toUpperCase()+r.slice(1)+'</option>').join('');if(v)e.value=v;}
 function renderUsersList(){
   const users=ppUsers();_pubViewerEmails(users);
   document.getElementById('users-list').innerHTML=users.length?users.map(u=>`
@@ -6063,7 +6072,7 @@ function openUserEdit(id){
   document.getElementById('ue-name').value=u?u.name:'';
   document.getElementById('ue-uid').value=u?u.uid:'';
   document.getElementById('ue-email').value=u&&u.email?u.email:'';
-  document.getElementById('ue-role').value=u?u.role:'staff';
+  _pR('ue-role','pp_user_roles',_DUR,u?u.role:'staff');
   document.getElementById('ue-active').value=u&&u.active===false?'0':'1';
   document.getElementById('ue-pin').value='';
   document.getElementById('ue-staff').innerHTML='<option value="">— Not linked —</option>'+
@@ -7829,7 +7838,8 @@ function _verAhead(server,local){
 })();
 function _showChangelog(){
   const log=[
-    ['v147.8','Dashboard flicker fix: the 10-second bookings-watchdog poll was triggering a full repaint on every tab (including Dashboard) whenever the pp_bookings doc had any timestamp change. Now it only repaints if the user is on the Schedule tab where bookings are actually displayed.'],
+    ['v147.9','#4 Role labels dynamic (add/edit/delete via stored lists; admin locked). #5 Sundays auto-holiday (admin can override via toggle).'],
+    ['v147.8','Dashboard flicker: bookings watchdog repaints Schedule tab only.'],
     ['v147.7','Fixed: saving the public booking announcement no longer wipes clients\' personal messages. saveAnnounce rebuilt the pp_announce doc from scratch (msg/type/until only), discarding the personal:{} map — so every public-announcement save silently deleted all personal messages. Now it reads the existing doc and updates only the public fields, preserving personal.'],
     ['v147.6','CashBook: Search box and All-categories dropdown are now equal height (input vs select render differently; both forced to 38px).'],
     ['v147.5','Refresh now stays on the current tab instead of jumping to Home. The restore mechanism already existed (reads pp_activeTab on boot) but showTab never saved it — added the one-line save so it works.'],
