@@ -497,7 +497,7 @@ setInterval(()=>{
       localStorage.setItem('pp_bookings',dd.value);
       _pLast['pp_bookings']=dd.updated||Date.now();
       if(typeof _logRepaint==='function')_logRepaint('watchdog-bookings-poll');
-      _pRerenderActive();
+      if(_activeTab==='schedule')_pRerenderActive(); /* [v147.8] only repaint if user is on the schedule tab where bookings matter; dashboard doesn't need it */
     }
   }).catch(()=>{});
 },5000);
@@ -685,7 +685,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.7</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.8</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -5327,7 +5327,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.7</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.8</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -7829,6 +7829,7 @@ function _verAhead(server,local){
 })();
 function _showChangelog(){
   const log=[
+    ['v147.8','Dashboard flicker fix: the 10-second bookings-watchdog poll was triggering a full repaint on every tab (including Dashboard) whenever the pp_bookings doc had any timestamp change. Now it only repaints if the user is on the Schedule tab where bookings are actually displayed.'],
     ['v147.7','Fixed: saving the public booking announcement no longer wipes clients\' personal messages. saveAnnounce rebuilt the pp_announce doc from scratch (msg/type/until only), discarding the personal:{} map — so every public-announcement save silently deleted all personal messages. Now it reads the existing doc and updates only the public fields, preserving personal.'],
     ['v147.6','CashBook: Search box and All-categories dropdown are now equal height (input vs select render differently; both forced to 38px).'],
     ['v147.5','Refresh now stays on the current tab instead of jumping to Home. The restore mechanism already existed (reads pp_activeTab on boot) but showTab never saved it — added the one-line save so it works.'],
