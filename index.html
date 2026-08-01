@@ -685,7 +685,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.9</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v148</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -5332,7 +5332,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.9</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v148</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5359,6 +5359,7 @@ if('serviceWorker' in navigator){
     <h2>Users &amp; Access</h2>
     <div id="users-list"></div>
     <button class="sb2" onclick="openUserEdit()" style="margin-top:8px;">+ Add User</button>
+    <button class="sb2" id="mr-open-btn" onclick="openManageRoles()" style="margin-top:6px;background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);display:none;">⚙ Manage Roles</button>
   </div>
 </div>
 
@@ -5396,6 +5397,29 @@ if('serviceWorker' in navigator){
     <div class="fg"><label class="fl">PIN (4–6 digits)</label><input class="fi" id="ue-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Leave blank to keep current PIN" autocomplete="off" name="pdl-uepin" data-1p-ignore data-lpignore="true" data-form-type="other"/></div>
     <button class="sb2" id="ue-save-btn" onclick="saveUser()" disabled style="opacity:0.45;">Save User</button>
     <button id="ue-del" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteUser()">Delete User</button>
+  </div>
+</div>
+
+<!-- AUDIT LOG MODAL -->
+
+<!-- MANAGE ROLES MODAL (v148) -->
+<div class="mo" id="m-roles" style="z-index:270;">
+  <div class="md">
+    <button class="mc2" onclick="closeM('m-roles')">✕</button>
+    <h2>⚙ Manage Roles</h2>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Add, rename or remove role labels. The <b>admin</b> role is locked.</div>
+    <div class="div-section" style="margin-top:0;">User Roles</div>
+    <div id="mr-user-list"></div>
+    <div style="display:flex;gap:8px;margin:8px 0 16px;">
+      <input class="fi" id="mr-user-new" placeholder="New user role…" style="flex:1;"/>
+      <button onclick="_mrAdd('user')" style="background:var(--gold);color:#1a1a2e;border:none;border-radius:var(--rsm);padding:6px 14px;font-weight:700;font-family:'Jost',sans-serif;cursor:pointer;font-size:12px;">+ Add</button>
+    </div>
+    <div class="div-section">Staff Roles</div>
+    <div id="mr-staff-list"></div>
+    <div style="display:flex;gap:8px;margin:8px 0 4px;">
+      <input class="fi" id="mr-staff-new" placeholder="New staff role…" style="flex:1;"/>
+      <button onclick="_mrAdd('staff')" style="background:var(--gold);color:#1a1a2e;border:none;border-radius:var(--rsm);padding:6px 14px;font-weight:700;font-family:'Jost',sans-serif;cursor:pointer;font-size:12px;">+ Add</button>
+    </div>
   </div>
 </div>
 
@@ -5774,7 +5798,12 @@ function ppAuthGate(){
   let s=null;try{s=JSON.parse(localStorage.getItem('pp_session'));}catch(e){}
   if(s){
     const u=users.find(x=>x.id===s.uid&&x.active!==false);
-    if(u){PPS=u;lg.style.display='none';applyRole();return true;}
+    if(u){PPS=u;lg.style.display='none';applyRole();
+      /* v148: restore the tab the user was on before refresh */
+      try{const _st=sessionStorage.getItem('pp_activeTab');
+        if(_st&&_st!=='dashboard'){const _b=document.querySelector('.nb[data-tab="'+_st+'"]');if(_b)_b.click();}
+      }catch(_e){}
+      return true;}
     localStorage.removeItem('pp_session');
   }
   /* show login */
@@ -6052,8 +6081,62 @@ const _DUR=['admin','staff','trainer','visitor','receptionist','accountant','fra
 const _DSR=['Lead Trainer','Assistant Trainer','Receptionist','Manager','Other'];
 function _gR(k,d){return ld(k,null)||d.slice();}
 function _pR(s,k,d,v){const e=document.getElementById(s);if(!e)return;e.innerHTML=_gR(k,d).map(r=>'<option value="'+r+'">'+r.charAt(0).toUpperCase()+r.slice(1)+'</option>').join('');if(v)e.value=v;}
+/* ===== v148: ROLE MANAGEMENT UI ===== */
+function openManageRoles(){if(!ppIsAdmin()){toast('🔒 Admin only');return;}openM('m-roles');_mrRender();}
+function _mrRender(){
+  _mrRenderList('mr-user-list','pp_user_roles',_DUR,'user');
+  _mrRenderList('mr-staff-list','pp_staff_roles',_DSR,'staff');
+}
+function _mrRenderList(elId,key,defaults,type){
+  const el=document.getElementById(elId);if(!el)return;
+  const roles=_gR(key,defaults);
+  el.innerHTML=roles.map((r,i)=>{
+    const locked=type==='user'&&r.toLowerCase()==='admin';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="flex:1;font-size:13px;color:var(--text);font-weight:600;" id="mr-lbl-'+type+'-'+i+'">'+r+(locked?' 🔒':'')+'</div>'
+      +(locked?''
+        :'<button onclick="_mrRename(\''+type+'\','+i+')" style="background:none;border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--text2);cursor:pointer;font-size:11px;" title="Rename">✏️</button>'
+        +'<button onclick="_mrDel(\''+type+'\','+i+')" style="background:none;border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--rose);cursor:pointer;font-size:11px;" title="Delete">🗑</button>')
+      +'</div>';
+  }).join('');
+}
+function _mrKey(type){return type==='user'?'pp_user_roles':'pp_staff_roles';}
+function _mrDefaults(type){return type==='user'?_DUR:_DSR;}
+function _mrAdd(type){
+  if(!ppIsAdmin())return;
+  const inp=document.getElementById('mr-'+type+'-new');if(!inp)return;
+  const v=inp.value.trim();if(!v){toast('Enter a role name');return;}
+  const key=_mrKey(type),defs=_mrDefaults(type);
+  const roles=_gR(key,defs);
+  if(roles.some(r=>r.toLowerCase()===v.toLowerCase())){toast('Role already exists');return;}
+  roles.push(v);sv(key,roles);inp.value='';_mrRender();
+  AUD('⚙ Role added',type+': '+v);toast('✓ Role added');
+}
+function _mrRename(type,idx){
+  if(!ppIsAdmin())return;
+  const key=_mrKey(type),defs=_mrDefaults(type);
+  const roles=_gR(key,defs);
+  const old=roles[idx];if(!old)return;
+  const nw=prompt('Rename role "'+old+'" to:',old);
+  if(!nw||!nw.trim()||nw.trim()===old)return;
+  if(roles.some(r=>r.toLowerCase()===nw.trim().toLowerCase())){toast('Role name already exists');return;}
+  roles[idx]=nw.trim();sv(key,roles);_mrRender();
+  AUD('⚙ Role renamed',type+': '+old+' → '+nw.trim());toast('✓ Renamed');
+}
+function _mrDel(type,idx){
+  if(!ppIsAdmin())return;
+  const key=_mrKey(type),defs=_mrDefaults(type);
+  const roles=_gR(key,defs);
+  const r=roles[idx];if(!r)return;
+  if(type==='user'&&r.toLowerCase()==='admin'){toast('Cannot delete admin role');return;}
+  if(!confirm('Delete role "'+r+'"?\n\nExisting users/staff with this role will keep it until next edit.'))return;
+  roles.splice(idx,1);sv(key,roles);_mrRender();
+  AUD('⚙ Role deleted',type+': '+r);toast('Role deleted');
+}
 function renderUsersList(){
   const users=ppUsers();_pubViewerEmails(users);
+  /* v148: show Manage Roles button only for admin */
+  try{const mrb=document.getElementById('mr-open-btn');if(mrb)mrb.style.display=ppIsAdmin()?'':'none';}catch(_e){}
   document.getElementById('users-list').innerHTML=users.length?users.map(u=>`
     <div class="usr-row">
       <div class="av" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1a2e;background:${colorFor(u.name||'U')};">${initials(u.name||'U')}</div>
@@ -7838,6 +7921,7 @@ function _verAhead(server,local){
 })();
 function _showChangelog(){
   const log=[
+    ['v148','Refresh now stays on the current tab (boot restore). Role Management UI — admin can add/rename/delete user & staff roles from Users & Access. Booking app: studio Instagram shown in header; profile card hints for name-tap and DP upload.'],
     ['v147.9','#4 Role labels dynamic (add/edit/delete via stored lists; admin locked). #5 Sundays auto-holiday (admin can override via toggle).'],
     ['v147.8','Dashboard flicker: bookings watchdog repaints Schedule tab only.'],
     ['v147.7','Fixed: saving the public booking announcement no longer wipes clients\' personal messages. saveAnnounce rebuilt the pp_announce doc from scratch (msg/type/until only), discarding the personal:{} map — so every public-announcement save silently deleted all personal messages. Now it reads the existing doc and updates only the public fields, preserving personal.'],
