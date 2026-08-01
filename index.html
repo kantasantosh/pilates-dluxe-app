@@ -318,7 +318,7 @@ async function _pInit(){
       const dd=d.data();
       if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){
         localStorage.setItem(d.id,dd.value);
-        _pLast[d.id]=dd.updated||Date.now(); /* v148: seed timestamps so subsequent pulls can guard */
+        if(dd.updated)_pLast[d.id]=dd.updated; /* v148: seed timestamps so subsequent pulls can guard */
         /* Track whether anything REAL actually came back — pp_clients or
            pp_users with genuine content, not just an empty array/object.
            A read can succeed with ZERO documents if the device isn't truly
@@ -544,7 +544,7 @@ async function pdlSyncNow(){
     snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){
       /* v148: guard — reject stale Firestore data if a local write is newer */
       const ts=dd.updated||0;if(_pLast[d.id]&&ts<_pLast[d.id])return;
-      localStorage.setItem(d.id,dd.value);_pLast[d.id]=ts||Date.now();
+      localStorage.setItem(d.id,dd.value);if(ts)_pLast[d.id]=ts;
     }});
     _pRerenderActive();
     if(typeof _startLiveSync==='function')_startLiveSync();
@@ -586,7 +586,7 @@ document.addEventListener('visibilitychange',()=>{
         snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){
           /* v148: guard — reject stale Firestore data if a local write is newer */
           const ts=dd.updated||0;if(_pLast[d.id]&&ts<_pLast[d.id])return;
-          localStorage.setItem(d.id,dd.value);_pLast[d.id]=ts||Date.now();
+          localStorage.setItem(d.id,dd.value);if(ts)_pLast[d.id]=ts;
         }});
         _restoreTabAndRender();
         if(typeof _startLiveSync==='function')_startLiveSync();
@@ -654,7 +654,7 @@ try{
           snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){
             /* v148: guard — reject stale Firestore data */
             const ts=dd.updated||0;if(_pLast[d.id]&&ts<_pLast[d.id])return;
-            localStorage.setItem(d.id,dd.value);_pLast[d.id]=ts||Date.now();
+            localStorage.setItem(d.id,dd.value);if(ts)_pLast[d.id]=ts;
           }});
           _pSync=true;_pRerenderActive();
           _startLiveSync();
@@ -6153,7 +6153,7 @@ function _mrRenameSave(){
   const roles=_getRoles();const old=roles[_mrRenameIdx];
   const nw=(document.getElementById('mr-rename-inp').value||'').trim();
   if(!nw||nw===old){document.getElementById('mr-rename-row').style.display='none';return;}
-  if(roles.some(r=>r.toLowerCase()===nw.toLowerCase())){toast('Role name already exists');return;}
+  if(roles.some((r,j)=>j!==_mrRenameIdx&&r.toLowerCase()===nw.toLowerCase())){toast('Role name already exists');return;}
   roles[_mrRenameIdx]=nw;sv('pp_roles',roles);_mrRender();
   AUD('⚙ Role renamed',old+' → '+nw);toast('✓ Renamed');
 }
