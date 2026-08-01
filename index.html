@@ -10707,7 +10707,7 @@ function ufSavePayment(){
       if(el)el.textContent='⏳ Backfilling '+fixed+' of '+total+' docs…';
       const now=Date.now();
       for(const id of batch){
-        await _pdb.collection('pilates').doc(id).update({updated:now});
+        await _pdb.collection('pilates').doc(id).set({updated:now},{merge:true});
       }
       const msg='✓ Backfilled '+fixed+' doc(s) with timestamps';
       toast(msg);if(el)el.textContent=msg;
