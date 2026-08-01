@@ -299,7 +299,7 @@ try{
      comes after this point in the file. */
   console.warn('Firebase unavailable, continuing in offline mode:',_fbErr&&_fbErr.message);
 }
-const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups','pp_perm_templates','pp_viewer_emails'];
+const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups','pp_perm_templates','pp_viewer_emails','pp_roles'];
 function _pSyncable(k){return _pSYNC.includes(k)||/^pp_(satt|sadv)_/.test(k);}
 
 /* [v145a] removed dead code: _pfsSave() — zero call sites */
@@ -318,6 +318,7 @@ async function _pInit(){
       const dd=d.data();
       if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){
         localStorage.setItem(d.id,dd.value);
+        if(dd.updated)_pLast[d.id]=dd.updated; /* v148: seed timestamps so subsequent pulls can guard */
         /* Track whether anything REAL actually came back — pp_clients or
            pp_users with genuine content, not just an empty array/object.
            A read can succeed with ZERO documents if the device isn't truly
@@ -540,7 +541,11 @@ async function pdlSyncNow(){
   toast('🔄 Syncing…');
   try{
     const snap=await _pdb.collection('pilates').get();
-    snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){localStorage.setItem(d.id,dd.value);_pLast[d.id]=dd.updated||Date.now();}});
+    snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){
+      /* v148: guard — reject stale Firestore data if a local write is newer */
+      const ts=dd.updated||0;if(_pLast[d.id]&&ts<_pLast[d.id])return;
+      localStorage.setItem(d.id,dd.value);if(ts)_pLast[d.id]=ts;
+    }});
     _pRerenderActive();
     if(typeof _startLiveSync==='function')_startLiveSync();
     toast('✓ Synced with cloud');
@@ -578,7 +583,11 @@ document.addEventListener('visibilitychange',()=>{
     let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(e){}
     if(signedIn&&_pdb){
       _pdb.collection('pilates').get().then(snap=>{
-        snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){localStorage.setItem(d.id,dd.value);_pLast[d.id]=dd.updated||Date.now();}});
+        snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){
+          /* v148: guard — reject stale Firestore data if a local write is newer */
+          const ts=dd.updated||0;if(_pLast[d.id]&&ts<_pLast[d.id])return;
+          localStorage.setItem(d.id,dd.value);if(ts)_pLast[d.id]=ts;
+        }});
         _restoreTabAndRender();
         if(typeof _startLiveSync==='function')_startLiveSync();
       }).catch(()=>{_restoreTabAndRender();}); /* still restore the UI even if the sync fetch failed */
@@ -642,7 +651,11 @@ try{
            plus make sure the live listener is actually on (it may never
            have started if the very first load hit a transient hiccup). */
         try{_pdb.collection('pilates').get().then(snap=>{
-          snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined)localStorage.setItem(d.id,dd.value);});
+          snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){
+            /* v148: guard — reject stale Firestore data */
+            const ts=dd.updated||0;if(_pLast[d.id]&&ts<_pLast[d.id])return;
+            localStorage.setItem(d.id,dd.value);if(ts)_pLast[d.id]=ts;
+          }});
           _pSync=true;_pRerenderActive();
           _startLiveSync();
         }).catch(()=>{});}catch(_e){}
@@ -685,7 +698,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v147.7</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v148</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -909,7 +922,7 @@ try{
       <div class="fg"><label class="fl">Last Name</label><input class="fi" id="sf-lname" placeholder="Last name" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/></div>
     </div>
     <div class="fg"><label class="fl">Role</label>
-      <select class="fi" id="sf-role"><option>Lead Trainer</option><option>Assistant Trainer</option><option>Receptionist</option><option>Manager</option><option>Other</option></select>
+      <select class="fi" id="sf-role"></select>
     </div>
     <div class="fr">
       <div class="fg"><label class="fl">Phone</label><input class="fi" id="sf-phone" type="tel" placeholder="Phone number" autocomplete="off"/></div>
@@ -2825,6 +2838,8 @@ function chDay(d){
 function toggleClosedDay(){
   if(!(typeof ppIsAdmin==='function'&&ppIsAdmin())&&!(typeof _permCheck==='function'&&_permCheck('schedule','markClosed','edit'))){toast('🔒 Access restricted');return;}
   const closed=ld('pp_closed_days',{});
+  const _tSun=new Date(_schedDate+'T00:00:00').getDay()===0;
+  if(_tSun&&!closed[_schedDate]){if(!closed[_schedDate+'_open']){closed[_schedDate+'_open']=true;sv('pp_closed_days',closed);toast('☀️ Sunday opened');renderSchedule();return;}else{delete closed[_schedDate+'_open'];sv('pp_closed_days',closed);toast('🔒 Sunday closed');renderSchedule();return;}}
   if(closed[_schedDate]){
     delete closed[_schedDate];
     sv('pp_closed_days',closed);
@@ -2882,7 +2897,10 @@ function renderSchedule(){
   const bookings=ld('pp_bookings',{});
   const daySlots=bookings[_schedDate]||{};
   const _dayClosedInfo=(ld('pp_closed_days',{}))[_schedDate];
-  const dayClosed=!!_dayClosedInfo;
+  /* v148: auto-Sunday — treat Sunday as closed unless admin explicitly opened it */
+  const _schedIsSun=new Date(_schedDate+'T00:00:00').getDay()===0;
+  const _sunExplicitOpen=!!(ld('pp_closed_days',{}))[_schedDate+'_open'];
+  const dayClosed=!!_dayClosedInfo||(_schedIsSun&&!_dayClosedInfo&&!_sunExplicitOpen);
   const _dayClosedReason=_dayClosedInfo&&_dayClosedInfo.reason?_dayClosedInfo.reason:'';
   const clients=ld('pp_clients',[]);
   const _sq=''; /* search bar removed per request — kept as empty string so the highlight/dim logic below stays harmless (always shows everyone normally) without needing to touch that code separately */
@@ -2896,10 +2914,13 @@ function renderSchedule(){
   let html=`
     ${(function(){
       const closed=ld('pp_closed_days',{});
-      const isClosed=!!closed[_schedDate];
+      const _isSun=new Date(_schedDate+'T00:00:00').getDay()===0;
+      const _sunOpen=!!closed[_schedDate+'_open'];
+      const _isAutoSunday=_isSun&&!closed[_schedDate]&&!_sunOpen;
+      const isClosed=!!closed[_schedDate]||_isAutoSunday;
       if(ppIsTrainer&&ppIsTrainer())return isClosed?`<div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.4);border-radius:10px;padding:10px;margin-bottom:12px;text-align:center;font-size:13px;color:var(--red);">🚫 Studio closed on this day${closed[_schedDate].reason?' — '+closed[_schedDate].reason:''}</div>`:'';
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:${isClosed?'rgba(150,150,150,0.08)':'var(--surface2)'};border:1px solid ${isClosed?'rgba(150,150,150,0.25)':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-        <div style="font-size:13px;color:${isClosed?'var(--text3)':'var(--text2)'};">${isClosed?'🔒 Studio closed this day'+(closed[_schedDate].reason?' — '+closed[_schedDate].reason:''):'Studio open on this day'}</div>
+        <div style="font-size:13px;color:${isClosed?'var(--text3)':'var(--text2)'};">${_isAutoSunday?'🔒 Sunday — weekly holiday':(isClosed?'🔒 Studio closed this day'+(closed[_schedDate].reason?' — '+closed[_schedDate].reason:''):'Studio open on this day')}</div>
         <button onclick="toggleClosedDay()" style="background:${isClosed?'var(--green)':'var(--surface3)'};border:1px solid ${isClosed?'var(--green)':'var(--border2)'};border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;color:${isClosed?'#1a1a2e':'var(--text2)'};font-family:'Jost',sans-serif;white-space:nowrap;">${isClosed?'Re-open day':'🚫 Mark closed'}</button>
       </div>`;
     })()}`;
@@ -2961,6 +2982,15 @@ function openBookingModal(slotIdx){
   /* Staff now has full schedule access (same as admin) — no past-date restriction */
   /* closed-day check UPFRONT — non-admin blocked, admin gets themed override */
   const _closed=ld('pp_closed_days',{});
+  /* v148: auto-Sunday guard */
+  const _bmSun=new Date(_schedDate+'T00:00:00').getDay()===0&&!_closed[_schedDate]&&!_closed[_schedDate+'_open'];
+  if(_bmSun){
+    showConfirm('🔒','Sunday — Weekly Holiday',fmt(_schedDate)+' is a Sunday (auto-closed).<br><br>Book on this day anyway?',[
+      {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+      {label:'Book anyway',color:'var(--gold)',action:()=>_openBookingForm(slotIdx)}
+    ]);
+    return;
+  }
   if(_closed[_schedDate]){
     const _rsn=_closed[_schedDate].reason?' ('+_closed[_schedDate].reason+')':'';
     showConfirm('🚫','Day Marked Closed',fmt(_schedDate)+' is marked CLOSED'+_rsn+'.<br><br>Do you still want to book on this closed day?',[
@@ -3746,7 +3776,7 @@ function openAddStaff(id){
     const s=ld('pp_staff',[]).find(x=>x.id===id)||{};
     document.getElementById('sf-fname').value=s.fname||'';
     document.getElementById('sf-lname').value=s.lname||'';
-    document.getElementById('sf-role').value=s.role||'Lead Trainer';
+    _pR('sf-role','pp_roles',_ROLES_DEFAULT,s.role||'trainer');
     document.getElementById('sf-phone').value=s.phone||'';
     document.getElementById('sf-email').value=s.email||'';
     document.getElementById('sf-sal').value=s.salary||'';
@@ -5327,7 +5357,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v147.7</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v148</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -5354,6 +5384,7 @@ if('serviceWorker' in navigator){
     <h2>Users &amp; Access</h2>
     <div id="users-list"></div>
     <button class="sb2" onclick="openUserEdit()" style="margin-top:8px;">+ Add User</button>
+    <button class="sb2" id="mr-open-btn" onclick="openManageRoles()" style="margin-top:6px;background:none;border:1.5px solid rgba(201,169,110,0.5);color:var(--gold);display:none;">⚙ Manage Roles</button>
   </div>
 </div>
 
@@ -5367,7 +5398,7 @@ if('serviceWorker' in navigator){
     <div class="fg"><label class="fl">Login ID</label><input class="fi" id="ue-uid" placeholder="e.g. priyanka" autocapitalize="none"/></div>
     <div class="fg"><label class="fl">Email <span style="color:var(--text3);font-weight:400;">(for booking-page login)</span></label><input class="fi" id="ue-email" type="email" autocapitalize="none" placeholder="name@gmail.com" autocomplete="off"/></div>
     <div class="fr">
-      <div class="fg"><label class="fl">Role</label><select class="fi" id="ue-role"><option value="staff">Staff</option><option value="trainer">Trainer (view-only)</option><option value="visitor">Visitor (view-only, no staff record)</option><option value="admin">Admin</option></select></div>
+      <div class="fg"><label class="fl">Role</label><select class="fi" id="ue-role"></select></div>
       <div class="fg"><label class="fl">Active</label><select class="fi" id="ue-active"><option value="1">Yes</option><option value="0">No (disabled)</option></select></div>
     </div>
     <div class="fg"><label class="fl">Linked Staff Record (for own attendance &amp; tasks)</label><select class="fi" id="ue-staff"><option value="">— Not linked —</option></select></div>
@@ -5391,6 +5422,31 @@ if('serviceWorker' in navigator){
     <div class="fg"><label class="fl">PIN (4–6 digits)</label><input class="fi" id="ue-pin" type="password" inputmode="numeric" maxlength="6" placeholder="Leave blank to keep current PIN" autocomplete="off" name="pdl-uepin" data-1p-ignore data-lpignore="true" data-form-type="other"/></div>
     <button class="sb2" id="ue-save-btn" onclick="saveUser()" disabled style="opacity:0.45;">Save User</button>
     <button id="ue-del" class="sb2" style="background:none;border:1.5px solid var(--rose);color:var(--rose);margin-top:8px;display:none;" onclick="deleteUser()">Delete User</button>
+  </div>
+</div>
+
+<!-- AUDIT LOG MODAL -->
+
+<!-- MANAGE ROLES MODAL (v148) -->
+<div class="mo" id="m-roles" style="z-index:270;">
+  <div class="md">
+    <button class="mc2" onclick="closeM('m-roles')">✕</button>
+    <h2>⚙ Manage Roles</h2>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Add, rename or remove role labels used across Users &amp; Staff. The <b>admin</b> role is locked.</div>
+    <div id="mr-role-list"></div>
+    <div style="display:flex;gap:8px;margin:10px 0 4px;">
+      <input class="fi" id="mr-new-role" placeholder="New role name…" style="flex:1;"/>
+      <button onclick="_mrAdd()" style="background:var(--gold);color:#1a1a2e;border:none;border-radius:var(--rsm);padding:6px 14px;font-weight:700;font-family:'Jost',sans-serif;cursor:pointer;font-size:12px;">+ Add</button>
+    </div>
+    <!-- inline rename row (hidden by default) -->
+    <div id="mr-rename-row" style="display:none;margin-top:8px;">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Rename "<span id="mr-rename-old"></span>" to:</div>
+      <div style="display:flex;gap:8px;">
+        <input class="fi" id="mr-rename-inp" placeholder="New name…" style="flex:1;"/>
+        <button onclick="_mrRenameSave()" style="background:var(--gold);color:#1a1a2e;border:none;border-radius:var(--rsm);padding:6px 12px;font-weight:700;font-family:'Jost',sans-serif;cursor:pointer;font-size:12px;">Save</button>
+        <button onclick="document.getElementById('mr-rename-row').style.display='none'" style="background:none;border:1px solid var(--border2);border-radius:var(--rsm);padding:6px 10px;color:var(--text2);cursor:pointer;font-size:12px;">✕</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -5769,7 +5825,12 @@ function ppAuthGate(){
   let s=null;try{s=JSON.parse(localStorage.getItem('pp_session'));}catch(e){}
   if(s){
     const u=users.find(x=>x.id===s.uid&&x.active!==false);
-    if(u){PPS=u;lg.style.display='none';applyRole();return true;}
+    if(u){PPS=u;lg.style.display='none';applyRole();
+      /* v148: restore the tab the user was on before refresh */
+      try{const _st=sessionStorage.getItem('pp_activeTab');
+        if(_st&&_st!=='dashboard'){const _b=document.querySelector('.nb[data-tab="'+_st+'"]');if(_b)_b.click();}
+      }catch(_e){}
+      return true;}
     localStorage.removeItem('pp_session');
   }
   /* show login */
@@ -6043,18 +6104,106 @@ function openUsersModal(){
   try{renderUsersList();}catch(_e){console.warn('Users list failed to render:',_e);}
 }
 function _pubViewerEmails(arr){try{const a=arr||ld('pp_users',[]);sv('pp_viewer_emails',a.filter(u=>u&&u.active!==false&&u.email).map(u=>({email:u.email.toLowerCase(),name:u.name||'',role:u.role||''})));}catch(_e){}}
+const _DUR=['admin','staff','trainer','visitor','receptionist','accountant','franchisor','manager'];
+const _DSR=['Lead Trainer','Assistant Trainer','Receptionist','Manager','Other'];
+function _gR(k,d){
+  /* v148: unified — try pp_roles first, fall back to legacy key, then defaults */
+  const unified=ld('pp_roles',null);if(unified)return unified.slice();
+  return ld(k,null)||d.slice();
+}
+function _pR(s,k,d,v){const e=document.getElementById(s);if(!e)return;e.innerHTML=_gR(k,d).map(r=>'<option value="'+r+'">'+r.charAt(0).toUpperCase()+r.slice(1)+'</option>').join('');if(v)e.value=v;}
+/* ===== v148: ROLE MANAGEMENT UI (unified) ===== */
+const _ROLES_DEFAULT=['admin','staff','trainer','visitor','receptionist','accountant','franchisor','manager','Lead Trainer','Assistant Trainer','Other'];
+function _getRoles(){return ld('pp_roles',null)||_ROLES_DEFAULT.slice();}
+function openManageRoles(){if(!ppIsAdmin()){toast('🔒 Admin only');return;}openM('m-roles');_mrRender();}
+function _mrRender(){
+  const roles=_getRoles();
+  const el=document.getElementById('mr-role-list');if(!el)return;
+  el.innerHTML=roles.map((r,i)=>{
+    const locked=r.toLowerCase()==='admin';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="flex:1;font-size:13px;color:var(--text);font-weight:600;">'+r+(locked?' 🔒':'')+'</div>'
+      +(locked?''
+        :'<button onclick="_mrRenameStart('+i+')" style="background:none;border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--text2);cursor:pointer;font-size:11px;" title="Rename">✏️</button>'
+        +'<button onclick="_mrDel('+i+')" style="background:none;border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--rose);cursor:pointer;font-size:11px;" title="Delete">🗑</button>')
+      +'</div>';
+  }).join('');
+  document.getElementById('mr-rename-row').style.display='none';
+}
+function _mrAdd(){
+  if(!ppIsAdmin())return;
+  const inp=document.getElementById('mr-new-role');if(!inp)return;
+  const v=inp.value.trim();if(!v){toast('Enter a role name');return;}
+  const roles=_getRoles();
+  if(roles.some(r=>r.toLowerCase()===v.toLowerCase())){toast('Role already exists');return;}
+  roles.push(v);sv('pp_roles',roles);inp.value='';_mrRender();
+  AUD('⚙ Role added',v);toast('✓ Role added');
+}
+let _mrRenameIdx=-1;
+function _mrRenameStart(idx){
+  const roles=_getRoles();const old=roles[idx];if(!old)return;
+  _mrRenameIdx=idx;
+  document.getElementById('mr-rename-old').textContent=old;
+  document.getElementById('mr-rename-inp').value=old;
+  document.getElementById('mr-rename-row').style.display='';
+  document.getElementById('mr-rename-inp').focus();
+}
+function _mrRenameSave(){
+  if(!ppIsAdmin()||_mrRenameIdx<0)return;
+  const roles=_getRoles();const old=roles[_mrRenameIdx];
+  const nw=(document.getElementById('mr-rename-inp').value||'').trim();
+  if(!nw||nw===old){document.getElementById('mr-rename-row').style.display='none';return;}
+  if(roles.some((r,j)=>j!==_mrRenameIdx&&r.toLowerCase()===nw.toLowerCase())){toast('Role name already exists');return;}
+  roles[_mrRenameIdx]=nw;sv('pp_roles',roles);_mrRender();
+  AUD('⚙ Role renamed',old+' → '+nw);toast('✓ Renamed');
+}
+function _mrDel(idx){
+  if(!ppIsAdmin())return;
+  const roles=_getRoles();const r=roles[idx];if(!r)return;
+  if(r.toLowerCase()==='admin'){toast('Cannot delete admin role');return;}
+  showConfirm('🗑','Delete role "'+r+'"?','Existing users/staff with this role will keep it until their next edit.',[
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+    {label:'Delete',color:'var(--rose)',action:()=>{roles.splice(idx,1);sv('pp_roles',roles);_mrRender();AUD('⚙ Role deleted',r);toast('Role deleted');}}
+  ]);
+}
 function renderUsersList(){
   const users=ppUsers();_pubViewerEmails(users);
-  document.getElementById('users-list').innerHTML=users.length?users.map(u=>`
-    <div class="usr-row">
-      <div class="av" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1a2e;background:${colorFor(u.name||'U')};">${initials(u.name||'U')}</div>
-      <div style="flex:1;">
-        <div style="font-size:14px;font-weight:600;color:var(--text);">${u.name} ${u.role==='admin'?'<span class="badge" style="background:rgba(201,169,110,0.15);color:var(--gold);border:1px solid rgba(201,169,110,0.4);">👑 Admin</span>':u.role==='trainer'?'<span class="badge" style="background:rgba(155,138,175,0.15);color:var(--purple);border:1px solid rgba(155,138,175,0.4);">🏋️ Trainer</span>':'<span class="badge" style="background:rgba(127,166,154,0.15);color:var(--teal);border:1px solid rgba(127,166,154,0.4);">Staff</span>'}${u.active===false?'<span class="badge badge-expired">Disabled</span>':''}</div>
-        <div style="font-size:12px;color:var(--text3);">ID: ${u.uid}${u.staffId?' • 🔗 '+_staffName(u.staffId):''}</div>
-      </div>
-      <button onclick="openUserEdit('${u.id}')" style="background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:6px 9px;color:var(--text2);cursor:pointer;">✏️</button>
-      ${u.email?`<button onclick="ensureUserDemoAccess('${u.id}')" style="background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:6px 9px;color:var(--gold);cursor:pointer;" title="Create booking-page demo access">🎓</button>`:''}
-    </div>`).join(''):'<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No users yet</div>';
+  /* v148: show Manage Roles button only for admin */
+  try{const mrb=document.getElementById('mr-open-btn');if(mrb)mrb.style.display=ppIsAdmin()?'':'none';}catch(_e){}
+  if(!users.length){document.getElementById('users-list').innerHTML='<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No users yet</div>';return;}
+  /* v148: table-style user list */
+  const _adminAccess=u=>{
+    if(u.role==='admin')return '<span style="color:var(--green);font-weight:700;">Full</span>';
+    if(u.active===false)return '<span style="color:var(--red);">Disabled</span>';
+    return '<span style="color:var(--gold);">Restricted</span>';
+  };
+  const _bookAccess=u=>{
+    if(!u.email)return '<span style="color:var(--text3);">No</span>';
+    if(u.role==='admin')return '<span style="color:var(--green);font-weight:700;">Full</span>';
+    return '<span style="color:var(--gold);">Viewer</span>';
+  };
+  const _joined=u=>u.created?fmt(u.created):'—';
+  let html='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">';
+  html+='<thead><tr style="border-bottom:2px solid var(--border);color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">'
+    +'<th style="text-align:left;padding:6px 4px;">Name</th>'
+    +'<th style="text-align:left;padding:6px 4px;">Role</th>'
+    +'<th style="text-align:center;padding:6px 4px;">Admin</th>'
+    +'<th style="text-align:center;padding:6px 4px;">Booking</th>'
+    +'<th style="text-align:right;padding:6px 4px;">Joined</th>'
+    +'<th style="width:36px;"></th></tr></thead><tbody>';
+  users.forEach(u=>{
+    const rc=u.role==='admin'?'var(--gold)':u.role==='trainer'?'var(--purple)':'var(--teal)';
+    html+=`<tr style="border-bottom:1px solid var(--border);${u.active===false?'opacity:0.45;':''}">
+      <td style="padding:8px 4px;font-weight:600;color:var(--text);">${u.name}</td>
+      <td style="padding:8px 4px;"><span style="display:inline-block;background:${rc}22;color:${rc};border:1px solid ${rc}55;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;">${u.role}</span></td>
+      <td style="padding:8px 4px;text-align:center;">${_adminAccess(u)}</td>
+      <td style="padding:8px 4px;text-align:center;">${_bookAccess(u)}</td>
+      <td style="padding:8px 4px;text-align:right;color:var(--text3);font-size:11px;">${_joined(u)}</td>
+      <td style="padding:8px 4px;text-align:center;"><button onclick="openUserEdit('${u.id}')" style="background:none;border:1px solid var(--border2);border-radius:6px;padding:3px 7px;color:var(--text2);cursor:pointer;font-size:11px;">✏️</button></td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('users-list').innerHTML=html;
 }
 function openUserEdit(id){
   const u=id?ppUsers().find(x=>x.id===id):null;
@@ -6063,7 +6212,7 @@ function openUserEdit(id){
   document.getElementById('ue-name').value=u?u.name:'';
   document.getElementById('ue-uid').value=u?u.uid:'';
   document.getElementById('ue-email').value=u&&u.email?u.email:'';
-  document.getElementById('ue-role').value=u?u.role:'staff';
+  _pR('ue-role','pp_roles',_ROLES_DEFAULT,u?u.role:'staff');
   document.getElementById('ue-active').value=u&&u.active===false?'0':'1';
   document.getElementById('ue-pin').value='';
   document.getElementById('ue-staff').innerHTML='<option value="">— Not linked —</option>'+
@@ -7829,6 +7978,9 @@ function _verAhead(server,local){
 })();
 function _showChangelog(){
   const log=[
+    ['v148','Refresh now stays on the current tab (boot restore). Role Management UI — admin can add/rename/delete user & staff roles from Users & Access. Booking app: studio Instagram shown in header; profile card hints for name-tap and DP upload.'],
+    ['v147.9','#4 Role labels dynamic (add/edit/delete via stored lists; admin locked). #5 Sundays auto-holiday (admin can override via toggle).'],
+    ['v147.8','Dashboard flicker: bookings watchdog repaints Schedule tab only.'],
     ['v147.7','Fixed: saving the public booking announcement no longer wipes clients\' personal messages. saveAnnounce rebuilt the pp_announce doc from scratch (msg/type/until only), discarding the personal:{} map — so every public-announcement save silently deleted all personal messages. Now it reads the existing doc and updates only the public fields, preserving personal.'],
     ['v147.6','CashBook: Search box and All-categories dropdown are now equal height (input vs select render differently; both forced to 38px).'],
     ['v147.5','Refresh now stays on the current tab instead of jumping to Home. The restore mechanism already existed (reads pp_activeTab on boot) but showTab never saved it — added the one-line save so it works.'],
@@ -8474,7 +8626,9 @@ function clearAnnounce(){
   showConfirm('📢','Hide announcement?','This removes the current announcement from the booking page.',[
     {label:'Cancel',color:'var(--border2)',outline:true,action:null},
     {label:'Hide it',color:'var(--rose)',action:()=>{
-      sv('pp_announce',{msg:'',type:'info',until:''});
+      /* v148: preserve .personal when clearing the public announcement */
+      const a=getAnnounce();a.msg='';a.type='info';a.until='';
+      sv('pp_announce',a);
       if(typeof AUD==='function')AUD('📢 Booking announcement cleared','');
       closeM('m-announce');toast('Announcement hidden');
     }}
