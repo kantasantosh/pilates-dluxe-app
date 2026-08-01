@@ -115,7 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;min-he
 
 <div class="header" style="padding:5px 20px 4px;">
   <div onclick="_coinZoom()" style="width:48px;height:48px;border-radius:50%;margin:0 auto 2px;overflow:hidden;cursor:pointer;"><img src="/bookingicon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;"/></div>
-  <div class="logo"><small>Book a Session · v65</small></div>
+  <div class="logo"><small>Book a Session · v66.0</small></div>
   <div id="bk-insta-link" style="text-align:center;font-size:13px;margin-top:2px;display:none;"><a id="bk-insta-a" href="#" target="_blank" style="color:var(--gold);text-decoration:none;letter-spacing:0.3px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg> <span id="bk-insta-txt"></span></a></div>
   <button onclick="location.reload()" title="Refresh data" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 7px;color:var(--gold);cursor:pointer;line-height:0;"><svg style="width:19px;height:19px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
 </div>
@@ -290,6 +290,11 @@ async function loadDataAndVerify(){
     _mems=mSnap.exists?JSON.parse(mSnap.data().value):{};
     _closedDays=cdSnap.exists?JSON.parse(cdSnap.data().value):{};
     try{_announce=anSnap.exists?JSON.parse(anSnap.data().value):null;}catch(e){_announce=null;}
+    /* v65.1: personal msgs now in own doc */
+    let _pmData={};
+    try{const pmSnap=await db.collection(COL).doc('pp_personal_msgs').get(opts);
+        _pmData=pmSnap.exists?JSON.parse(pmSnap.data().value):{};}catch(_e){_pmData={};}
+    window._personalMsgs=_pmData;
     try{_appUsers=(uSnap&&uSnap.exists)?JSON.parse(uSnap.data().value):[];}catch(e){_appUsers=[];}
     if(!_appUsers.length){
       try{const veSnap=await db.collection(COL).doc('pp_viewer_emails').get(opts);
@@ -597,11 +602,14 @@ function _announceActive(){
   return true;
 }
 function _personalMsg(){
-  /* Personal message addressed to THIS logged-in member only. Stored by the
-     admin app inside the same pp_announce doc under personal:{cid:{msg,until}},
-     so it arrives through the existing announcement sync — no new wiring. */
-  if(!_announce||!_announce.personal||!_client)return null;
-  const m=_announce.personal[_client.id];
+  /* Personal message addressed to THIS logged-in member only.
+     v65.1: now stored in separate pp_personal_msgs doc. Fallback to old
+     pp_announce.personal for backward compatibility during migration. */
+  if(!_client)return null;
+  const pm=window._personalMsgs||{};
+  let m=pm[_client.id];
+  /* fallback: legacy location in pp_announce.personal */
+  if(!m&&_announce&&_announce.personal)m=_announce.personal[_client.id];
   if(!m||!(m.msg||'').trim())return null;
   if(m.until){const today=new Date();const t=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;if(m.until<t)return null;}
   return m;
@@ -840,6 +848,7 @@ async function _doConfirmBooking(slot){
     _bookings=freshBk;
     renderDashboard(); /* refresh entire view including My Bookings */
     showToast('🎉 Booked! '+fmtDay(_selDate)+' at '+slot);
+    _playBookingChime();
   }catch(e){
     showAlert('Booking failed. Please try again.','😕');
   }
@@ -917,9 +926,15 @@ window.addEventListener('popstate',()=>{
     openPopups[openPopups.length-1].classList.remove('open');
   }
 });
+/* v66.0: booking confirmation jingle — plays studio's branded Suno jingle */
+function _playBookingChime(){
+  try{
+    const a=new Audio('jingle.mp3');
+    a.volume=0.7;
+    a.play().catch(()=>{});
+  }catch(_e){}
+}
 </script>
-
-<!-- My QR popup -->
 <div class="popup-overlay" id="qr-popup">
   <div class="popup" style="padding:26px 22px;">
     <h3 style="margin-bottom:10px;">Your Check-in QR</h3>

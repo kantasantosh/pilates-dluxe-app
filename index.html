@@ -299,7 +299,7 @@ try{
      comes after this point in the file. */
   console.warn('Firebase unavailable, continuing in offline mode:',_fbErr&&_fbErr.message);
 }
-const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups','pp_perm_templates','pp_viewer_emails','pp_roles'];
+const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups','pp_perm_templates','pp_viewer_emails','pp_roles','pp_personal_msgs'];
 function _pSyncable(k){return _pSYNC.includes(k)||/^pp_(satt|sadv)_/.test(k);}
 
 /* [v145a] removed dead code: _pfsSave() — zero call sites */
@@ -698,7 +698,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v148</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v149.0</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1425,13 +1425,37 @@ const COLORS=['#c9a84c','#e8547a','#4ecdc4','#9b72cf','#4ade80','#fb923c','#60a5
 
 function _inactiveBadge(c){return c.archived?"<span class='badge' style='background:rgba(120,120,120,0.15);color:#999;border:1px solid rgba(120,120,120,0.3);font-size:10px;'>Inactive</span>":"";}
 /* [v145a] removed dead code: _debouncedRefresh() — zero call sites */
+/* v148.1: critical docs that must confirm Firestore write or retry */
+const _CRITICAL_DOCS={pp_bookings:1,pp_payments:1,pp_personal_msgs:1,pp_memberships:1,pp_cash:1};
+let _svRetryQueue=[];
 function sv(k,v){
   localStorage.setItem(k,JSON.stringify(v));
   if(typeof _pSync!=='undefined'&&_pSync&&typeof _pdb!=='undefined'&&typeof _pSyncable!=='undefined'&&_pSyncable(k)){
     _pLast[k]=Date.now();
-    _pdb.collection('pilates').doc(k).set({value:JSON.stringify(v),updated:Date.now()}).catch(e=>{});
+    const payload={value:JSON.stringify(v),updated:Date.now()};
+    if(_CRITICAL_DOCS[k]){
+      _pdb.collection('pilates').doc(k).set(payload).then(()=>{
+        /* confirmed — remove from retry queue if present */
+        _svRetryQueue=_svRetryQueue.filter(r=>r.k!==k);
+      }).catch(e=>{
+        console.warn('[sv] critical write failed:',k,e.message);
+        _svRetryQueue=_svRetryQueue.filter(r=>r.k!==k);
+        _svRetryQueue.push({k,payload,ts:Date.now()});
+      });
+    }else{
+      _pdb.collection('pilates').doc(k).set(payload).catch(e=>{});
+    }
   }
 }
+/* retry failed critical writes every 30s */
+setInterval(()=>{
+  if(!_svRetryQueue.length||typeof _pdb==='undefined')return;
+  const item=_svRetryQueue[0];
+  _pdb.collection('pilates').doc(item.k).set(item.payload).then(()=>{
+    _svRetryQueue.shift();
+    console.log('[sv] retry OK:',item.k);
+  }).catch(()=>{});
+},30000);
 function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
 /* ONE-TIME MIGRATION: getCreditCats()/getDebitCats() only fall back to
    the default list when pp_credit_cats/pp_debit_cats have NEVER been
@@ -5357,7 +5381,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v148</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v149.0</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -7978,6 +8002,7 @@ function _verAhead(server,local){
 })();
 function _showChangelog(){
   const log=[
+    ['v149.0','Personal messages decoupled into pp_personal_msgs (no more wipe risk). Firestore write confirmation + retry for critical docs. Timestamp backfill tool in diagnostic panel. Booking jingle on successful booking.'],
     ['v148','Refresh now stays on the current tab (boot restore). Role Management UI — admin can add/rename/delete user & staff roles from Users & Access. Booking app: studio Instagram shown in header; profile card hints for name-tap and DP upload.'],
     ['v147.9','#4 Role labels dynamic (add/edit/delete via stored lists; admin locked). #5 Sundays auto-holiday (admin can override via toggle).'],
     ['v147.8','Dashboard flicker: bookings watchdog repaints Schedule tab only.'],
@@ -8496,6 +8521,9 @@ function printStatement(){
 
 <script>
 function getAnnounce(){return ld('pp_announce',{msg:'',type:'info',until:''});}
+/* v148.1: personal messages decoupled into own doc */
+function getPM(){return ld('pp_personal_msgs',{});}
+function svPM(p){sv('pp_personal_msgs',p);}
 function openAnnounce(){
   if(!_gate('about','announce','view'))return;
   openM('m-announce');
@@ -8516,14 +8544,14 @@ function saveAnnounce(){
 }
 function delPersonalMsg(cid){
   if(!_gate('about','announce','edit'))return;
-  const a=getAnnounce();
-  if(a.personal&&a.personal[cid]){delete a.personal[cid];sv('pp_announce',a);
+  const p=getPM();
+  if(p[cid]){delete p[cid];svPM(p);
     if(typeof AUD==='function')AUD('👤 Personal message removed',_clientName?_clientName(cid):cid);}
   _renderPersonalMsgs();toast('Removed');
 }
 function _renderPersonalMsgs(){
   const box=document.getElementById('anp-list');if(!box)return;
-  const a=getAnnounce();const p=a.personal||{};
+  const p=getPM();
   const ids=Object.keys(p);
   box.innerHTML=ids.length?ids.map(cid=>{
     const m=p[cid];
@@ -8550,9 +8578,9 @@ function _dailyClientTouch(){
     const _skipMsgs=localStorage.getItem('pp_automsg_last')===today; /* dues always refresh; messages once/day */
     const clients=ld('pp_clients',[]).filter(c=>!c.archived);
     const mems=ld('pp_memberships',{});
-    const a=getAnnounce();if(!a.personal)a.personal={};
+    const pm=getPM(); /* v148.1: uses separate doc */
     const mmdd=today.slice(5);
-    let changed=false,_okN=0,_dueN=0,_errN=0;
+    let changed=false,pmChanged=false,_okN=0,_dueN=0,_errN=0;
     clients.forEach(c=>{
      try{
       const m=mems[c.id];
@@ -8561,23 +8589,25 @@ function _dailyClientTouch(){
       if(m){if((m.dueAmt||0)!==due){m.dueAmt=due;changed=true;}if(due>0)_dueN++;}
       _okN++;
       if(_skipMsgs)return;
-      const cur=a.personal[c.id];
+      const cur=pm[c.id];
       if(cur&&!cur.auto)return; /* respect hand-written notes */
       if(c.bday&&c.bday.slice(5)===mmdd){
-        a.personal[c.id]={msg:'Happy Birthday, '+c.fname+'! 🎂 May your year be full of strength, grace and joy — with love from all of us at the studio 💐',until:today,ts:Date.now(),auto:true};
-        changed=true;return;
+        pm[c.id]={msg:'Happy Birthday, '+c.fname+'! 🎂 May your year be full of strength, grace and joy — with love from all of us at the studio 💐',until:today,ts:Date.now(),auto:true};
+        pmChanged=true;return;
       }
       if(m&&m.endDate&&m.status!=='frozen'&&m.plan!=='trial'){
         const dl=Math.round((new Date(m.endDate+'T00:00:00')-new Date(today+'T00:00:00'))/86400000);
         if(dl>=0&&dl<=7){
-          a.personal[c.id]={msg:c.fname+', your plan ends on '+fmt(m.endDate)+' — renew at the desk to keep your sessions flowing 🌸',until:m.endDate,ts:Date.now(),auto:true};
-          changed=true;return;
+          pm[c.id]={msg:c.fname+', your plan ends on '+fmt(m.endDate)+' — renew at the desk to keep your sessions flowing 🌸',until:m.endDate,ts:Date.now(),auto:true};
+          pmChanged=true;return;
         }
       }
-      if(cur&&cur.auto){delete a.personal[c.id];changed=true;} /* stale auto note */
+      if(cur&&cur.auto){delete pm[c.id];pmChanged=true;} /* stale auto note */
      }catch(_ce){_errN++;console.warn('[touch] client failed:',c&&c.id,_ce);}
     });
-    if(changed||!window._dctPushed){window._dctPushed=true;sv('pp_announce',a);sv('pp_memberships',mems);}
+    if(pmChanged||!window._dctPushed)svPM(pm);
+    if(changed||!window._dctPushed){window._dctPushed=true;sv('pp_memberships',mems);}
+    if(!window._dctPushed)window._dctPushed=true;
     localStorage.setItem('pp_automsg_last',today);
     try{
       const _vu=ld('pp_users',[]).filter(u=>u.active!==false&&u.email).map(u=>({email:u.email.toLowerCase(),name:u.name||'',role:u.role||''}));
@@ -8600,7 +8630,7 @@ function openPersonalMsgFor(cid){
 }
 function _renderPmCurrent(cid){
   const box=document.getElementById('pm-current');if(!box)return;
-  const a=getAnnounce();const m=a.personal&&a.personal[cid];
+  const a=getAnnounce();const m=getPM()[cid];
   box.innerHTML=m&&(m.msg||'').trim()
     ?`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);">
         <div style="flex:1;min-width:0;font-size:12px;color:var(--text2);">Current: ${_esc(m.msg)}${m.until?' <span style="color:var(--text3);">(until '+fmt(m.until)+')</span>':''}</div>
@@ -8613,9 +8643,9 @@ function savePersonalMsgFor(){
   const cid=document.getElementById('pm-cid').value;
   const msg=document.getElementById('pm-msg').value.trim();
   if(!msg){toast('Write the message first');return;}
-  const a=getAnnounce();if(!a.personal)a.personal={};
-  a.personal[cid]={msg,until:document.getElementById('pm-until').value,ts:Date.now()};
-  sv('pp_announce',a);
+  const a=getAnnounce();const pm=getPM();
+  pm[cid]={msg,until:document.getElementById('pm-until').value,ts:Date.now()};
+  svPM(pm);
   if(typeof AUD==='function')AUD('💌 Personal message set',(_clientName?_clientName(cid):cid)+': '+msg.slice(0,30));
   document.getElementById('pm-msg').value='';
   _renderPmCurrent(cid);
@@ -10578,7 +10608,7 @@ function ufSavePayment(){
     if(panel){panel.style.display=panel.style.display==='none'?'block':'none';_refreshDiag();return;}
     panel=document.createElement('div');panel.id='diag-panel';
     panel.style.cssText='position:fixed;top:0;left:0;right:0;bottom:60px;background:var(--bg);z-index:99999;overflow-y:auto;padding:16px;font-size:12px;color:var(--text);';
-    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><button onclick="_migrateTrialHistory()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write trial into stored plan history for already-converted clients</button><div id="migrate-result" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_migratePlanNames()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write real plan name into existing memberships (fixes "Custom Plan" in booking app)</button><div id="migrate-result2" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><div id="diag-output"></div>';
+    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><button onclick="_migrateTrialHistory()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write trial into stored plan history for already-converted clients</button><div id="migrate-result" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_migratePlanNames()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write real plan name into existing memberships (fixes "Custom Plan" in booking app)</button><div id="migrate-result2" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_backfillTimestamps()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: backfill Firestore timestamps (sync guard)</button><div id="migrate-result3" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_migratePersonalMsgs()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: move personal msgs from pp_announce to pp_personal_msgs</button><div id="migrate-result4" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><div id="diag-output"></div>';
     document.body.appendChild(panel);
     _refreshDiag();
   }
@@ -10634,6 +10664,57 @@ function ufSavePayment(){
     const _rEl2=document.getElementById('migrate-result2');if(_rEl2)_rEl2.textContent=_msg2;
     if(typeof AUD==='function')AUD('migrate_plan_names','Backfilled '+fixed+' membership(s)');
     if(typeof _refreshDiag==='function')_refreshDiag();
+  };
+  /* v148.1: migrate personal msgs from pp_announce.personal → pp_personal_msgs */
+  window._migratePersonalMsgs=function(){
+    if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+    const el=document.getElementById('migrate-result4');
+    const a=getAnnounce();
+    if(!a.personal||!Object.keys(a.personal).length){
+      const msg='✓ No personal messages in pp_announce to migrate';
+      toast(msg);if(el)el.textContent=msg;return;
+    }
+    const pm=getPM();
+    let moved=0;
+    Object.keys(a.personal).forEach(cid=>{
+      if(!pm[cid]){pm[cid]=a.personal[cid];moved++;}
+    });
+    if(moved>0)svPM(pm);
+    /* clean up old location */
+    delete a.personal;sv('pp_announce',a);
+    const msg='✓ Migrated '+moved+' personal message(s) to pp_personal_msgs';
+    toast(msg);if(el)el.textContent=msg;
+    if(typeof AUD==='function')AUD('migrate_personal_msgs','Moved '+moved+' msg(s)');
+  };
+  /* v148.1: one-time Firestore timestamp backfill — sets `updated` on every doc missing it */
+  window._backfillTimestamps=async function(){
+    if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+    const el=document.getElementById('migrate-result3');
+    if(el)el.textContent='⏳ Scanning Firestore docs…';
+    try{
+      const snap=await _pdb.collection('pilates').get();
+      let fixed=0,total=0;
+      const batch=[];
+      snap.forEach(d=>{
+        total++;
+        const dd=d.data();
+        if(!dd.updated){batch.push(d.id);fixed++;}
+      });
+      if(fixed===0){
+        const msg='✓ All '+total+' docs already have timestamps';
+        toast(msg);if(el)el.textContent=msg;return;
+      }
+      if(el)el.textContent='⏳ Backfilling '+fixed+' of '+total+' docs…';
+      const now=Date.now();
+      for(const id of batch){
+        await _pdb.collection('pilates').doc(id).update({updated:now});
+      }
+      const msg='✓ Backfilled '+fixed+' doc(s) with timestamps';
+      toast(msg);if(el)el.textContent=msg;
+      if(typeof AUD==='function')AUD('migrate_timestamps','Backfilled '+fixed+' of '+total+' docs');
+    }catch(e){
+      const msg='❌ Error: '+e.message;toast(msg);if(el)el.textContent=msg;
+    }
   };
   window._refreshDiag=function(){
     const out=document.getElementById('diag-output');if(!out)return;
