@@ -288,7 +288,7 @@ input[type="date"],input[type="date"].fi{color-scheme:dark;}
 let _pSync=false,_pLast={};
 let _pdb=null;
 try{
-  const _fbConfig={apiKey:"AIzaSyDq5AjTUCxZ85CBffYFh_MmKhibN7Pjnl8",authDomain:"ss-indent-pro-3b7ea.firebaseapp.com",projectId:"ss-indent-pro-3b7ea",storageBucket:"ss-indent-pro-3b7ea.firebasestorage.app",messagingSenderId:"221934576188",appId:"1:221934576188:web:9c6ae243ea05b701bc5939"};
+  const _fbConfig={apiKey:"AIzaSyDf7ntLRNv0hqJ0tiGZrPAj8f3UnEgvJ3M",authDomain:"pilates-dluxe.firebaseapp.com",projectId:"pilates-dluxe",storageBucket:"pilates-dluxe.firebasestorage.app",messagingSenderId:"752164274770",appId:"1:752164274770:web:2f2ed24b8d58c4dbb3158b"};
   if(!firebase.apps.length)firebase.initializeApp(_fbConfig);
   /* keep the studio cloud sign-in across app restarts (esp. installed PWA) */
   try{firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);}catch(e){}
@@ -340,7 +340,23 @@ async function _pInit(){
     }
     _pSync=true;el.textContent='✓ Synced';el.style.color='#2ecc71';
     window._pInitRetries=0;
-    setTimeout(()=>el.remove(),2000);
+    /* v149.0: one-time bootstrap — new Firebase project with empty Firestore
+       but localStorage has data from old project → push everything up */
+    if(!_gotRealData&&signedInNow){
+      const _syncKeys=_pSYNC.filter(k=>{try{const v=localStorage.getItem(k);return v&&v!=='[]'&&v!=='{}'&&v!=='null';}catch(_e){return false;}});
+      if(_syncKeys.length>0){
+        el.textContent='⬆ Bootstrapping '+_syncKeys.length+' docs…';el.style.color='var(--gold)';
+        let _bsDone=0;
+        _syncKeys.forEach(k=>{
+          const v=localStorage.getItem(k);
+          _pLast[k]=Date.now();
+          _pdb.collection('pilates').doc(k).set({value:v,updated:Date.now()}).then(()=>{
+            _bsDone++;
+            if(_bsDone===_syncKeys.length){el.textContent='✓ Bootstrap complete ('+_bsDone+' docs)';el.style.color='#2ecc71';setTimeout(()=>el.remove(),3000);}
+          }).catch(e=>{console.warn('[bootstrap]',k,e.message);_bsDone++;});
+        });
+      }else{setTimeout(()=>el.remove(),2000);}
+    }else{setTimeout(()=>el.remove(),2000);}
     if(typeof init==='function')init();
     /* If the login screen is showing (cloud just connected), make sure the
        user chips are rendered now that pp_users has arrived — without this,
