@@ -573,9 +573,12 @@ async function pdlSyncNow(){
     if(navigator.onLine===false){toast('⚠ No internet connection');}
     else{
       let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(_e){}
-      if(!signedIn){
+      if(!signedIn&&!_pSync){
         toast('☁️ This device is not signed in to the cloud');
         if(typeof _showCloudGate==='function')_showCloudGate('manual-sync-no-currentuser');
+      }else if(!signedIn&&_pSync){
+        /* v149.0: auth not resolved yet but boot succeeded — retry silently */
+        toast('⚠ Sync failed — try again in a moment');
       }else{
         toast('☁️ Cloud session expired — please sign in again');
         if(typeof _showCloudGate==='function')_showCloudGate('manual-sync-read-failed-but-signed-in');
@@ -2301,7 +2304,7 @@ function renderClients(){
         <span style="font-size:11px;color:var(--gold);letter-spacing:0.5px;flex-shrink:0;margin-left:6px;">${!c.isTrial&&c.trialDate?'<span title="Came via trial" style="font-size:10px;">🎯</span> ':''}#${c.memNo||''}</span>
       </div>
       <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text2);margin-top:3px;">
-        <a href="${(typeof _permCheck!=='function'||_permCheck('clients','contact','edit'))?'tel:'+c.phone:'javascript:void(0)'}" onclick="event.stopPropagation();if(typeof _permCheck==='function'&&!_permCheck('clients','contact','edit')){toast('🔒 Calling is not permitted');}" style="${(typeof _permCheck==='function'&&!_permCheck('clients','contact','view'))?'display:none;':''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg> ${_fmtPhone(c.phone)}</a>
+        <a href="#" onclick="event.stopPropagation();if(typeof _permCheck==='function'&&!_permCheck('clients','contact','edit')){toast('🔒 Access restricted');return false;}_phoneAction('${c.phone}',event);return false;" style="${(typeof _permCheck==='function'&&!_permCheck('clients','contact','view'))?'display:none;':''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit;text-decoration:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-2px;"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5-.4.9-.9 1-.7 1.4.9 1.5 2 2.4 3.3 3 .3.2.5.1.7-.1l1-1.2c.2-.3.5-.2.7-.1l2 1c.3.1.5.2.5.3.1.1.1.7-.2 1.9z"/></svg> ${_fmtPhone(c.phone)}</a>
         ${_isTr?'':(_planLbl?`<span style="color:var(--gold);white-space:nowrap;">Plan: ${_planLbl}</span>`:'')}
       </div>
       </div>
@@ -4575,6 +4578,17 @@ function openManagePlans(){
   setTimeout(()=>armDirty('np-section','np-save-btn'),50);
 }
 function _fmtPhone(p){
+/* v149.0: themed phone action chooser — prevents accidental tel: dialog */
+function _phoneAction(phone,e){
+  if(e)e.preventDefault();
+  const clean=phone.replace(/\D/g,'');
+  showConfirm('📱','Phone: '+_fmtPhone(phone),'',[
+    {label:'📋 Copy',color:'var(--gold)',action:()=>{try{navigator.clipboard.writeText(phone);toast('✓ Copied');}catch(_e){toast(phone);}}},
+    {label:'📞 Call',color:'var(--green)',action:()=>{window.open('tel:'+clean);}},
+    {label:'💬 WhatsApp',color:'#25D366',action:()=>{window.open('https://wa.me/'+clean.replace(/^0/,'91'));}},
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null}
+  ]);
+}
   if(!p)return '';
   const d=(p+'').replace(/\D/g,'').replace(/^91(?=\d{10}$)/,''); /* strip +91 if 12-digit */
   if(d.length===10)return d.slice(0,5)+'-'+d.slice(5);
@@ -8983,8 +8997,7 @@ function openUnified(cid,focusSection){
       :'<span style="color:inherit;opacity:0.75;">'+label+'</span>';
     const _ig=(c.insta||'').replace(/^@/,'');
     document.getElementById('uf-profile-summary').innerHTML=!_seeContact?'':(
-      (c.phone?_lnk('tel:'+_esc(c.phone),'📱 '+_esc(_fmtPhone(c.phone))):'')
-      +(c.email?' · '+_lnk('mailto:'+_esc(c.email),'✉️ '+_esc(c.email)):'')
+      (c.phone?'<a href="#" onclick="_phoneAction(\''+_esc(c.phone)+'\',event);return false;" style="color:inherit;text-decoration:none;">📱 '+_esc(_fmtPhone(c.phone))+'</a>':'')      +(c.email?' · '+_lnk('mailto:'+_esc(c.email),'✉️ '+_esc(c.email)):'')
       +(c.insta?' · '+_lnk('https://instagram.com/'+_esc(_ig),'📷 @'+_esc(_ig),true):''));
     /* And hide the raw fields in the profile form too — otherwise the number
        is still readable there, which defeats the whole point of hiding it. */
