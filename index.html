@@ -573,11 +573,11 @@ async function pdlSyncNow(){
     if(navigator.onLine===false){toast('⚠ No internet connection');}
     else{
       let signedIn=null;try{signedIn=firebase.auth().currentUser;}catch(_e){}
-      if(!signedIn&&!_pSync){
+      if(!signedIn&&!_pSync&&!localStorage.getItem('pp_cloud_ok')){
         toast('☁️ This device is not signed in to the cloud');
         if(typeof _showCloudGate==='function')_showCloudGate('manual-sync-no-currentuser');
-      }else if(!signedIn&&_pSync){
-        /* v149.0: auth not resolved yet but boot succeeded — retry silently */
+      }else if(!signedIn){
+        /* v149.3: device was previously authenticated — auth just hasn't resolved yet */
         toast('⚠ Sync failed — try again in a moment');
       }else{
         toast('☁️ Cloud session expired — please sign in again');
@@ -717,7 +717,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v149.3</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v149.4</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1943,7 +1943,10 @@ function renderDash(){
   // Today's bookings - always use today, not _schedDate
   const todayKey=td();
   const _closedDays=ld('pp_closed_days',{});
-  const _isTodayHoliday=!!_closedDays[todayKey];
+  /* v149.3: include auto-Sunday in dashboard holiday check */
+  const _todayIsSun=new Date(todayKey+'T00:00:00').getDay()===0;
+  const _todaySunOpen=!!_closedDays[todayKey+'_open'];
+  const _isTodayHoliday=!!_closedDays[todayKey]||(_todayIsSun&&!_closedDays[todayKey]&&!_todaySunOpen);
   const todaySlots=bookings[todayKey]||{};
   let todayCount=0;
   const todayBookingDetails=[];
@@ -2084,7 +2087,7 @@ function renderDash(){
     <!-- Today's Schedule Summary Card -->
     <div class="div-section">📅 Today's Schedule</div>
     <div class="card card-gold" style="margin-bottom:10px;">
-      ${_isTodayHoliday?'<div style="background:rgba(155,114,207,0.15);border-radius:8px;padding:7px 12px;margin-bottom:10px;font-size:13px;color:var(--purple);text-align:center;">🏖 Studio Holiday Today</div>':''}
+      ${_isTodayHoliday?'<div style="background:rgba(155,114,207,0.15);border-radius:8px;padding:7px 12px;margin-bottom:10px;font-size:13px;color:var(--purple);text-align:center;">'+(_todayIsSun&&!_closedDays[todayKey]?'🔒 Sunday — Weekly Holiday':'🏖 Studio Holiday Today')+'</div>':''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <div>
           <div style="font-size:20px;font-weight:800;color:var(--gold);">${todayCount} <span style="font-size:12px;font-weight:400;color:var(--text2);">bookings today</span></div>
@@ -5410,7 +5413,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v149.3</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v149.4</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
