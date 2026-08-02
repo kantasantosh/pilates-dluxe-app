@@ -717,7 +717,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v149.1</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v149.3</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -5410,7 +5410,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v149.1</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v149.3</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
@@ -8659,7 +8659,7 @@ function openPersonalMsgFor(cid){
 }
 function _renderPmCurrent(cid){
   const box=document.getElementById('pm-current');if(!box)return;
-  const a=getAnnounce();const m=getPM()[cid];
+  const m=getPM()[cid];
   box.innerHTML=m&&(m.msg||'').trim()
     ?`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);">
         <div style="flex:1;min-width:0;font-size:12px;color:var(--text2);">Current: ${_esc(m.msg)}${m.until?' <span style="color:var(--text3);">(until '+fmt(m.until)+')</span>':''}</div>
@@ -8672,7 +8672,7 @@ function savePersonalMsgFor(){
   const cid=document.getElementById('pm-cid').value;
   const msg=document.getElementById('pm-msg').value.trim();
   if(!msg){toast('Write the message first');return;}
-  const a=getAnnounce();const pm=getPM();
+  const pm=getPM();
   pm[cid]={msg,until:document.getElementById('pm-until').value,ts:Date.now()};
   svPM(pm);
   if(typeof AUD==='function')AUD('💌 Personal message set',(_clientName?_clientName(cid):cid)+': '+msg.slice(0,30));
@@ -10636,7 +10636,7 @@ function ufSavePayment(){
     if(panel){panel.style.display=panel.style.display==='none'?'block':'none';_refreshDiag();return;}
     panel=document.createElement('div');panel.id='diag-panel';
     panel.style.cssText='position:fixed;top:0;left:0;right:0;bottom:60px;background:var(--bg);z-index:99999;overflow-y:auto;padding:16px;font-size:12px;color:var(--text);';
-    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><button onclick="_migrateTrialHistory()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write trial into stored plan history for already-converted clients</button><div id="migrate-result" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_migratePlanNames()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write real plan name into existing memberships (fixes "Custom Plan" in booking app)</button><div id="migrate-result2" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_backfillTimestamps()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: backfill Firestore timestamps (sync guard)</button><div id="migrate-result3" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_migratePersonalMsgs()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: move personal msgs from pp_announce to pp_personal_msgs</button><div id="migrate-result4" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_pushAllToCloud()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed rgba(46,204,113,0.7);color:var(--green);border-radius:8px;cursor:pointer;font-weight:700;">⬆ Push ALL local data to Cloud (new project bootstrap)</button><div id="migrate-result5" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><div id="diag-output"></div>';
+    panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><b style="font-size:16px;color:var(--gold);">🔧 Diagnostic Panel</b><button onclick="document.getElementById(\'diag-panel\').style.display=\'none\'" style="background:var(--rose);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;">Close</button></div><button onclick="_migrateTrialHistory()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write trial into stored plan history for already-converted clients</button><div id="migrate-result" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_migratePlanNames()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: write real plan name into existing memberships (fixes "Custom Plan" in booking app)</button><div id="migrate-result2" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_backfillTimestamps()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: backfill Firestore timestamps (sync guard)</button><div id="migrate-result3" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_migratePersonalMsgs()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed var(--gold);color:var(--gold);border-radius:8px;cursor:pointer;font-weight:700;">🔧 One-time: move personal msgs from pp_announce to pp_personal_msgs</button><div id="migrate-result4" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_pushAllToCloud()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed rgba(46,204,113,0.7);color:var(--green);border-radius:8px;cursor:pointer;font-weight:700;">⬆ Push ALL local data to Cloud (new project bootstrap)</button><div id="migrate-result5" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><button onclick="_recoverFromOldProject()" style="width:100%;margin-bottom:6px;padding:10px;background:var(--surface3);border:1.5px dashed rgba(231,76,60,0.7);color:var(--rose);border-radius:8px;cursor:pointer;font-weight:700;">🔄 Recover: merge missing data from OLD Firebase project</button><div id="migrate-result6" style="text-align:center;font-size:12px;color:var(--green);margin-bottom:12px;min-height:16px;"></div><div id="diag-output"></div>';
     document.body.appendChild(panel);
     _refreshDiag();
   }
@@ -10745,6 +10745,74 @@ function ufSavePayment(){
     }
   };
   /* v149.0: manual bootstrap — push ALL pp_* data from localStorage to new Firestore */
+  /* v149.1: RECOVERY — read from old Firebase project, merge missing data into new */
+  window._recoverFromOldProject=async function(){
+    if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
+    const el=document.getElementById('migrate-result5');
+    if(el)el.textContent='⏳ Connecting to old project…';
+    try{
+      /* Initialize old project as secondary app */
+      const oldConfig={apiKey:"AIzaSyDq5AjTUCxZ85CBffYFh_MmKhibN7Pjnl8",authDomain:"ss-indent-pro-3b7ea.firebaseapp.com",projectId:"ss-indent-pro-3b7ea",storageBucket:"ss-indent-pro-3b7ea.firebasestorage.app",messagingSenderId:"221934576188",appId:"1:221934576188:web:9c6ae243ea05b701bc5939"};
+      let oldApp;
+      try{oldApp=firebase.app('recovery');}catch(_e){oldApp=firebase.initializeApp(oldConfig,'recovery');}
+      const oldDb=oldApp.firestore();
+      /* Sign in to old project with same credentials */
+      const oldAuth=oldApp.auth();
+      try{await oldAuth.signInWithEmailAndPassword('studio@pilatesdluxe.app',prompt('Enter cloud password for old project:'));}
+      catch(authErr){if(el)el.textContent='❌ Auth failed: '+authErr.message;return;}
+      if(el)el.textContent='⏳ Reading old Firestore…';
+      const snap=await oldDb.collection('pilates').get();
+      let merged=0,skipped=0,total=0;
+      const docs={};
+      snap.forEach(d=>{const dd=d.data();if(d.id.indexOf('pp_')===0&&dd&&dd.value!==undefined){docs[d.id]=dd.value;total++;}});
+      if(el)el.textContent='⏳ Found '+total+' docs. Merging…';
+      /* Merge strategy: for array docs (pp_clients, pp_staff, etc.) merge missing entries.
+         For object docs (pp_bookings, pp_memberships, pp_payments, pp_cash) merge missing keys.
+         For simple docs, only write if local is empty. */
+      const arrayDocs=['pp_clients','pp_staff','pp_plans','pp_ref_bonuses','pp_bills','pp_todos','pp_followups'];
+      const objectDocs=['pp_bookings','pp_memberships','pp_payments','pp_cash','pp_attendance','pp_personal_msgs'];
+      for(const [k,v] of Object.entries(docs)){
+        try{
+          const local=localStorage.getItem(k);
+          if(arrayDocs.includes(k)){
+            const oldArr=JSON.parse(v)||[];
+            const localArr=local?JSON.parse(local):[];
+            const localIds=new Set(localArr.map(x=>x.id));
+            const missing=oldArr.filter(x=>x.id&&!localIds.has(x.id));
+            if(missing.length>0){
+              const merged2=localArr.concat(missing);
+              localStorage.setItem(k,JSON.stringify(merged2));
+              sv(k,merged2);
+              merged+=missing.length;
+            }else{skipped++;}
+          }else if(objectDocs.includes(k)){
+            const oldObj=JSON.parse(v)||{};
+            const localObj=local?JSON.parse(local):{};
+            let addedKeys=0;
+            Object.keys(oldObj).forEach(key=>{
+              if(!localObj[key]){localObj[key]=oldObj[key];addedKeys++;}
+            });
+            if(addedKeys>0){
+              localStorage.setItem(k,JSON.stringify(localObj));
+              sv(k,localObj);
+              merged+=addedKeys;
+            }else{skipped++;}
+          }else if(!local||local==='null'||local==='[]'||local==='{}'){
+            localStorage.setItem(k,v);
+            sv(k,JSON.parse(v));
+            merged++;
+          }else{skipped++;}
+        }catch(_me){console.warn('[recover]',k,_me);}
+      }
+      const msg='✓ Recovery complete — merged '+merged+' missing entries from '+total+' docs';
+      toast(msg);if(el)el.textContent=msg;
+      if(typeof AUD==='function')AUD('recovery','Merged '+merged+' from old project');
+      if(typeof renderDash==='function')renderDash();
+    }catch(e){
+      const msg='❌ Recovery failed: '+e.message;
+      toast(msg);if(el)el.textContent=msg;
+    }
+  };
   window._pushAllToCloud=async function(){
     if(typeof ppIsAdmin==='function'&&!ppIsAdmin()){toast('🔒 Admin only');return;}
     const el=document.getElementById('migrate-result5');
