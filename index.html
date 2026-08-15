@@ -532,9 +532,13 @@ function _logRepaint(src,extra){
 let _bootRenderReady=false;
 setTimeout(()=>{_bootRenderReady=true;},6000);
 function _pRerenderActive(){
-  if(!_bootRenderReady)return; /* suppress during boot */
-  clearTimeout(window._prDeb);
-  window._prDeb=setTimeout(_pRerenderNow,8000); /* v150.2: 8s debounce for background sync */
+  /* v150.3: DISABLED — background sync no longer triggers re-renders.
+     Data updates silently in localStorage. User sees fresh data on:
+     - Tab switch (showTab calls render)
+     - Manual sync chip tap
+     - Any user action (opening forms, clicking cards)
+     This eliminates ALL blinking from sync events. */
+  return;
 }
 function _pRerenderNow(){
   try{
@@ -702,6 +706,7 @@ try{
 </script>
 </head>
 <body>
+<script>/* v150.3: background re-renders disabled — data syncs silently, renders on user action only */</script>
 
 <!-- TOPBAR (approved design: logo+STUDIO ADMIN left · stacked clock + date centre · gold icon row right) -->
 <div class="topbar">
@@ -721,7 +726,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v150.2</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v150.5</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -1918,6 +1923,11 @@ function renderDash(_force){
   const _drNow=Date.now();
   if(!_force&&window._lastDashRender&&(_drNow-window._lastDashRender)<2500)return;
   window._lastDashRender=_drNow;
+  /* v150.5 DEBUG: visible render counter */
+  window._renderCount=(window._renderCount||0)+1;
+  let _rc=document.getElementById('_rc');
+  if(!_rc){_rc=document.createElement('div');_rc.id='_rc';_rc.style.cssText='position:fixed;top:0;right:0;background:red;color:white;font-size:11px;padding:2px 6px;z-index:99999;border-radius:0 0 0 6px;';document.body.appendChild(_rc);}
+  _rc.textContent='R:'+window._renderCount;
   const clients=ld('pp_clients',[]);
   const payments=ld('pp_payments',[]);
   const mems=ld('pp_memberships',{});
@@ -5444,7 +5454,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v150.2</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v150.5</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
