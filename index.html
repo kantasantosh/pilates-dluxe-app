@@ -1905,9 +1905,11 @@ function renderDash(_force){
   window._lastDashRender=_drNow;
   /* v150.5 DEBUG: visible render counter */
   window._renderCount=(window._renderCount||0)+1;
+  window._renderCallers=window._renderCallers||[];
+  try{const _stk=new Error().stack.split('\n')[2]||'';const _caller=_stk.replace(/.*at\s+/,'').replace(/\s*\(.*$/,'').trim()||'?';window._renderCallers.push(_caller);}catch(_e){}
   let _rc=document.getElementById('_rc');
-  if(!_rc){_rc=document.createElement('div');_rc.id='_rc';_rc.style.cssText='position:fixed;top:0;right:0;background:red;color:white;font-size:11px;padding:2px 6px;z-index:99999;border-radius:0 0 0 6px;';document.body.appendChild(_rc);}
-  _rc.textContent='R:'+window._renderCount;
+  if(!_rc){_rc=document.createElement('div');_rc.id='_rc';_rc.style.cssText='position:fixed;top:0;right:0;background:red;color:white;font-size:10px;padding:2px 6px;z-index:99999;border-radius:0 0 0 6px;max-width:250px;word-break:break-all;';document.body.appendChild(_rc);}
+  _rc.textContent='R:'+window._renderCount+' ['+((window._renderCallers||[]).slice(-3).join(', '))+']';
   const clients=ld('pp_clients',[]);
   const payments=ld('pp_payments',[]);
   const mems=ld('pp_memberships',{});
@@ -2256,6 +2258,11 @@ function _getFilteredClients(){
   });
 }
 function renderClients(){
+  window._renderCount=(window._renderCount||0)+1;
+  window._renderCallers=window._renderCallers||[];
+  try{const _stk=new Error().stack.split('\n')[2]||'';const _caller='C:'+(_stk.replace(/.*at\s+/,'').replace(/\s*\(.*$/,'').trim()||'?');window._renderCallers.push(_caller);}catch(_e){}
+  let _rc=document.getElementById('_rc');
+  if(_rc)_rc.textContent='R:'+window._renderCount+' ['+((window._renderCallers||[]).slice(-3).join(', '))+']';
   const clients=ld('pp_clients',[]);
   const mems=ld('pp_memberships',{});
   const payments=ld('pp_payments',[]);
