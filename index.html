@@ -241,6 +241,7 @@ input[type="date"],input[type="date"].fi{color-scheme:dark;}
 .prog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width 0.5s;}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes _naBlink{0%,100%{opacity:1;}50%{opacity:0.2;}}
 .card,.client-card,.dash-card{animation:fadeUp 0.3s ease both;}
 /* ===== Unified Member Form ===== */
 .uf-section{border:1px solid var(--border);border-radius:var(--rsm);margin-bottom:10px;overflow:hidden;}
@@ -300,7 +301,7 @@ try{
      comes after this point in the file. */
   console.warn('Firebase unavailable, continuing in offline mode:',_fbErr&&_fbErr.message);
 }
-const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups','pp_perm_templates','pp_viewer_emails','pp_roles','pp_personal_msgs'];
+const _pSYNC=['pp_clients','pp_memberships','pp_bookings','pp_payments','pp_cash','pp_staff','pp_attendance','pp_ref_bonuses','pp_plans','pp_pins','pp_users','pp_audit','pp_bills','pp_todos','pp_comp_rule','pp_studio','pp_announce','pp_closed_days','pp_notepad','pp_followups','pp_perm_templates','pp_viewer_emails','pp_roles','pp_personal_msgs','pp_leaves'];
 function _pSyncable(k){return _pSYNC.includes(k)||/^pp_(satt|sadv)_/.test(k);}
 
 /* [v145a] removed dead code: _pfsSave() — zero call sites */
@@ -706,7 +707,7 @@ try{
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;justify-self:end;align-self:center;">
     <span id="tb-rolechip" title="" style="display:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gold);color:var(--gold);font-size:11px;font-weight:800;line-height:17px;text-align:center;"></span>
-    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v150.7</span>
+    <span id="app-ver" style="cursor:pointer;text-decoration:underline;opacity:0.9;font-size:10px;color:var(--text2);letter-spacing:1px;white-space:nowrap;">v150.9</span>
     <div style="display:flex;align-items:center;gap:7px;" id="tb-chiprow">
       <button onclick="pdlSyncNow()" title="Sync with cloud now" class="tb-ico">
         <svg class="gico" viewBox="0 0 24 24" fill="url(#goldg)"><path d="M12 3a9 9 0 0 1 7.6 4.2l1.9-1.4.4 5.6-5.5-.9 2-1.5A6.8 6.8 0 0 0 12 5.2 6.8 6.8 0 0 0 5.4 10H3.1A9 9 0 0 1 12 3zm0 18a9 9 0 0 1-7.6-4.2l-1.9 1.4-.4-5.6 5.5.9-2 1.5a6.8 6.8 0 0 0 6.4 3.8 6.8 6.8 0 0 0 6.6-4.8h2.3A9 9 0 0 1 12 21z"/></svg>
@@ -823,6 +824,9 @@ try{
     </div>
     </div><!-- /staff sticky -->
     <div id="staff-list"></div>
+    <!-- v150.8: Casual Leave Tracker -->
+    <div class="div-section" style="margin-top:16px;">📋 Casual Leave Tracker</div>
+    <div id="cl-tracker"></div>
   </div>
 </div>
 
@@ -951,6 +955,11 @@ try{
       </select>
     </div>
     <div class="fg"><label class="fl">Join Date</label><input class="fi" id="sf-join" type="date"/></div>
+    <div class="fr">
+      <div class="fg" style="flex:1;"><label class="fl">Casual Leave</label>
+        <select class="fi" id="sf-cl"><option value="">Not eligible</option><option value="1">1 per month</option><option value="2">2 per month</option></select>
+      </div>
+    </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" id="sf-notes" placeholder="Specialization, notes..."/></div>
     <button class="sb2" id="sf-save-btn" onclick="saveStaff()" disabled style="opacity:0.45;">Save Staff</button>
   </div>
@@ -1904,10 +1913,7 @@ function renderDash(_force){
   if(!_force&&window._lastDashRender&&(_drNow-window._lastDashRender)<2500)return;
   window._lastDashRender=_drNow;
   /* v150.5 DEBUG: visible render counter */
-  window._renderCount=(window._renderCount||0)+1;
-  let _rc=document.getElementById('_rc');
-  if(!_rc){_rc=document.createElement('div');_rc.id='_rc';_rc.style.cssText='position:fixed;top:0;right:0;background:red;color:white;font-size:11px;padding:2px 6px;z-index:99999;border-radius:0 0 0 6px;';document.body.appendChild(_rc);}
-  _rc.textContent='R:'+window._renderCount;
+
   const clients=ld('pp_clients',[]);
   const payments=ld('pp_payments',[]);
   const mems=ld('pp_memberships',{});
@@ -2014,11 +2020,17 @@ function renderDash(_force){
   const _billsAll=ld('pp_bills',[]);
   const _billsDue=_billsAll.filter(b=>b.status==='due'&&b.due<=td());
   _billsDue.forEach(b=>_alerts.push({icon:b.due<td()?'🔴':'💰',text:(b.due<td()?'Overdue bill: ':'Due today: ')+b.name+' (₹'+(b.amt||0).toLocaleString('en-IN')+')',action:"showTab('tns');setTnsView('bills',document.querySelector('#tns-subtabs .ftab:nth-child(3)'))"}));
+  /* v150.8: CL alerts — warn if staff has unused CL near FY end */
+  try{const _clFy=_clFY();const _clStaff=ld('pp_staff',[]).filter(s=>s.clMonthly>0);
+    _clStaff.forEach(s=>{const ent=_clEntitled(s),used=_clUsed(s.id),bal=ent-used;
+      if(bal>0){const daysLeft=Math.round((new Date(_clFy.end+'T00:00:00')-new Date())/86400000);
+        if(daysLeft<=90)_alerts.push({icon:'📋',text:s.fname+' has '+bal+' unused CL (lapse '+fmt(_clFy.end)+')',action:"showTab('tns')"});}
+    });}catch(_e){}
 
   document.getElementById('dash-content').innerHTML=`
     ${_alerts.length?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:6px 12px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;color:#e74c3c;text-transform:uppercase;letter-spacing:1px;cursor:pointer;" onclick="window._naOpen=!window._naOpen;renderDash(true);">
-        <span>🔔 Needs Attention (${_alerts.length})</span><span style="color:var(--text3);font-size:13px;">${window._naOpen?'▲':'▼'}</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e74c3c;margin-right:6px;animation:_naBlink 1s infinite;"></span>🔔 Needs Attention (${_alerts.length})</span><span style="color:var(--text3);font-size:13px;">${window._naOpen?'▲':'▼'}</span>
       </div>
       ${window._naOpen?`${_alerts.slice(0,window._naOpen==='all'?999:6).map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);" onclick="${a.action}">
         <span>${a.icon}</span><span style="flex:1;">${_esc(a.text)}</span><span style="color:var(--text3);">›</span>
@@ -3365,7 +3377,7 @@ function showTab(n,btn){
   if(n==='clients')renderClients();
   if(n==='schedule')renderSchedule();
   if(n==='cash')renderCash();
-  if(n==='tns'){renderBillsTasks();renderStaff();}
+  if(n==='tns'){renderBillsTasks();renderStaff();renderCLTracker();}
   if(n==='credits')renderCredits();
   _updateFloatingNav(n);
 }
@@ -3852,12 +3864,14 @@ function openAddStaff(id){
     if(s.photo){setPhotoPreview('sf-photo-preview',s.photo,'','');}
     else{const prev=document.getElementById('sf-photo-preview');prev.innerHTML='📷';prev.style.background='var(--surface3)';}
     document.getElementById('sf-join').value=s.join||'';
+    document.getElementById('sf-cl').value=s.clMonthly||'';
     document.getElementById('sf-notes').value=s.notes||'';
   } else {
     ['sf-fname','sf-lname','sf-phone','sf-email','sf-notes'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('sf-sal').value='';
     document.getElementById('sf-sal-from').value='';
     document.getElementById('sf-offday').value='';
+    document.getElementById('sf-cl').value='';
     document.getElementById('sf-join').value=td();
   }
   openM('m-addstaff');
@@ -3909,6 +3923,7 @@ function saveStaff(){
     salary:newSal,salFrom:newSalFrom,salaryHistory:hist,
     offday:offdayVal!==''?parseInt(offdayVal):undefined,
     join:document.getElementById('sf-join').value,
+    clMonthly:parseInt(document.getElementById('sf-cl').value)||0,
     notes:document.getElementById('sf-notes').value.trim(),
     photo:document.getElementById('sf-photo').value||existing.photo||''
   };
@@ -4520,6 +4535,86 @@ function saveBillTask(){
   }
   closeM('m-addtodo');toast('✓ Saved!');renderBillsTasks();
 }
+/* ===== v150.8: CASUAL LEAVE TRACKER ===== */
+function _clFY(){
+  /* Financial year: April to March. Returns {start,end,label} */
+  const now=new Date();const y=now.getMonth()>=3?now.getFullYear():now.getFullYear()-1;
+  return {start:y+'-04-01',end:(y+1)+'-03-31',label:y+'-'+(y+1).toString().slice(-2)};
+}
+function _clEntitled(s){
+  /* Pro-rata: months from max(FY start, join date) to FY end × monthly quota */
+  const fy=_clFY();
+  if(!s.clMonthly)return 0;
+  const from=s.join&&s.join>fy.start?s.join:fy.start;
+  const fDt=new Date(from+'T00:00:00');const eDt=new Date(fy.end+'T00:00:00');
+  const months=Math.max(0,(eDt.getFullYear()-fDt.getFullYear())*12+(eDt.getMonth()-fDt.getMonth())+1);
+  return Math.min(12,months)*s.clMonthly;
+}
+function _clUsed(sid){
+  const fy=_clFY();
+  const leaves=ld('pp_leaves',[]);
+  return leaves.filter(l=>l.sid===sid&&l.date>=fy.start&&l.date<=fy.end).length;
+}
+function renderCLTracker(){
+  const el=document.getElementById('cl-tracker');if(!el)return;
+  const staff=ld('pp_staff',[]).filter(s=>s.clMonthly>0);
+  if(!staff.length){el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:12px;text-align:center;">No staff eligible for casual leave. Set quota in staff form.</div>';return;}
+  const fy=_clFY();
+  const leaves=ld('pp_leaves',[]);
+  el.innerHTML=staff.map(s=>{
+    const entitled=_clEntitled(s);
+    const used=_clUsed(s.id);
+    const bal=entitled-used;
+    const staffLeaves=leaves.filter(l=>l.sid===s.id&&l.date>=fy.start&&l.date<=fy.end);
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:12px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div><span style="font-weight:700;color:var(--text);">${_esc(s.fname)} ${_esc(s.lname||'')}</span> <span style="font-size:11px;color:var(--text3);">(${s.clMonthly}/month)</span></div>
+        <button onclick="_clRecord('${s.id}')" style="background:var(--gold);color:#1a1a2e;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">+ Record CL</button>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:13px;">
+        <div>Entitled: <b style="color:var(--gold);">${entitled}</b></div>
+        <div>Used: <b style="color:${used>0?'var(--rose)':'var(--text3)'};">${used}</b></div>
+        <div>Balance: <b style="color:${bal<=0?'var(--rose)':'var(--green)'};">${bal}</b></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px;">FY ${fy.label} · Lapses 31 Mar</div>
+      ${staffLeaves.length?'<div style="margin-top:8px;font-size:12px;color:var(--text2);">'+staffLeaves.map(l=>'<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid var(--border);"><span>'+fmt(l.date)+(l.reason?' — '+_esc(l.reason):'')+'</span><span style="color:var(--rose);cursor:pointer;" onclick="_clDelete(\''+l.id+'\')">🗑</span></div>').join('')+'</div>':''}
+    </div>`;
+  }).join('');
+}
+function _clRecord(sid){
+  if(!_gate('tns','staff','edit'))return;
+  const s=ld('pp_staff',[]).find(x=>x.id===sid);if(!s)return;
+  const entitled=_clEntitled(s);const used=_clUsed(sid);
+  if(used>=entitled){toast('⚠ No CL balance left ('+used+'/'+entitled+' used)');return;}
+  showConfirm('📋','Record Casual Leave',_esc(s.fname)+' — '+used+'/'+entitled+' used, '+(entitled-used)+' remaining',[
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+    {label:'Today',color:'var(--gold)',action:()=>_clSave(sid,td(),'')},
+    {label:'Pick Date',color:'var(--gold)',action:()=>{
+      const d=prompt('Enter date (YYYY-MM-DD):',td());
+      if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d))_clSave(sid,d,'');
+    }}
+  ]);
+}
+function _clSave(sid,date,reason){
+  const leaves=ld('pp_leaves',[]);
+  leaves.push({id:Date.now().toString(),sid,date,reason,ts:Date.now()});
+  sv('pp_leaves',leaves);
+  renderCLTracker();
+  const s=ld('pp_staff',[]).find(x=>x.id===sid);
+  toast('✓ CL recorded for '+(s?s.fname:'staff')+' on '+fmt(date));
+  if(typeof AUD==='function')AUD('📋 CL recorded',(s?s.fname:sid)+' '+date);
+}
+function _clDelete(lid){
+  if(!_gate('tns','staff','edit'))return;
+  showConfirm('🗑','Delete this leave?','',[
+    {label:'Cancel',color:'var(--border2)',outline:true,action:null},
+    {label:'Delete',color:'var(--rose)',action:()=>{
+      const leaves=ld('pp_leaves',[]).filter(l=>l.id!==lid);
+      sv('pp_leaves',leaves);renderCLTracker();toast('Deleted');
+    }}
+  ]);
+}
+
 function renderBillsTasks(){
   const container=document.getElementById('bills-list');
   if(!container)return;
@@ -5157,7 +5252,10 @@ function renderCash(){
   }).sort((a,b)=>{
     const d=new Date(b.date)-new Date(a.date);
     if(d!==0)return d;
-    return (parseInt(b.id)||0)-(parseInt(a.id)||0); /* same date → latest entered on top */
+    /* same date → latest created first (ID is timestamp for normal entries) */
+    const ai=parseInt(a.id)||0, bi=parseInt(b.id)||0;
+    if(ai&&bi)return bi-ai;
+    return (b.id||'').localeCompare(a.id||'');
   });
   if(!filtered.length){document.getElementById('cash-list').innerHTML=`<div style="text-align:center;padding:40px;color:var(--text2);">No entries yet. Tap + to add.</div>`;return;}
   document.getElementById('cash-list').innerHTML=filtered.map(e=>{
@@ -5434,7 +5532,7 @@ if('serviceWorker' in navigator){
     <div class="lg-mark" style="overflow:hidden;padding:0;background:none;"><img src="icon192.png" alt="Pilates D'Luxe" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/></div>
     <div class="lg-title">Pilates D'Luxe</div>
     <div class="lg-sub" id="lg-sub">Studio Admin · Sign In</div>
-    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v150.7</div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:-6px;margin-bottom:10px;">v150.9</div>
     <div id="lg-login-area">
       <div class="lg-users" id="lg-users"></div>
       <input class="lg-pin" id="lg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="• • • •" autocomplete="off" name="pdl-pin" data-1p-ignore data-lpignore="true" data-form-type="other"/>
